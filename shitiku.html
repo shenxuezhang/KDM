@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHEIN平台答题库查询系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(90deg, #ff1493, #ff69b4);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .search-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            border-color: #ff69b4;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+        }
+        
+        .search-box button {
+            background: linear-gradient(90deg, #ff1493, #ff69b4);
+            color: white;
+            border: none;
+            padding: 0 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .search-box button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+        }
+        
+        .filter-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .filter-section select {
+            padding: 10px 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            background: white;
+            font-size: 1rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .question-counter {
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 10px 0 20px;
+            color: #ff1493;
+            font-weight: 600;
+        }
+        
+        .question-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .question-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border-left: 5px solid #ff69b4;
+        }
+        
+        .question-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, #ffebf3, #ffffff);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .question-type {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 5px 15px;
+            border-radius: 20px;
+            color: white;
+        }
+        
+        .type-single {
+            background: linear-gradient(90deg, #3498db, #1abc9c);
+        }
+        
+        .type-multi {
+            background: linear-gradient(90deg, #9b59b6, #e74c3c);
+        }
+        
+        .type-judge {
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+        }
+        
+        .question-id {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ff1493;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+        
+        .options {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        
+        .option {
+            margin-bottom: 10px;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .option::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+        }
+        
+        .option.correct::before {
+            background: #2ecc71;
+            border-color: #2ecc71;
+            content: "✓";
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .answer-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .answer-title {
+            font-weight: 700;
+            color: #ff1493;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .analysis-title {
+            font-weight: 700;
+            color: #3498db;
+            margin: 20px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .analysis-content {
+            background: #edf7ff;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .add-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-top: 30px;
+        }
+        
+        .add-section h2 {
+            color: #ff1493;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .add-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus {
+            border-color: #ff69b4;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn-add {
+            background: linear-gradient(90deg, #1abc9c, #3498db);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            grid-column: span 2;
+            margin-top: 10px;
+        }
+        
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .question-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            
+            .add-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-add {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-book-open"></i> SHEIN平台答题库查询系统</h1>
+            <p class="subtitle">高效查询、便捷管理、持续更新</p>
+        </header>
+        
+        <section class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="输入关键词搜索题目、答案或解析...">
+                <button id="searchBtn"><i class="fas fa-search"></i> 搜索题目</button>
+            </div>
+            
+            <div class="filter-section">
+                <select id="typeFilter">
+                    <option value="all">所有题型</option>
+                    <option value="单选题">单选题</option>
+                    <option value="多选题">多选题</option>
+                    <option value="判断题">判断题</option>
+                </select>
+                
+                <select id="difficultyFilter">
+                    <option value="all">所有难度</option>
+                    <option value="easy">简单</option>
+                    <option value="medium">中等</option>
+                    <option value="hard">困难</option>
+                </select>
+                
+                <select id="topicFilter">
+                    <option value="all">所有主题</option>
+                    <option value="订单管理">订单管理</option>
+                    <option value="签收率">签收率</option>
+                    <option value="处罚规则">处罚规则</option>
+                    <option value="发货时效">发货时效</option>
+                </select>
+            </div>
+        </section>
+        
+        <div class="question-counter">
+            共找到 <span id="questionCount">10</span> 道题目
+        </div>
+        
+        <div class="question-list" id="questionList">
+            <!-- 题目卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <section class="add-section">
+            <h2><i class="fas fa-plus-circle"></i> 添加新题目</h2>
+            <div class="add-form">
+                <div class="form-group">
+                    <label for="newType">题目类型</label>
+                    <select id="newType">
+                        <option value="单选题">单选题</option>
+                        <option value="多选题">多选题</option>
+                        <option value="判断题">判断题</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newId">题目编号</label>
+                    <input type="text" id="newId" placeholder="输入题目编号">
+                </div>
+                
+                <div class="form-group" style="grid-column: span 2;">
+                    <label for="newQuestion">题目内容</label>
+                    <textarea id="newQuestion" placeholder="输入题目内容"></textarea>
+                </div>
+                
+                <div class="form-group" style="grid-column: span 2;">
+                    <label for="newOptions">选项（每行一个选项，格式如：A: 选项内容）</label>
+                    <textarea id="newOptions" placeholder="A: 选项内容&#10;B: 选项内容&#10;C: 选项内容"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="newAnswer">正确答案</label>
+                    <input type="text" id="newAnswer" placeholder="例如：A 或 A B C">
+                </div>
+                
+                <div class="form-group">
+                    <label for="newAnalysis">答案解析</label>
+                    <textarea id="newAnalysis" placeholder="输入题目解析"></textarea>
+                </div>
+                
+                <button class="btn-add" id="addQuestionBtn"><i class="fas fa-plus"></i> 添加题目</button>
+            </div>
+        </section>
+        
+        <footer>
+            <p>SHEIN平台答题库查询系统 &copy; 2023 | 持续更新中</p>
+            <p>系统支持题目搜索、筛选和添加新题目功能</p>
+        </footer>
+    </div>
+
+    <script>
+        // 题目数据
+        const questions = [
+            {
+                id: 1,
+                type: "单选题",
+                question: "若您有一笔订单，导出地址后在后台点击确认无货，关于以上情况，哪一项说法是正确的？",
+                options: {
+                    "A": "订单将被取消，并被视为卖家原因订单取消，扣2分",
+                    "B": "订单将被取消，但并不会被视为卖家原因订单取消",
+                    "C": "订单将被取消，并被视为卖家原因订单取消，处罚5美金",
+                    "D": "订单将停留在待发货状态，直至商品补货到货"
+                },
+                answer: "C",
+                analysis: "无论订单处于何种处理状态，在后台点击确认无货后，订单都将被视作卖家原因取消订单，并面临每单5美金的处罚",
+                difficulty: "medium",
+                topic: "订单管理"
+            },
+            {
+                id: 2,
+                type: "单选题",
+                question: "若您的店铺上周按时签收率为90%，这周您的一笔订单超过了平台的要求签收时间仍没有完成签收，关于以上情况，哪一项说法是正确的？",
+                options: {
+                    "A": "订单从创建到签收时间超过7自然日，则会被视作未按时签收订单",
+                    "B": "该未按时到货订单将面临5美金的处罚",
+                    "C": "由于店铺上周按时签收率大等于90%，本周未按时签收订单的罚款将被豁免",
+                    "D": "该未按时到货订单将面临店铺扣2分的处罚"
+                },
+                answer: "B",
+                analysis: "根据履约管理规范，店铺上周按时签收率大等于95%时，本周未按时到货订单将免除罚金处罚；店铺上周按时签收率小于95%时，本周未按时到货订单将每单扣除5美金",
+                difficulty: "hard",
+                topic: "签收率"
+            },
+            {
+                id: 3,
+                type: "单选题",
+                question: "若一个自然年内，您的店铺累计出现46单，且虚假发货订单数量为23单，关于以上情况，哪种说法是错误的？",
+                options: {
+                    "A": "若店铺虚假发货情形严重，将可能面临更严格的处罚",
+                    "B": "店铺将被延长账期30天",
+                    "C": "店铺将被禁止提现",
+                    "D": "23个虚假发货订单将每单处罚销售金额的50%，上限200美金，下限10美金"
+                },
+                answer: "C",
+                analysis: "店铺在一个自然年内累计出现20单及以上，且续虚假发货订单占比大等于50%，将面临账期延长的30天的处罚；当店铺在一个自然年内累计出现50单及以上，且虚假发货订单占比大等于50%，将额外面临禁止提现、限制流量、商品下架、限制店铺经营权限、店铺禁用、店铺清退的处罚",
+                difficulty: "hard",
+                topic: "处罚规则"
+            },
+            {
+                id: 4,
+                type: "单选题",
+                question: "SHEIN平台对于半托管订单的发货时效的要求，哪项是正确的？",
+                options: {
+                    "A": "发货时效指的是导出地址至物流商揽收包裹的时效",
+                    "B": "上传单号后若长时间没有物流轨迹，系统将在14个工作日后自动判定签收",
+                    "C": "平台对发货时效的要求为7工作日内上传物流单号",
+                    "D": "平台对发货时效的要求为5工作日内上传物流单号"
+                },
+                answer: "D",
+                analysis: "根据履约管理规范，订单需在导出地址后5工作日内上传运单号",
+                difficulty: "easy",
+                topic: "发货时效"
+            },
+            {
+                id: 5,
+                type: "多选题",
+                question: "若您将空包裹配送给消费者，会面临怎样的处罚？",
+                options: {
+                    "A": "若及时补发，将不会面临任何处罚",
+                    "B": "订单将面临销售金额100%的罚金处罚，下限10美金，上限600美金",
+                    "C": "订单相关商品将被加入回收站",
+                    "D": "订单将被视作欺诈发货"
+                },
+                answer: "B C D",
+                analysis: "将空包裹配送给消费者，消费者投诉且商家举证失败后，订单将被判定为欺诈发货，会面临包括但不限于以下处罚：每单处罚订单销售金额的100%，上限600美金，下限10美金；商品加入回收站；店铺经营权限限制等。",
+                difficulty: "hard",
+                topic: "处罚规则"
+            },
+            {
+                id: 6,
+                type: "多选题",
+                question: "若您的店铺上周按时签收率为90%，这周您的一笔订单超过了平台的要求签收时间仍没有完成签收，关于以上情况，哪些说法是正确的？",
+                options: {
+                    "A": "每笔订单将面临5美金的处罚",
+                    "B": "店铺上周按时签收率未达到95%，本周未按时签收订单的将被正常罚款",
+                    "C": "由于店铺上周按时签收率大等于90%，本周未按时签收订单的罚款将被豁免",
+                    "D": "若店铺存在大量且占比较大的未按时签收订单，店铺可能面临额外处罚，包括但不限于商品下架、关闭自履约、店铺禁用等"
+                },
+                answer: "A B D",
+                analysis: "根据履约管理规范，店铺上周按时签收率大等于95%时，本周未按时到货订单将免除罚金处罚；店铺上周按时签收率小于95%时，本周未按时到货订单将每单扣除5美金",
+                difficulty: "medium",
+                topic: "签收率"
+            },
+            {
+                id: 7,
+                type: "多选题",
+                question: "若您有一笔订单，导出地址后在后台点击确认无货，则订单状态会如何流转？若会因此面临处罚，将面临怎样的处罚？",
+                options: {
+                    "A": "订单将被取消，并被视为卖家原因订单取消",
+                    "B": "确认无货不会面临任何处罚",
+                    "C": "订单将停留在待发货状态，直至商品补货到货",
+                    "D": "每笔订单将面临5美金的处罚"
+                },
+                answer: "A D",
+                analysis: "无论订单处于何种处理状态，在后台点击确认无货后，订单都将被视作卖家原因取消订单，并面临每单5美金的处罚",
+                difficulty: "medium",
+                topic: "订单管理"
+            },
+            {
+                id: 8,
+                type: "多选题",
+                question: "若您的店铺上周按时签收率为95%，这周您的一笔订单超过了平台的要求签收时间仍没有完成签收，关于以上情况，哪些说法是正确的？",
+                options: {
+                    "A": "每笔订单将面临5美金的处罚",
+                    "B": "由于店铺上周按时签收率大等于95%，本周未按时签收订单的罚款将被豁免",
+                    "C": "由于店铺上周按时签收率大等于90%，本周未按时签收订单的罚款将被豁免",
+                    "D": "若店铺存在大量且占比较大的未按时签收订单，店铺可能面临额外处罚，包括但不限于商品下架、关闭自履约、店铺禁用等"
+                },
+                answer: "B D",
+                analysis: "根据履约管理规范，店铺上周按时签收率大等于95%时，本周未按时到货订单将免除罚金处罚；店铺上周按时签收率小于95%时，本周未按时到货订单将每单扣除5美金",
+                difficulty: "medium",
+                topic: "签收率"
+            },
+            {
+                id: 9,
+                type: "判断题",
+                question: "若您有一笔销售金额20美金的订单，在上传物流单号后5工作日仍没有揽收记录，会面临10美金的处罚",
+                options: {
+                    "正确": "",
+                    "错误": ""
+                },
+                answer: "正确",
+                analysis: "异常物流轨迹的订单将被判定为虚假发货，每单处罚销售金额的50%，上限200美金，下限10美金",
+                difficulty: "easy",
+                topic: "处罚规则"
+            },
+            {
+                id: 10,
+                type: "判断题",
+                question: "若您的店铺上周按时签收率为95%，这周您的一笔订单超过了平台的要求签收时间仍没有完成签收，会面临每笔订单5美金的处罚",
+                options: {
+                    "正确": "",
+                    "错误": ""
+                },
+                answer: "错误",
+                analysis: "根据履约管理规范，店铺上周按时签收率大等于95%时，本周未按时到货订单将免除罚金处罚；店铺上周按时签收率小于95%时，本周未按时到货订单将每单扣除5美金",
+                difficulty: "medium",
+                topic: "签收率"
+            }
+        ];
+
+        // 渲染题目列表
+        function renderQuestions(questionsToRender) {
+            const questionList = document.getElementById('questionList');
+            questionList.innerHTML = '';
+            
+            questionsToRender.forEach(q => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                
+                // 根据题型设置样式类
+                let typeClass = '';
+                if (q.type === '单选题') typeClass = 'type-single';
+                else if (q.type === '多选题') typeClass = 'type-multi';
+                else if (q.type === '判断题') typeClass = 'type-judge';
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <span class="question-id">题目 ${q.id}</span>
+                        </div>
+                        <span class="question-type ${typeClass}">${q.type}</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="question-text">${q.question}</p>
+                        
+                        <div class="options">
+                            ${Object.entries(q.options).map(([key, value]) => {
+                                const isCorrect = q.answer.includes(key);
+                                return `<div class="option ${isCorrect ? 'correct' : ''}">
+                                    <strong>${key}:</strong> ${value}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                        
+                        <div class="answer-section">
+                            <div class="answer-title">
+                                <i class="fas fa-check-circle"></i>
+                                标准答案：${q.answer}
+                            </div>
+                        </div>
+                        
+                        <div class="analysis-title">
+                            <i class="fas fa-lightbulb"></i>
+                            答案解析：
+                        </div>
+                        <div class="analysis-content">
+                            ${q.analysis}
+                        </div>
+                    </div>
+                `;
+                
+                questionList.appendChild(card);
+            });
+            
+            document.getElementById('questionCount').textContent = questionsToRender.length;
+        }
+
+        // 搜索功能
+        function searchQuestions() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const difficultyFilter = document.getElementById('difficultyFilter').value;
+            const topicFilter = document.getElementById('topicFilter').value;
+            
+            const filtered = questions.filter(q => {
+                // 题型过滤
+                if (typeFilter !== 'all' && q.type !== typeFilter) return false;
+                
+                // 难度过滤
+                if (difficultyFilter !== 'all' && q.difficulty !== difficultyFilter) return false;
+                
+                // 主题过滤
+                if (topicFilter !== 'all' && q.topic !== topicFilter) return false;
+                
+                // 关键词搜索
+                if (searchTerm) {
+                    const inQuestion = q.question.toLowerCase().includes(searchTerm);
+                    const inOptions = Object.values(q.options).some(opt => opt.toLowerCase().includes(searchTerm));
+                    const inAnswer = q.answer.toLowerCase().includes(searchTerm);
+                    const inAnalysis = q.analysis.toLowerCase().includes(searchTerm);
+                    
+                    if (!(inQuestion || inOptions || inAnswer || inAnalysis)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            renderQuestions(filtered);
+        }
+
+        // 添加新题目
+        function addNewQuestion() {
+            const newType = document.getElementById('newType').value;
+            const newId = document.getElementById('newId').value;
+            const newQuestion = document.getElementById('newQuestion').value;
+            const newOptionsText = document.getElementById('newOptions').value;
+            const newAnswer = document.getElementById('newAnswer').value;
+            const newAnalysis = document.getElementById('newAnalysis').value;
+            
+            if (!newId || !newQuestion || !newOptionsText || !newAnswer || !newAnalysis) {
+                alert('请填写所有必填字段！');
+                return;
+            }
+            
+            // 解析选项
+            const options = {};
+            const optionLines = newOptionsText.split('\n');
+            optionLines.forEach(line => {
+                if (line.trim()) {
+                    const parts = line.split(':');
+                    if (parts.length > 1) {
+                        const key = parts[0].trim();
+                        const value = parts.slice(1).join(':').trim();
+                        options[key] = value;
+                    }
+                }
+            });
+            
+            // 创建新题目对象
+            const newQuestionObj = {
+                id: newId,
+                type: newType,
+                question: newQuestion,
+                options: options,
+                answer: newAnswer,
+                analysis: newAnalysis,
+                difficulty: "medium",
+                topic: "其他"
+            };
+            
+            // 添加到题目数组
+            questions.push(newQuestionObj);
+            
+            // 重新渲染
+            renderQuestions(questions);
+            
+            // 重置表单
+            document.getElementById('newId').value = '';
+            document.getElementById('newQuestion').value = '';
+            document.getElementById('newOptions').value = '';
+            document.getElementById('newAnswer').value = '';
+            document.getElementById('newAnalysis').value = '';
+            
+            alert('题目添加成功！');
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始渲染
+            renderQuestions(questions);
+            
+            // 绑定搜索按钮事件
+            document.getElementById('searchBtn').addEventListener('click', searchQuestions);
+            
+            // 绑定输入框回车事件
+            document.getElementById('searchInput').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') searchQuestions();
+            });
+            
+            // 绑定筛选器变更事件
+            document.getElementById('typeFilter').addEventListener('change', searchQuestions);
+            document.getElementById('difficultyFilter').addEventListener('change', searchQuestions);
+            document.getElementById('topicFilter').addEventListener('change', searchQuestions);
+            
+            // 绑定添加题目按钮
+            document.getElementById('addQuestionBtn').addEventListener('click', addNewQuestion);
+        });
+    </script>
+</body>
+</html>
