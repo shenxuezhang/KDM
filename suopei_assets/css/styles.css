@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+body { 
+    font-family: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif; 
+    background-color: #f8fafc; 
+    color: #334155;
+    transition: background-color 0.3s, color 0.3s;
+}
+.dark body { background-color: #0f172a; color: #f8fafc; }
+
+/* 自定义滚动条 */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+
+/* 纯 CSS 弹窗逻辑 */
+.modal-backdrop {
+    position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.modal-backdrop.active { opacity: 1; pointer-events: auto; }
+.modal-content {
+    background-color: white; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 100%; max-width: 28rem; padding: 1.5rem; margin: 1rem;
+    transform: scale(0.95); transition: transform 0.3s ease;
+}
+.dark .modal-content { background-color: #1e293b; }
+.modal-backdrop.active .modal-content { transform: scale(1); }
+
+/* 状态 Tab 胶囊 */
+.status-pill {
+    padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; opacity: 0.7; border: 1px solid transparent;
+}
+.status-pill:hover { opacity: 1; transform: translateY(-1px); }
+.status-pill.active { opacity: 1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-color: currentColor; }
+
+.pill-all { background-color: #e2e8f0; color: #475569; }
+.dark .pill-all { background-color: #334155; color: #e2e8f0; }
+.pill-pending { background-color: #dbeafe; color: #1d4ed8; }
+.dark .pill-pending { background-color: rgba(30, 58, 138, 0.5); color: #93c5fd; }
+.pill-processing { background-color: #e0e7ff; color: #4338ca; }
+.dark .pill-processing { background-color: rgba(49, 46, 129, 0.5); color: #a5b4fc; }
+.pill-waiting { background-color: #fef3c7; color: #b45309; }
+.dark .pill-waiting { background-color: rgba(120, 53, 15, 0.5); color: #fcd34d; }
+.pill-paid { background-color: #d1fae5; color: #047857; }
+.dark .pill-paid { background-color: rgba(6, 78, 59, 0.5); color: #6ee7b7; }
+.pill-rejected { background-color: #fee2e2; color: #b91c1c; }
+.dark .pill-rejected { background-color: rgba(127, 29, 29, 0.5); color: #fca5a5; }
+
+/* 页面切换动画 */
+.animate-fade-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeInUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+/* 公告淡入动画 */
+.fade-in-down { animation: fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Toast */
+@keyframes slideIn { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+.toast-enter { animation: slideIn 0.3s ease-out forwards; }
+.toast-exit { animation: fadeOut 0.3s ease-out forwards; }
+
+/* 玻璃拟态卡片 */
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.dark .glass-card {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(51, 65, 85, 0.5);
+}
+
+/* 统一输入框标签样式 */
+.input-group-label {
+    display: block; font-size: 0.875rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem;
+}
+.dark .input-group-label { color: #cbd5e1; }
+.bg-blue-50 .input-group-label { color: #1e3a8a; opacity: 0.8; }
+.dark .bg-blue-50 .input-group-label { color: #93c5fd; }
+
+/* 输入框模式适配 */
+.form-input, .form-textarea, select.form-input {
+    color: #1e293b;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.form-input:focus, .form-textarea:focus, select.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+.dark .form-input, .dark .form-textarea, .dark select.form-input {
+    color: #f8fafc;
+    background-color: #334155;
+    border-color: #475569;
+}
+.dark .form-input:focus, .dark .form-textarea:focus, .dark select.form-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+/* 文本域样式优化 */
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* 选择框样式优化 */
+select.form-input {
+    cursor: pointer;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px;
+    padding-right: 2.5rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* 总赔偿金额输入框的placeholder样式 */
+#claim_total::placeholder {
+    color: #ef4444;
+    opacity: 0.5;
+}
+.dark #claim_total::placeholder {
+    color: #f87171;
+    opacity: 0.5;
+}
+
+/* 图片光标 */
+.cursor-zoom-in { cursor: zoom-in; }
+
+/* 表格样式增强 */
+.erp-th {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+    user-select: none;
+}
+.dark .erp-th {
+    color: #94a3b8;
+    background-color: #1e293b;
+    border-bottom-color: #334155;
+}
+.erp-th-sortable { cursor: pointer; transition: color 0.2s; }
+.erp-th-sortable:hover { color: #3b82f6; }
+
+.erp-td {
+    padding: 0.625rem 1rem; /* 调整行间距，减小垂直内边距，使行更紧凑 */
+    font-size: 0.875rem;
+    color: #334155;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9; /* 使用更细的分隔线 */
+}
+.dark .erp-td {
+    color: #e2e8f0;
+    border-bottom-color: #334155;
+}
+
+.erp-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.action-btn {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+

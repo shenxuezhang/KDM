@@ -1,0 +1,1077 @@
+/**
+ * UI模块
+ * 处理用户界面相关的所有功能：视图切换、表单处理、模态框、Toast等
+ */
+
+// UI状态
+let isFormDirty = false;
+let editingId = null;
+let visibleColumns = JSON.parse(localStorage.getItem('wh_claims_cols')) || TABLE_COLUMNS.map(c => c.key).filter(k => k !== 'remarks');
+let currentFilteredData = [];
+
+// 将 visibleColumns 暴露到全局作用域，供HTML中的代码访问
+if (typeof window !== 'undefined') {
+    // 使用 Object.defineProperty 创建一个代理，确保修改同步
+    Object.defineProperty(window, 'visibleColumns', {
+        get: function() {
+            return visibleColumns;
+        },
+        set: function(value) {
+            visibleColumns = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+}
+
+/**
+ * 标记表单为已修改
+ */
+function markFormDirty() {
+    isFormDirty = true;
+}
+
+/**
+ * 初始化主题
+ */
+function initTheme() {
+    if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+}
+
+/**
+ * 切换深色模式
+ */
+function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+}
+
+/**
+ * 显示Toast提示
+ */
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    const styles = {
+        success: 'bg-emerald-500 text-white',
+        error: 'bg-red-500 text-white',
+        info: 'bg-blue-600 text-white'
+    };
+    toast.className = `flex items-center justify-center w-full px-6 py-3 rounded-xl shadow-lg pointer-events-auto transform transition-all duration-300 toast-enter font-bold text-sm gap-3 ${styles[type]}`;
+    toast.innerHTML = `<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+}
+
+/**
+ * 切换列配置模态框
+ */
+function toggleColumnModal() {
+    document.getElementById('columnModal').classList.toggle('active');
+}
+
+/**
+ * 渲染列配置模态框
+ */
+function renderColumnModal() {
+    document.getElementById('columnCheckboxes').innerHTML = TABLE_COLUMNS.map(col => `
+        <label class="flex items-center space-x-2 p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
+            <input type="checkbox" value="${col.key}" ${visibleColumns.includes(col.key) ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">${col.label}</span>
+        </label>
+    `).join('');
+}
+
+/**
+ * 保存列配置
+ */
+function saveColumns() {
+    const checked = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+    if (checked.length === 0) return alert('至少保留一列');
+    visibleColumns = checked;
+    localStorage.setItem('wh_claims_cols', JSON.stringify(visibleColumns));
+    renderTableHeader();
+    renderDatabase();
+    toggleColumnModal();
+}
+
+/**
+ * 重置列配置
+ */
+function resetColumns() {
+    visibleColumns = TABLE_COLUMNS.map(c => c.key).filter(k => k !== 'remarks');
+    document.querySelectorAll('#columnCheckboxes input').forEach(cb => cb.checked = visibleColumns.includes(cb.value));
+    localStorage.setItem('wh_claims_cols', JSON.stringify(visibleColumns));
+    renderTableHeader();
+    renderDatabase();
+}
+
+/**
+ * 渲染表头
+ */
+function renderTableHeader() {
+    const checkboxTh = `<th class="erp-th text-center w-12 pl-4">
+        <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer bg-slate-100 dark:bg-slate-700 dark:border-slate-600">
+    </th>`;
+
+    let html = visibleColumns.map(key => {
+        const col = TABLE_COLUMNS.find(c => c.key === key);
+        const sortIcon = col.sort ? `<span id="sort-icon-${key}" class="ml-1 opacity-30 text-[10px]">↕</span>` : '';
+        return `<th ${col.sort ? `onclick="sortColumn('${key}')"` : ''} class="erp-th ${col.sort ? 'erp-th-sortable' : ''} ${col.center ? 'text-center' : ''} min-w-[${col.minW}]">${col.label}${sortIcon}</th>`;
+    }).join('');
+    
+    document.getElementById('tableHeaderRow').innerHTML = checkboxTh + html + `<th class="erp-th text-center min-w-[120px] pr-6">操作</th>`;
+}
+
+/**
+ * 切换子标签（状态筛选）
+ */
+function switchSubTab(status) {
+    ListState.filters.status = status;
+    document.querySelectorAll('.status-pill').forEach(btn => btn.classList.remove('active'));
+    const statusMap = {'待审核':'pending','处理中':'processing','等待赔付':'waiting','已赔付':'paid','已驳回':'rejected'};
+    const activeId = `tab-${status === 'all' ? 'all' : statusMap[status]}`;
+    document.getElementById(activeId)?.classList.add('active');
+    ListState.pagination.page = 1;
+    fetchTableData();
+}
+
+/**
+ * 获取状态徽章HTML
+ */
+function getStatusBadge(status) {
+    const colors = {
+        '待审核': 'bg-slate-100 text-slate-600',
+        '处理中': 'bg-blue-50 text-blue-600',
+        '等待赔付': 'bg-amber-50 text-orange-600',
+        '已赔付': 'bg-emerald-50 text-emerald-600',
+        '已驳回': 'bg-red-50 text-red-600'
+    };
+    return `<span class="erp-badge ${colors[status] || colors['待审核']}">${status}</span>`;
+}
+
+/**
+ * 打开状态编辑模态框
+ */
+function openStatusModal(id) {
+    document.getElementById('statusEditId').value = id;
+    document.getElementById('statusModal').classList.add('active');
+}
+
+/**
+ * 关闭状态编辑模态框
+ */
+function closeStatusModal() {
+    document.getElementById('statusModal').classList.remove('active');
+}
+
+/**
+ * 更新状态
+ */
+async function updateStatus(newStatus) {
+    const id = document.getElementById('statusEditId').value;
+    const index = database.findIndex(i => i.id === id);
+    if (index !== -1) {
+        const oldStatus = database[index].process_status;
+        database[index].process_status = newStatus;
+        
+        localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+        
+        renderKanban();
+        renderDatabase();
+        
+        const success = await updateDataInSupabase(id, database[index]);
+        
+        if (ListState.filters.status !== 'all') {
+            if (oldStatus === ListState.filters.status && newStatus !== ListState.filters.status) {
+                fetchTableData();
+            } else if (success) {
+                fetchTableData();
+            }
+        } else {
+            fetchTableData();
+        }
+        
+        showToast(`状态更新为：${newStatus}`, 'info');
+    }
+    closeStatusModal();
+}
+
+/**
+ * 更新导航状态
+ */
+function updateNavState(activeView) {
+    const items = ['nav-form', 'nav-data', 'nav-kanban', 'nav-notice', 'nav-users', 'nav-login-monitor'];
+    items.forEach(id => {
+        const el = document.getElementById(id);
+        if (id === `nav-${activeView}`) {
+            el.className = "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold bg-blue-50 text-blue-600 transition-all cursor-pointer dark:bg-blue-900/20 dark:text-blue-400";
+        } else {
+            el.className = "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-all cursor-pointer dark:text-slate-400 dark:hover:bg-slate-800";
+        }
+    });
+}
+
+/**
+ * 切换视图
+ */
+async function switchView(view) {
+    await trySwitchView(view);
+    if (view === 'users') {
+        // loadUsersFromSupabase 函数在HTML中定义为window.loadUsersFromSupabase
+        if (typeof window.loadUsersFromSupabase === 'function') {
+            const success = await window.loadUsersFromSupabase();
+            if (success) {
+                // renderUserManagement 函数也在HTML中定义为window.renderUserManagement
+                if (typeof window.renderUserManagement === 'function') {
+                    window.renderUserManagement();
+                }
+            } else {
+                // renderUserManagementConnectionError 函数也在HTML中定义为window.renderUserManagementConnectionError
+                if (typeof window.renderUserManagementConnectionError === 'function') {
+                    window.renderUserManagementConnectionError();
+                }
+            }
+        } else {
+            // 函数未定义时，等待一段时间后重试（因为HTML脚本在模块之后加载）
+            console.warn('loadUsersFromSupabase 函数未定义，可能是脚本加载顺序问题，等待后重试...');
+            setTimeout(async () => {
+                if (typeof window.loadUsersFromSupabase === 'function') {
+                    const success = await window.loadUsersFromSupabase();
+                    if (success && typeof window.renderUserManagement === 'function') {
+                        window.renderUserManagement();
+                    } else if (typeof window.renderUserManagementConnectionError === 'function') {
+                        window.renderUserManagementConnectionError();
+                    }
+                } else {
+                    console.error('loadUsersFromSupabase 函数仍未定义，请检查HTML脚本是否正确加载');
+                    // 显示友好的错误提示
+                    const tbody = document.getElementById('usersTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">用户管理功能加载失败，请刷新页面重试</td></tr>';
+                    }
+                }
+            }, 200);
+        }
+    }
+    // 注意：'notice' 视图的处理已在 trySwitchView 函数中完成
+}
+
+// 将 switchView 暴露到全局作用域，供HTML中的onclick调用
+if (typeof window !== 'undefined') {
+    window.switchView = switchView;
+}
+
+/**
+ * 尝试切换视图（带权限检查）
+ */
+async function trySwitchView(view) {
+    if (view === 'users') {
+        if (!currentUser || currentUser.role !== 'admin') {
+            showToast('权限不足：仅管理员可访问此模块', 'error');
+            return;
+        }
+    }
+    if (view === 'login-monitor') {
+        if (!currentUser || !hasPermission('can_audit')) {
+            showToast('权限不足：仅授权用户可访问登录监控', 'error');
+            return;
+        }
+    }
+
+    // 处理编辑模式下的视图切换
+    if (editingId && isFormDirty) {
+        if (confirm("您正在编辑数据，是否保存当前修改？")) {
+            try {
+                const form = document.getElementById('claimForm');
+                if (form.checkValidity()) {
+                    const record = getFormDataFromInput();
+                    const index = database.findIndex(i => i.id === editingId);
+                    if (index !== -1) {
+                        database[index] = record;
+                        await updateDataInSupabase(editingId, record);
+                        localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+                        showToast('数据修改已保存', 'success');
+                    }
+                } else {
+                    showToast('表单验证失败，请检查输入内容', 'error');
+                    return;
+                }
+            } catch (error) {
+                showToast('保存失败，请稍后重试', 'error');
+                console.error('保存失败:', error);
+                return;
+            }
+        }
+        editingId = null;
+        isFormDirty = false;
+    } else if (isFormDirty && !confirm("您有未保存的内容，切换后将丢失，是否继续？")) {
+        return;
+    }
+    
+    // 清除监控定时器（monitorInterval 在HTML中定义为window.monitorInterval）
+    if (typeof window !== 'undefined' && window.monitorInterval) {
+        clearInterval(window.monitorInterval);
+        window.monitorInterval = null;
+    }
+    
+    updateNavState(view);
+    ['view-form', 'view-data', 'view-kanban', 'view-notice', 'view-users', 'view-login-monitor'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+    const target = document.getElementById(`view-${view}`);
+    target.classList.remove('hidden');
+    target.classList.remove('animate-fade-up');
+    void target.offsetWidth;
+    target.classList.add('animate-fade-up');
+    
+    if (view === 'data') {
+        renderDatabase();
+        setTimeout(initCharts, 50);
+    }
+    if (view === 'kanban') renderKanban();
+    if (view === 'notice') {
+        // loadNotices 函数在HTML中定义为window.loadNotices
+        // 由于HTML脚本在模块之后加载，需要等待视图完全显示后再调用
+        // 使用 requestAnimationFrame 确保DOM已完全渲染
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                if (typeof window.loadNotices === 'function') {
+                    console.log('切换到公告视图，调用 window.loadNotices() 加载公告列表');
+                    window.loadNotices();
+                } else {
+                    console.warn('loadNotices 函数未定义，等待后重试...');
+                    // 延迟更长时间，确保HTML脚本已加载
+                    setTimeout(() => {
+                        if (typeof window.loadNotices === 'function') {
+                            console.log('延迟调用 window.loadNotices() 加载公告列表');
+                            window.loadNotices();
+                        } else {
+                            console.error('loadNotices 函数仍未定义，请检查HTML脚本是否正确加载');
+                            // 显示友好的错误提示
+                            const list = document.getElementById('notice-list');
+                            if (list) {
+                                list.innerHTML = '<div class="text-center py-10"><p class="text-red-500 dark:text-red-400">公告加载功能未初始化，请刷新页面重试</p></div>';
+                            }
+                        }
+                    }, 500);
+                }
+            }, 100); // 等待100ms确保视图已显示
+        });
+    }
+    if (view === 'login-monitor') {
+        // initLoginMonitor 函数在HTML中定义为window.initLoginMonitor
+        if (typeof window.initLoginMonitor === 'function') {
+            window.initLoginMonitor();
+        } else {
+            console.warn('initLoginMonitor 函数未定义，等待后重试...');
+            setTimeout(() => {
+                if (typeof window.initLoginMonitor === 'function') {
+                    window.initLoginMonitor();
+                } else {
+                    console.error('initLoginMonitor 函数仍未定义');
+                }
+            }, 200);
+        }
+    }
+    if (view !== 'form') isFormDirty = false;
+    
+    if (view === 'form') {
+        const form = document.getElementById('claimForm');
+        form.reset();
+        
+        document.getElementById('cust_name').value = "深圳市信凯源科技有限公司";
+        document.getElementById('contact_name').value = "沈学章";
+        document.getElementById('contact_info').value = "shenxz1989@foxmail.com";
+        
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById('entry_date').value = `${year}-${month}-${day}`;
+        
+        editingId = null;
+        document.getElementById('submitBtnText').innerText = "确认提交并保存";
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+        isFormDirty = false;
+    }
+}
+
+/**
+ * 应用筛选条件（增强版：支持搜索模式和防抖）
+ */
+function applyFilters() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) return;
+    
+    const searchValue = searchInput.value.trim();
+    ListState.filters.search = searchValue;
+    
+    // 保存搜索历史（如果搜索值不为空）
+    if (searchValue) {
+        saveSearchHistory(searchValue);
+    }
+    
+    // 更新清除按钮显示状态
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) {
+        if (searchValue) {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+    }
+    
+    ListState.pagination.page = 1;
+    fetchTableData();
+    
+    // 更新搜索结果提示
+    updateSearchResultHint();
+}
+
+/**
+ * 【搜索功能增强】切换搜索模式（模糊/精确）
+ */
+function toggleSearchMode() {
+    const currentMode = ListState.filters.searchMode || 'fuzzy';
+    const newMode = currentMode === 'fuzzy' ? 'exact' : 'fuzzy';
+    
+    ListState.filters.searchMode = newMode;
+    
+    // 更新UI
+    const modeText = document.getElementById('searchModeText');
+    const modeToggle = document.getElementById('searchModeToggle');
+    
+    if (modeText) {
+        modeText.textContent = newMode === 'fuzzy' ? '模糊' : '精确';
+    }
+    
+    if (modeToggle) {
+        if (newMode === 'exact') {
+            modeToggle.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-400');
+            modeToggle.classList.add('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-400');
+        } else {
+            modeToggle.classList.remove('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-400');
+            modeToggle.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-400');
+        }
+    }
+    
+    // 如果有搜索内容，立即应用
+    if (ListState.filters.search) {
+        ListState.pagination.page = 1;
+        fetchTableData();
+        updateSearchResultHint();
+    }
+}
+
+/**
+ * 【搜索功能增强】清除搜索
+ */
+function clearSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    ListState.filters.search = '';
+    ListState.filters.advancedSearch = null;
+    
+    // 隐藏清除按钮
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) {
+        clearBtn.classList.add('hidden');
+    }
+    
+    // 隐藏高级搜索面板
+    const advancedPanel = document.getElementById('advancedSearchPanel');
+    if (advancedPanel) {
+        advancedPanel.classList.add('hidden');
+    }
+    
+    // 清空高级搜索条件
+    clearAdvancedSearchConditions();
+    
+    // 重置搜索模式为模糊
+    ListState.filters.searchMode = 'fuzzy';
+    const modeText = document.getElementById('searchModeText');
+    if (modeText) {
+        modeText.textContent = '模糊';
+    }
+    
+    ListState.pagination.page = 1;
+    fetchTableData();
+    
+    // 隐藏搜索结果提示
+    const hint = document.getElementById('searchResultHint');
+    if (hint) {
+        hint.classList.add('hidden');
+    }
+}
+
+/**
+ * 【搜索功能增强】切换高级搜索面板
+ */
+function toggleAdvancedSearch() {
+    const panel = document.getElementById('advancedSearchPanel');
+    if (!panel) return;
+    
+    if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        // 如果没有条件，添加一个默认条件
+        const conditions = document.getElementById('advancedSearchConditions');
+        if (conditions && conditions.children.length === 0) {
+            addAdvancedSearchCondition();
+        }
+    } else {
+        panel.classList.add('hidden');
+    }
+}
+
+/**
+ * 【搜索功能增强】添加高级搜索条件
+ */
+function addAdvancedSearchCondition() {
+    const container = document.getElementById('advancedSearchConditions');
+    if (!container) return;
+    
+    const fieldMap = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
+        window.SEARCH_FIELD_MAP : 
+        (typeof SEARCH_FIELD_MAP !== 'undefined' ? SEARCH_FIELD_MAP : {});
+    
+    // 【修复】排除日期类型字段，因为日期字段不支持文本搜索
+    const searchableFields = Object.keys(fieldMap).filter(key => {
+        const config = fieldMap[key];
+        return config.searchable && config.type !== 'date';
+    });
+    
+    const conditionId = `adv-condition-${Date.now()}`;
+    const conditionHtml = `
+        <div id="${conditionId}" class="flex flex-col lg:flex-row gap-3 p-4 bg-white dark:bg-slate-700 rounded-xl border-2 border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-shadow">
+            <select class="flex-1 form-input text-sm font-medium h-11 px-4 border-2 focus:border-blue-500" data-field>
+                <option value="">📋 选择搜索字段</option>
+                ${searchableFields.map(field => {
+                    const fieldType = fieldMap[field].type === 'date' ? '📅' : fieldMap[field].type === 'number' ? '🔢' : '📝';
+                    return `<option value="${field}">${fieldType} ${fieldMap[field].label || field}</option>`;
+                }).join('')}
+            </select>
+            <input type="text" class="flex-1 form-input text-sm h-11 px-4 border-2 focus:border-blue-500" placeholder="🔍 输入搜索关键词" data-value>
+            <select class="form-input text-sm font-medium h-11 px-4 w-28 border-2 focus:border-blue-500" data-mode>
+                <option value="fuzzy">🔍 模糊</option>
+                <option value="exact">✓ 精确</option>
+            </select>
+            <select class="form-input text-sm font-medium h-11 px-4 w-24 border-2 focus:border-blue-500" data-operator>
+                <option value="AND">AND</option>
+                <option value="OR">OR</option>
+            </select>
+            <button onclick="removeAdvancedSearchCondition('${conditionId}')" class="px-4 py-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition font-bold border-2 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 flex items-center justify-center gap-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                删除
+            </button>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', conditionHtml);
+}
+
+/**
+ * 【搜索功能增强】移除高级搜索条件
+ */
+function removeAdvancedSearchCondition(conditionId) {
+    const condition = document.getElementById(conditionId);
+    if (condition) {
+        condition.remove();
+    }
+    
+    // 如果没有条件了，隐藏面板
+    const container = document.getElementById('advancedSearchConditions');
+    if (container && container.children.length === 0) {
+        const panel = document.getElementById('advancedSearchPanel');
+        if (panel) {
+            panel.classList.add('hidden');
+        }
+    }
+}
+
+/**
+ * 【搜索功能增强】清空高级搜索条件
+ */
+function clearAdvancedSearchConditions() {
+    const container = document.getElementById('advancedSearchConditions');
+    if (container) {
+        container.innerHTML = '';
+    }
+    ListState.filters.advancedSearch = null;
+}
+
+/**
+ * 【搜索功能增强】应用高级搜索
+ */
+function applyAdvancedSearch() {
+    const container = document.getElementById('advancedSearchConditions');
+    if (!container) return;
+    
+    const conditions = [];
+    const conditionElements = container.querySelectorAll('[id^="adv-condition-"]');
+    
+    conditionElements.forEach(element => {
+        const field = element.querySelector('[data-field]')?.value;
+        const value = element.querySelector('[data-value]')?.value?.trim();
+        const mode = element.querySelector('[data-mode]')?.value || 'fuzzy';
+        const operator = element.querySelector('[data-operator]')?.value || 'AND';
+        
+        if (field && value) {
+            conditions.push({ field, value, mode, operator });
+        }
+    });
+    
+    if (conditions.length > 0) {
+        ListState.filters.advancedSearch = conditions;
+        ListState.filters.search = ''; // 清空简单搜索
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+    } else {
+        ListState.filters.advancedSearch = null;
+    }
+    
+    ListState.pagination.page = 1;
+    fetchTableData();
+    updateSearchResultHint();
+}
+
+/**
+ * 【搜索功能增强】更新搜索结果提示
+ */
+function updateSearchResultHint() {
+    const hint = document.getElementById('searchResultHint');
+    if (!hint) return;
+    
+    const hasSearch = ListState.filters.search || 
+                     (ListState.filters.advancedSearch && ListState.filters.advancedSearch.length > 0);
+    
+    if (hasSearch && ListState.totalCount !== undefined) {
+        const searchMode = ListState.filters.searchMode === 'exact' ? '精确' : '模糊';
+        const searchText = ListState.filters.search || '高级搜索';
+        hint.innerHTML = `🔍 <span class="font-bold text-blue-600 dark:text-blue-400">${searchText}</span> (${searchMode}搜索) - 找到 <span class="font-bold text-emerald-600 dark:text-emerald-400">${ListState.totalCount}</span> 条结果`;
+        hint.classList.remove('hidden');
+    } else {
+        hint.classList.add('hidden');
+    }
+}
+
+// 将搜索相关函数暴露到全局作用域
+if (typeof window !== 'undefined') {
+    window.toggleSearchMode = toggleSearchMode;
+    window.clearSearch = clearSearch;
+    window.toggleAdvancedSearch = toggleAdvancedSearch;
+    window.addAdvancedSearchCondition = addAdvancedSearchCondition;
+    window.removeAdvancedSearchCondition = removeAdvancedSearchCondition;
+    window.clearAdvancedSearch = clearAdvancedSearchConditions; // 别名
+    window.applyAdvancedSearch = applyAdvancedSearch;
+    window.updateSearchResultHint = updateSearchResultHint;
+}
+
+/**
+ * 【搜索功能增强】保存搜索历史（可选功能）
+ */
+function saveSearchHistory(searchTerm) {
+    if (!searchTerm || !searchTerm.trim()) return;
+    
+    try {
+        const history = JSON.parse(localStorage.getItem('search_history') || '[]');
+        // 移除重复项
+        const filtered = history.filter(item => item !== searchTerm);
+        // 添加到开头
+        filtered.unshift(searchTerm);
+        // 限制最多保存10条
+        const limited = filtered.slice(0, 10);
+        localStorage.setItem('search_history', JSON.stringify(limited));
+    } catch (e) {
+        console.error('保存搜索历史失败:', e);
+    }
+}
+
+/**
+ * 【搜索功能增强】获取搜索历史
+ */
+function getSearchHistory() {
+    try {
+        return JSON.parse(localStorage.getItem('search_history') || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
+ * 排序列
+ */
+function sortColumn(col) {
+    if (ListState.sorting.col === col) {
+        ListState.sorting.asc = !ListState.sorting.asc;
+    } else {
+        ListState.sorting.col = col;
+        ListState.sorting.asc = true;
+    }
+    ListState.pagination.page = 1;
+    fetchTableData();
+}
+
+/**
+ * 初始化登录表单
+ */
+function initLoginForms() {
+    document.getElementById('login-tab').addEventListener('click', () => showForm('login'));
+    document.getElementById('register-tab').addEventListener('click', () => showForm('register'));
+    document.getElementById('forgot-password').addEventListener('click', (e) => {
+        e.preventDefault();
+        showForm('reset');
+    });
+    document.getElementById('back-to-login').addEventListener('click', () => showForm('login'));
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleLogin();
+    });
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleRegister();
+    });
+    document.getElementById('reset-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handlePasswordReset();
+    });
+    
+    initPasswordToggle();
+}
+
+/**
+ * 初始化密码显示/隐藏功能
+ */
+function initPasswordToggle() {
+    const loginPasswordInput = document.getElementById('login-password');
+    const loginToggleBtn = document.getElementById('toggle-login-password');
+    const registerPasswordInput = document.getElementById('register-password');
+    const registerToggleBtn = document.getElementById('toggle-register-password');
+    
+    function setupPasswordToggle(passwordInput, toggleBtn) {
+        toggleBtn.addEventListener('mousedown', () => {
+            passwordInput.type = 'text';
+        });
+        toggleBtn.addEventListener('mouseup', () => {
+            passwordInput.type = 'password';
+        });
+        toggleBtn.addEventListener('mouseleave', () => {
+            passwordInput.type = 'password';
+        });
+        
+        toggleBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            passwordInput.type = 'text';
+        });
+        toggleBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            passwordInput.type = 'password';
+        });
+    }
+    
+    if (loginPasswordInput && loginToggleBtn) {
+        setupPasswordToggle(loginPasswordInput, loginToggleBtn);
+    }
+    
+    if (registerPasswordInput && registerToggleBtn) {
+        setupPasswordToggle(registerPasswordInput, registerToggleBtn);
+    }
+}
+
+/**
+ * 初始化系统标题同步
+ */
+function initTitleSync() {
+    const mainTitle = document.getElementById('system-title-main');
+    const secondaryTitle = document.getElementById('system-title-secondary');
+    
+    if (!mainTitle || !secondaryTitle) return;
+    
+    function syncTitles() {
+        secondaryTitle.textContent = mainTitle.textContent;
+    }
+    
+    syncTitles();
+    
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                syncTitles();
+            }
+        });
+    });
+    
+    observer.observe(mainTitle, {
+        childList: true,
+        characterData: true,
+        subtree: true
+    });
+}
+
+/**
+ * 显示特定表单
+ */
+function showForm(formType) {
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('register-form').classList.add('hidden');
+    document.getElementById('reset-form').classList.add('hidden');
+    document.getElementById(`${formType}-form`).classList.remove('hidden');
+    if (formType === 'login' || formType === 'register') {
+        document.getElementById('login-tab').className = formType === 'login' ? 'flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300';
+        document.getElementById('register-tab').className = formType === 'register' ? 'flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300';
+    }
+}
+
+/**
+ * 打开图片查看器
+ */
+function openLightbox(src) {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    img.src = src;
+    lightbox.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        lightbox.classList.remove('opacity-0');
+        img.classList.replace('scale-95', 'scale-100');
+    });
+}
+
+/**
+ * 关闭图片查看器
+ */
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    lightbox.classList.add('opacity-0');
+    img.classList.replace('scale-100', 'scale-95');
+    setTimeout(() => lightbox.classList.add('hidden'), 300);
+}
+
+/**
+ * 全选/反选
+ */
+function toggleSelectAll() {
+    const selectAllBox = document.getElementById('selectAll');
+    const rowBoxes = document.querySelectorAll('.row-checkbox');
+    rowBoxes.forEach(box => box.checked = selectAllBox.checked);
+}
+
+/**
+ * 更新全选框状态
+ */
+function updateSelectAllState() {
+    const selectAllBox = document.getElementById('selectAll');
+    const rowBoxes = document.querySelectorAll('.row-checkbox');
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    
+    if (rowBoxes.length === 0) return;
+    
+    if (checkedBoxes.length === rowBoxes.length) {
+        selectAllBox.checked = true;
+        selectAllBox.indeterminate = false;
+    } else if (checkedBoxes.length > 0) {
+        selectAllBox.checked = false;
+        selectAllBox.indeterminate = true;
+    } else {
+        selectAllBox.checked = false;
+        selectAllBox.indeterminate = false;
+    }
+}
+
+/**
+ * 渲染看板视图
+ */
+function renderKanban() {
+    const container = document.getElementById('kanban-container');
+    const statuses = ['待审核', '处理中', '等待赔付', '已赔付', '已驳回'];
+    const dotColors = {
+        '待审核': 'bg-slate-400',
+        '处理中': 'bg-blue-500',
+        '等待赔付': 'bg-amber-500',
+        '已赔付': 'bg-emerald-500',
+        '已驳回': 'bg-red-500'
+    };
+
+    let html = '';
+    statuses.forEach(status => {
+        const items = database.filter(i => i.process_status === status);
+        html += `
+        <div class="flex-shrink-0 w-72 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col max-h-full">
+            <div class="p-3 font-bold text-sm text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-inherit rounded-t-2xl z-10">
+                <div class="flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full mr-2 inline-block ${dotColors[status]}"></span>
+                    <span>${status}</span>
+                    <span class="ml-2 px-2 py-0.5 bg-white dark:bg-slate-700 rounded-full text-xs">${items.length}</span>
+                </div>
+            </div>
+            <div class="p-2 overflow-y-auto custom-scrollbar flex-1 space-y-2">
+                ${items.map(item => `
+                    <div class="bg-white dark:bg-slate-700 p-3 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-blue-300 group" onclick="openStatusModal('${item.id}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold text-blue-600 text-xs">${item.order_no}</span>
+                            <span class="text-[10px] text-slate-400">${item.entry_date}</span>
+                        </div>
+                        <div class="text-xs text-slate-600 dark:text-slate-300 mb-2 line-clamp-2">${item.description}</div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-mono font-bold text-emerald-600">${item.currency||'$'} ${item.claim_total}</span>
+                            <span class="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">${item.claim_type}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+/**
+ * 导出筛选后的数据
+ */
+function exportFilteredData() {
+    const dataToExport = currentFilteredData.length > 0 ? currentFilteredData : [];
+    if (dataToExport.length === 0) return showToast('当前没有可导出的数据', 'error');
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "索赔清单");
+    XLSX.writeFile(wb, `索赔清单_导出_${new Date().toLocaleDateString()}.xlsx`);
+}
+
+/**
+ * 导出单条记录到Excel
+ */
+function exportSingleExcel(data) {
+    const wb = XLSX.utils.book_new();
+    const ws_data = [
+        [null, "有只熊海外仓索赔申请表", null, null, null, null, null, null],
+        [null, "信息类型", "字段名称", "填写内容", "填写方", "公式/验证", null, null, null],
+        [null, "客户信息", "客户名称 (公司全称)", data.cust_name, "客户", "必填项", null, null, null],
+        [null, null, "联系人", data.contact_name, "客户", "必填项", null, null, null],
+        [null, null, "联系方式", data.contact_info, "客户", "必填项", null, null, null],
+        [null, "订单信息", "海外仓单号", data.order_no, "客户", "必填项", null, null, null],
+        [null, null, "物流运单号", data.tracking_no, "客户", "必填项", null, null, null],
+        [null, null, "发货日期", data.ship_date, "客户", "必填项", null, null, null],
+        [null, null, "订单SKU", data.sku, "客户", "必填项", null, null, null],
+        [null, null, "发货仓", data.warehouse, "客户", "必填项", null, null, null],
+        [null, "索赔详情", "索赔类型", data.claim_type, "客户", "必填项", null, null, null],
+        [null, null, "问题描述", data.description, "客户", "必填项", null, null, null],
+        [null, null, "责任方判定", data.liable_party, "有只熊", "选择项", null, null, null],
+        [null, "赔偿计算", "货物声明价值(USD)", "$" + data.val_amount, "客户", "必填项", null, null, null],
+        [null, null, "索赔数量", data.claim_qty, "客户", "必填项", null, null, null],
+        [null, null, "赔偿比例(%)", data.claim_ratio + "%", "有只熊", "必填项", null, null, null],
+        [null, null, "总赔偿金额(USD)", "$" + data.claim_total, "客户", "必填项", null, null, null],
+        [null, "其他信息", "附件清单", data.attachments, "客户", "必填项", null, null, null],
+        [null, null, "申请提交日期", data.entry_date, "客户", "日期格式", null, null, null],
+        [null, null, "处理状态", data.process_status, "客户", "下拉菜单", null, null, null],
+        [null, null, "备注", data.remarks, "有只熊", "必填项", null, null, null]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    ws['!merges'] = [
+        { s: {r: 0, c: 1}, e: {r: 0, c: 4} },
+        { s: {r: 2, c: 1}, e: {r: 4, c: 1} },
+        { s: {r: 5, c: 1}, e: {r: 9, c: 1} },
+        { s: {r: 10, c: 1}, e: {r: 12, c: 1} },
+        { s: {r: 13, c: 1}, e: {r: 16, c: 1} },
+        { s: {r: 17, c: 1}, e: {r: 20, c: 1} }
+    ];
+    ws['!cols'] = [{wch: 2}, {wch: 15}, {wch: 25}, {wch: 40}, {wch: 15}];
+    for (let key in ws) {
+        if (key[0] === '!') continue;
+        ws[key].s = {
+            alignment: {
+                vertical: 'center',
+                horizontal: 'center',
+            },
+            border: {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" }
+            }
+        };
+    }
+    XLSX.utils.book_append_sheet(wb, ws, "申请表");
+    XLSX.writeFile(wb, `索赔单_${data.order_no}.xlsx`);
+}
+
+/**
+ * 复制到微信格式
+ */
+function copyToWeChat() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    if (checkboxes.length === 0) return showToast('请先勾选需要复制的数据行', 'error');
+
+    let clipboardText = "";
+    let count = 0;
+
+    checkboxes.forEach((checkbox, index) => {
+        const item = database.find(i => i.id === checkbox.value);
+        if (item) {
+            const entryText = `问题类型：${item.claim_type || ''}
+仓库问题：${item.description || ''}
+出库单号OWS：${item.order_no || ''}
+物流运单号：${item.tracking_no || ''}
+产品编码：${item.sku || ''}
+数量：${item.claim_qty || ''}
+发货日期：${item.ship_date || ''}
+索赔金额：${item.claim_total || ''} ${item.currency || ''}
+索赔申请表：已提交`;
+            clipboardText += entryText + (index < checkboxes.length - 1 ? "\n------------------------\n" : "");
+            count++;
+        }
+    });
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(clipboardText).then(() => {
+            showToast(`成功复制 ${count} 条数据到剪贴板！`, 'success');
+        }).catch(err => {
+            console.error("Clipboard API failed, trying fallback...", err);
+            fallbackCopyTextToClipboard(clipboardText, count);
+        });
+    } else {
+        fallbackCopyTextToClipboard(clipboardText, count);
+    }
+}
+
+/**
+ * 兼容性复制函数
+ */
+function fallbackCopyTextToClipboard(text, count) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            showToast(`成功复制 ${count} 条数据到剪贴板！`, 'success');
+        } else {
+            showToast('复制失败，请手动复制', 'error');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        showToast('复制失败，请手动复制', 'error');
+    }
+
+    document.body.removeChild(textArea);
+}
+
