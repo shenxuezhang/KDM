@@ -51,7 +51,11 @@ function generateUUID() {
 
 // 虚拟滚动管理器类（性能优化版）
 class VirtualScrollManager {
-    constructor(containerId, itemHeight = 72) {
+    constructor(containerId, itemHeight) {
+        // 从配置中获取行高，如果没有传入则使用配置值
+        if (!itemHeight) {
+            itemHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+        }
         this.container = document.getElementById(containerId);
         this.itemHeight = itemHeight;
         this.visibleCount = 0;
@@ -294,7 +298,14 @@ class VirtualScrollManager {
             tr = document.createElement('tr');
         }
         
+        // 从配置中获取行高值
+        const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+        const rowHeightPx = `${rowHeight}px`;
+        
         tr.className = 'group hover:bg-blue-50/40 transition-colors border-b border-slate-50 last:border-0';
+        tr.style.height = rowHeightPx;
+        tr.style.minHeight = rowHeightPx;
+        tr.style.maxHeight = rowHeightPx;
         tr.dataset.itemId = item.id;
         tr.dataset.index = index;
         this.renderRowContent(tr, item);
@@ -302,6 +313,10 @@ class VirtualScrollManager {
     }
     
     renderRowContent(tr, item) {
+        // 从配置中获取行高值
+        const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+        const rowHeightPx = `${rowHeight}px`;
+        
         const symbol = item.currency === 'CNY' ? '¥' : (item.currency === 'EUR' ? '€' : (item.currency === 'GBP' ? '£' : '$'));
         const colConfigs = {};
         TABLE_COLUMNS.forEach(col => colConfigs[col.key] = col);
@@ -311,15 +326,23 @@ class VirtualScrollManager {
         const searchTerm = ListState.filters.search || '';
         const shouldHighlight = searchTerm.trim() && ListState.filters.searchMode !== 'exact';
         
+        // 【vxe-table风格】复选框列（固定左侧）- 行高优化
         const checkboxTd = document.createElement('td');
-        checkboxTd.className = 'erp-td text-center w-12 pl-4';
+        checkboxTd.className = 'erp-td text-center col--checkbox is--fixed-left';
+        checkboxTd.style.width = '48px';
+        checkboxTd.style.minWidth = '48px';
+        checkboxTd.style.height = rowHeightPx;
         checkboxTd.onclick = (e) => e.stopPropagation();
+        const checkboxCell = document.createElement('div');
+        checkboxCell.className = 'vxe-cell';
+        checkboxCell.style.maxHeight = rowHeightPx;
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'row-checkbox w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer bg-slate-50 dark:bg-slate-700 dark:border-slate-600';
         checkbox.value = item.id;
         checkbox.onclick = updateSelectAllState;
-        checkboxTd.appendChild(checkbox);
+        checkboxCell.appendChild(checkbox);
+        checkboxTd.appendChild(checkboxCell);
         cells.push(checkboxTd);
         
         visibleColumns.forEach(key => {
@@ -330,7 +353,12 @@ class VirtualScrollManager {
             let content = item[key] || '';
             let style = '';
             
-            if (key === 'entry_date' || key === 'ship_date' || key === 'created_at') {
+            // 【日期显示优化】发货日期和申请提交日期只显示日期，不显示时间
+            if (key === 'entry_date' || key === 'ship_date') {
+                // 使用 formatDateDisplay 只显示日期部分（YYYY-MM-DD）
+                content = (typeof formatDateDisplay !== 'undefined') ? formatDateDisplay(content) : formatDateTimeDisplay(content).split(' ')[0];
+            } else if (key === 'created_at') {
+                // created_at 保留完整日期时间显示
                 content = formatDateTimeDisplay(content);
             } else if (key === 'order_no') {
                 style = 'font-bold text-blue-600';
@@ -345,7 +373,16 @@ class VirtualScrollManager {
                     style = 'font-bold text-slate-400';
                 }
             } else if (key === 'description') {
-                content = `<div class="max-w-[200px] truncate" title="${content}">${content}</div>`;
+                // 【vxe-table风格】使用c--tooltip和twoLines类
+                const safeContent = String(content || '').replace(/"/g, '&quot;');
+                content = `<div class="c--tooltip twoLines" data-tooltip="${safeContent}" style="max-width: 200px;">${content}</div>`;
+            } else {
+                // 【vxe-table风格】为其他文本字段添加工具提示（如果内容较长）
+                if (content && content.length > 20 && typeof content === 'string') {
+                    const safeContent = String(content).replace(/"/g, '&quot;');
+                    const plainText = content.replace(/<[^>]*>/g, ''); // 移除HTML标签用于工具提示
+                    content = `<div class="c--tooltip oneLine" data-tooltip="${safeContent}" title="${plainText}">${content}</div>`;
+                }
             }
             
             // 【搜索功能增强】搜索结果高亮显示（仅在模糊搜索模式下）
@@ -355,15 +392,37 @@ class VirtualScrollManager {
             
             if (col.center) style += ' text-center';
             if (style) td.className += ` ${style}`;
-            td.innerHTML = content;
+            td.style.minWidth = col.minW;
+            td.style.width = col.minW;
+            td.style.height = rowHeightPx;
+            
+            // 【行高优化】为单元格内容添加vxe-cell包装，设置max-height限制
+            const cellWrapper = document.createElement('div');
+            cellWrapper.className = 'vxe-cell';
+            cellWrapper.style.maxHeight = rowHeightPx;
+            
+            // 根据内容类型添加相应的截断类
+            if (key === 'description') {
+                cellWrapper.className += ' twoLines';
+            } else if (content && content.length > 20 && typeof content === 'string' && !content.includes('<span') && !content.includes('<div')) {
+                cellWrapper.className += ' oneLine col--ellipsis';
+            }
+            
+            cellWrapper.innerHTML = content;
+            td.appendChild(cellWrapper);
             cells.push(td);
         });
         
+        // 【vxe-table风格】操作列（固定右侧）- 行高优化
         const actionTd = document.createElement('td');
-        actionTd.className = 'erp-td pr-6 text-center';
+        actionTd.className = 'erp-td pr-6 text-center is--fixed-right';
         actionTd.style.width = '120px';
         actionTd.style.minWidth = '120px';
+        actionTd.style.height = rowHeightPx;
         actionTd.onclick = (e) => e.stopPropagation();
+        const actionCell = document.createElement('div');
+        actionCell.className = 'vxe-cell';
+        actionCell.style.maxHeight = rowHeightPx;
         const actionDiv = document.createElement('div');
         actionDiv.className = 'flex items-center justify-center space-x-1';
         
@@ -372,7 +431,8 @@ class VirtualScrollManager {
         if (hasPermission('can_export')) actionDiv.appendChild(this.createActionButton('download', item.id, '导出'));
         if (hasPermission('can_delete')) actionDiv.appendChild(this.createActionButton('delete', item.id, '删除'));
         
-        actionTd.appendChild(actionDiv);
+        actionCell.appendChild(actionDiv);
+        actionTd.appendChild(actionCell);
         cells.push(actionTd);
         cells.forEach(cell => tr.appendChild(cell));
     }
@@ -530,7 +590,9 @@ function renderDatabase() {
             container.style.overflowY = 'auto';
             container.style.height = 'calc(100vh - 400px)';
             
-            virtualScrollManager = new VirtualScrollManager('dbContent', 80);
+            // 使用配置中的行高值
+            const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+            virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
             // 同步到全局
             if (typeof window !== 'undefined') {
                 window.virtualScrollManager = virtualScrollManager;
@@ -772,7 +834,32 @@ function downloadRowById(id) {
     }
 }
 
-// 格式化日期时间显示
+// 格式化日期显示 (仅日期，YYYY-MM-DD) - 用于发货日期、申请提交日期等
+function formatDateDisplay(isoString) {
+    if (!isoString) return '';
+    
+    // 如果已经是 YYYY-MM-DD 格式，直接返回
+    if (typeof isoString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+        return isoString;
+    }
+    
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) {
+        // 如果解析失败，尝试提取日期部分
+        if (typeof isoString === 'string' && isoString.length >= 10) {
+            return isoString.substring(0, 10);
+        }
+        return isoString;
+    }
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    
+    return `${y}-${m}-${d}`;
+}
+
+// 格式化日期时间显示 (YYYY-MM-DD HH:mm:ss) - 用于需要显示时间的场景
 function formatDateTimeDisplay(isoString) {
     if (!isoString) return '';
     const date = new Date(isoString);

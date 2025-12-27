@@ -213,7 +213,12 @@ async function fetchTableData(append = false) {
             query = query.eq('claim_type', ListState.filters.type);
         }
         
-        // 【搜索功能增强】应用搜索条件
+        // 【高级搜索重构】应用高级筛选条件
+        if (ListState.filters.advancedFilters) {
+            query = applyAdvancedFilters(query, ListState.filters.advancedFilters);
+        }
+        
+        // 【搜索功能增强】应用快速搜索条件
         if (ListState.filters.search && ListState.filters.search.trim()) {
             query = applySearchConditions(query, ListState.filters);
         }
@@ -384,7 +389,7 @@ function applySearchConditions(query, filters) {
         }
     } else {
         // 模糊搜索：使用 ILIKE（不区分大小写的模糊匹配）
-        // 【修复】只对文本和数字字段使用ILIKE，日期字段已在上面排除
+        // 【修复】只对文本字段使用ILIKE，数字字段需要特殊处理
         const searchPattern = `%${searchTerm.toLowerCase()}%`;
         const fuzzyConditions = fieldsToSearch.map(field => {
             const fieldConfig = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
@@ -395,13 +400,78 @@ function applySearchConditions(query, filters) {
                 return null; // 跳过日期字段
             }
             
-            // 对于文本和数字字段使用ILIKE
+            // 【修复】数字字段不能使用ILIKE，需要转换为数字进行匹配
+            if (fieldConfig && fieldConfig.type === 'number') {
+                // 尝试将搜索词转换为数字
+                const numValue = parseFloat(searchTerm);
+                if (!isNaN(numValue)) {
+                    // 如果转换成功，使用等号精确匹配（数字字段不支持模糊匹配）
+                    return `${field}.eq.${numValue}`;
+                }
+                // 如果转换失败，跳过这个字段（数字字段不支持文本模糊匹配）
+                return null;
+            }
+            
+            // 只对文本字段使用ILIKE
             return `${field}.ilike.${searchPattern}`;
         }).filter(condition => condition !== null);
         
         if (fuzzyConditions.length > 0) {
             query = query.or(fuzzyConditions.join(','));
         }
+    }
+    
+    return query;
+}
+
+/**
+ * 【高级搜索重构】应用高级筛选条件
+ * @param {Object} query - Supabase 查询对象
+ * @param {Object} filters - 高级筛选条件对象
+ * @returns {Object} 修改后的查询对象
+ */
+function applyAdvancedFilters(query, filters) {
+    if (!filters) return query;
+    
+    // 海外仓单号
+    if (filters.order_no) {
+        query = query.ilike('order_no', `%${filters.order_no}%`);
+    }
+    
+    // 物流运单号
+    if (filters.tracking_no) {
+        query = query.ilike('tracking_no', `%${filters.tracking_no}%`);
+    }
+    
+    // 发货仓
+    if (filters.warehouse) {
+        query = query.eq('warehouse', filters.warehouse);
+    }
+    
+    // 订单SKU
+    if (filters.sku) {
+        query = query.ilike('sku', `%${filters.sku}%`);
+    }
+    
+    // 发货日期范围
+    if (filters.ship_date_start) {
+        query = query.gte('ship_date', filters.ship_date_start);
+    }
+    if (filters.ship_date_end) {
+        query = query.lte('ship_date', filters.ship_date_end);
+    }
+    
+    // 申请提交日期范围
+    if (filters.entry_date_start) {
+        query = query.gte('entry_date', filters.entry_date_start);
+    }
+    if (filters.entry_date_end) {
+        query = query.lte('entry_date', filters.entry_date_end);
+    }
+    
+    // 索赔类型
+    if (filters.claim_type) {
+        query = query.eq('claim_type', filters.claim_type);
     }
     
     return query;
@@ -477,9 +547,21 @@ function applyAdvancedSearch(query, conditions) {
                 query = query.eq(field, value);
             }
         } else {
-            // 模糊搜索（只对文本字段）
-            const searchPattern = `%${value.toLowerCase()}%`;
-            query = query.ilike(field, searchPattern);
+            // 模糊搜索
+            // 【修复】数字字段不能使用ilike，需要特殊处理
+            if (fieldConfig.type === 'number') {
+                // 尝试将搜索值转换为数字
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    // 如果转换成功，使用等号精确匹配
+                    query = query.eq(field, numValue);
+                }
+                // 如果转换失败，跳过这个字段
+            } else {
+                // 文本字段使用模糊匹配
+                const searchPattern = `%${value.toLowerCase()}%`;
+                query = query.ilike(field, searchPattern);
+            }
         }
     });
     
@@ -515,9 +597,22 @@ function applyAdvancedSearch(query, conditions) {
                     return `${field}.eq.${value}`;
                 }
             } else {
-                // 模糊搜索（只对文本字段）
-                const searchPattern = `%${value.toLowerCase()}%`;
-                return `${field}.ilike.${searchPattern}`;
+                // 模糊搜索
+                // 【修复】数字字段不能使用ilike
+                if (fieldConfig.type === 'number') {
+                    // 尝试将搜索值转换为数字
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue)) {
+                        // 如果转换成功，使用等号精确匹配
+                        return `${field}.eq.${numValue}`;
+                    }
+                    // 如果转换失败，跳过这个字段
+                    return null;
+                } else {
+                    // 文本字段使用模糊匹配
+                    const searchPattern = `%${value.toLowerCase()}%`;
+                    return `${field}.ilike.${searchPattern}`;
+                }
             }
         }).filter(q => q !== null);
         

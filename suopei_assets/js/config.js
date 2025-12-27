@@ -22,6 +22,18 @@ if (typeof supabase !== 'undefined') {
     alert("系统初始化失败：Supabase SDK 未加载，请检查网络后刷新页面。");
 }
 
+// ============================================
+// 表格配置
+// ============================================
+
+// 表格行高配置（单位：px）- 统一管理，只需在此处修改即可影响所有相关代码
+const TABLE_ROW_HEIGHT = 50;
+
+// 暴露到全局作用域
+if (typeof window !== 'undefined') {
+    window.TABLE_ROW_HEIGHT = TABLE_ROW_HEIGHT;
+}
+
 // 表格列配置
 const TABLE_COLUMNS = [
     { key: 'order_no', label: '海外仓单号', minW: '140px', sort: true },

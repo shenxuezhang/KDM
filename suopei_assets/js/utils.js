@@ -118,7 +118,34 @@ function handleError(error, context = '操作') {
 // ============================================
 
 /**
- * 格式化日期时间显示 (YYYY-MM-DD HH:mm:ss)
+ * 格式化日期显示 (仅日期，YYYY-MM-DD) - 用于发货日期、申请提交日期等
+ */
+function formatDateDisplay(isoString) {
+    if (!isoString) return '';
+    
+    // 如果已经是 YYYY-MM-DD 格式，直接返回
+    if (typeof isoString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+        return isoString;
+    }
+    
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) {
+        // 如果解析失败，尝试提取日期部分
+        if (typeof isoString === 'string' && isoString.length >= 10) {
+            return isoString.substring(0, 10);
+        }
+        return isoString;
+    }
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    
+    return `${y}-${m}-${d}`;
+}
+
+/**
+ * 格式化日期时间显示 (YYYY-MM-DD HH:mm:ss) - 用于需要显示时间的场景
  */
 function formatDateTimeDisplay(isoString) {
     if (!isoString) return '';

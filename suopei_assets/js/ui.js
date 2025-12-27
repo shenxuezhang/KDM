@@ -132,14 +132,26 @@ function renderTableHeader() {
 }
 
 /**
- * 切换子标签（状态筛选）
+ * 切换子标签（状态筛选）- 已适配新样式
  */
 function switchSubTab(status) {
     ListState.filters.status = status;
-    document.querySelectorAll('.status-pill').forEach(btn => btn.classList.remove('active'));
+    
+    // 【新样式】移除所有按钮的激活状态（蓝色背景）
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+        btn.classList.add('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+    });
+    
+    // 【新样式】为当前点击的按钮添加激活状态
     const statusMap = {'待审核':'pending','处理中':'processing','等待赔付':'waiting','已赔付':'paid','已驳回':'rejected'};
     const activeId = `tab-${status === 'all' ? 'all' : statusMap[status]}`;
-    document.getElementById(activeId)?.classList.add('active');
+    const activeBtn = document.getElementById(activeId);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+        activeBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+    }
+    
     ListState.pagination.page = 1;
     fetchTableData();
 }
