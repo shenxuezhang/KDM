@@ -17,7 +17,7 @@ const ListState = {
         type: 'all',
         search: '',              // 搜索关键词
         searchMode: 'fuzzy',     // 搜索模式：fuzzy（模糊）或 exact（精确）
-        searchField: 'all',      // 搜索字段：'all'（全部字段）或指定字段名
+        searchField: 'order_tracking_sku', // 【优化】默认只搜索：海外仓单号(order_no)、物流运单号(tracking_no)、订单SKU(sku)
         advancedSearch: null     // 高级搜索条件（对象数组）
     },
     sorting: {
@@ -80,6 +80,16 @@ class VirtualScrollManager {
         this.renderAnimationFrame = null;
         this.lastRenderTime = 0;
         this.renderInterval = 16; // 约60fps的渲染间隔
+        
+        // 【增量数据加载优化】滚动速度监测和动态触发距离
+        this.lastScrollTop = 0;
+        this.lastScrollTime = Date.now();
+        this.scrollVelocity = 0; // 滚动速度（px/ms）
+        this.loadMoreRetryCount = 0; // 加载失败重试次数
+        this.loadMoreRetryDelay = 1000; // 初始重试延迟（ms）
+        this.maxRetryDelay = 30000; // 最大重试延迟（ms）
+        this.baseTriggerDistance = 200; // 基础触发距离（px）
+        this.loadingIndicator = null; // 加载指示器元素
 
         this.initContainer();
         this.bindEvents();
@@ -107,7 +117,17 @@ class VirtualScrollManager {
         // 【性能优化】使用节流优化滚动事件处理
         this.boundHandleScroll = (e) => {
             const now = Date.now();
-            this.scrollTop = e.target.scrollTop;
+            const currentScrollTop = e.target.scrollTop;
+            
+            // 【增量数据加载优化】计算滚动速度
+            const timeDelta = now - this.lastScrollTime;
+            if (timeDelta > 0) {
+                const scrollDelta = Math.abs(currentScrollTop - this.lastScrollTop);
+                this.scrollVelocity = scrollDelta / timeDelta; // px/ms
+            }
+            this.lastScrollTop = currentScrollTop;
+            this.lastScrollTime = now;
+            this.scrollTop = currentScrollTop;
             
             // 节流：限制更新频率
             if (now - this.lastRenderTime < this.renderInterval) {
@@ -367,7 +387,7 @@ class VirtualScrollManager {
             } else if (key === 'val_amount' || key === 'claim_total') {
                 if (hasPermission('can_view_money')) {
                     content = `<span class="font-mono">${symbol}${parseFloat(content).toFixed(2)}</span>`;
-                    if (key === 'claim_total') style = 'font-bold text-emerald-600';
+                    if (key === 'claim_total') style = 'font-bold text-red-600';
                 } else {
                     content = `<span class="font-mono text-slate-400">***.${symbol}</span>`;
                     style = 'font-bold text-slate-400';
@@ -465,34 +485,319 @@ class VirtualScrollManager {
         return btn;
     }
     
-    updateData(data, totalItems) {
-        this.data = data;
-        this.totalItems = totalItems;
-        this.scrollTop = this.container.scrollTop;
-        this.startIndex = -1;
-        this.updateRenderRange();
+    // 【性能优化】检测数据是否变化
+    // 【修复】不仅检查ID序列，还要检查关键字段（如process_status）是否变化
+    hasDataChanged(oldData, newData) {
+        if (!oldData || !newData) return true;
+        if (oldData.length !== newData.length) return true;
+        
+        // 检查每个项的ID和关键字段是否变化
+        return oldData.some((item, index) => {
+            const newItem = newData[index];
+            if (!newItem) return true;
+            if (item.id !== newItem.id) return true;
+            // 【修复】检查关键字段是否变化（特别是process_status）
+            if (item.process_status !== newItem.process_status) return true;
+            // 检查其他可能变化的字段
+            if (item.claim_total !== newItem.claim_total) return true;
+            return false;
+        });
     }
     
+    // 【性能优化】计算数据变化范围（返回变化的索引范围和比例）
+    calculateChangedRange(oldData, newData) {
+        if (!oldData || !newData || oldData.length === 0) {
+            return { start: 0, end: newData.length, count: newData.length, ratio: 1.0 };
+        }
+        
+        // 创建ID到索引的映射
+        const oldIdMap = new Map(oldData.map((item, index) => [item.id, index]));
+        const newIdMap = new Map(newData.map((item, index) => [item.id, index]));
+        
+        // 找出变化的位置（新增、删除、移动的项）
+        const changedIndices = new Set();
+        
+        newData.forEach((item, newIndex) => {
+            const oldIndex = oldIdMap.get(item.id);
+            // 如果项不存在于旧数据中，或者位置发生了变化
+            if (oldIndex === undefined || oldIndex !== newIndex) {
+                changedIndices.add(newIndex);
+            }
+        });
+        
+        oldData.forEach((item, oldIndex) => {
+            const newIndex = newIdMap.get(item.id);
+            // 如果项在新数据中不存在，标记旧位置所在的范围
+            if (newIndex === undefined) {
+                // 标记受影响的范围（简化处理：标记旧位置）
+                changedIndices.add(Math.min(oldIndex, newData.length - 1));
+            }
+        });
+        
+        const changedCount = changedIndices.size;
+        const totalCount = newData.length;
+        const ratio = totalCount > 0 ? changedCount / totalCount : 1.0;
+        
+        // 计算变化范围（最小和最大索引）
+        const indices = Array.from(changedIndices);
+        const start = indices.length > 0 ? Math.min(...indices) : 0;
+        const end = indices.length > 0 ? Math.max(...indices) + 1 : totalCount;
+        
+        return { start, end, count: changedCount, ratio };
+    }
+    
+    // 【性能优化】更新变化的项（智能增量更新）
+    updateChangedItems(changedRange) {
+        // 更新可见范围内变化的数据
+        this.scrollTop = this.container.scrollTop;
+        
+        // 计算当前的可见范围
+        let newStartIndex = Math.floor(this.scrollTop / this.itemHeight) - this.bufferCount;
+        newStartIndex = Math.max(0, newStartIndex);
+        
+        const visibleHeight = this.container.clientHeight;
+        this.visibleCount = Math.ceil(visibleHeight / this.itemHeight);
+        
+        let newEndIndex = newStartIndex + this.visibleCount + (this.bufferCount * 2);
+        newEndIndex = Math.min(this.totalItems, newEndIndex);
+        
+        // 检查变化的范围是否与可见范围重叠
+        const overlapStart = Math.max(changedRange.start, newStartIndex);
+        const overlapEnd = Math.min(changedRange.end, newEndIndex);
+        
+        const oldStartIndex = this.startIndex;
+        const oldEndIndex = this.endIndex;
+        this.startIndex = newStartIndex;
+        this.endIndex = newEndIndex;
+        
+        if (overlapStart < overlapEnd) {
+            // 有重叠，需要更新可见范围内的变化项
+            // 使用增量更新方式
+            if (oldStartIndex !== -1 && 
+                Math.abs(newStartIndex - oldStartIndex) < this.visibleCount * 2 &&
+                Math.abs(newEndIndex - oldEndIndex) < this.visibleCount * 2) {
+                // 使用增量渲染
+                this.renderVisibleItemsIncremental(oldStartIndex, oldEndIndex);
+            } else {
+                // 范围变化较大，使用全量渲染
+                this.renderVisibleItems();
+            }
+        } else {
+            // 变化范围不在可见区域内，只需更新spacer高度，不需要重新渲染DOM
+            const topHeight = this.startIndex * this.itemHeight;
+            const bottomHeight = (this.totalItems - this.endIndex) * this.itemHeight;
+            if (this.topSpacer) {
+                this.topSpacer.style.height = `${topHeight}px`;
+            }
+            if (this.bottomSpacer) {
+                this.bottomSpacer.style.height = `${bottomHeight}px`;
+            }
+        }
+    }
+    
+    // 【性能优化】智能数据更新（支持增量更新）
+    // 【防闪烁优化】保存滚动位置，使用 requestAnimationFrame 确保平滑渲染
+    // 【修复】增加 forceRefresh 参数，强制刷新时立即渲染
+    updateData(newData, totalItems, forceRefresh = false) {
+        // 保存当前滚动位置
+        const savedScrollTop = this.container.scrollTop;
+        const oldData = this.data;
+        const dataChanged = this.hasDataChanged(oldData, newData);
+        
+        this.data = newData;
+        this.totalItems = totalItems;
+        this.scrollTop = savedScrollTop;
+        
+        if (!dataChanged && !forceRefresh) {
+            // 数据未变化且非强制刷新，只更新totalItems（可能影响分页）
+            // 不需要重新渲染
+            return;
+        }
+        
+        // 【修复】强制刷新时立即渲染，非强制刷新时使用 requestAnimationFrame
+        if (forceRefresh) {
+            // 强制刷新时立即渲染，确保数据立即显示
+            this.updateRenderRange();
+            this.renderVisibleItems();
+            // 恢复滚动位置
+            if (savedScrollTop > 0) {
+                this.container.scrollTop = savedScrollTop;
+            }
+        } else {
+            // 使用 requestAnimationFrame 包装数据更新逻辑，确保平滑渲染
+            if (this.renderAnimationFrame) {
+                cancelAnimationFrame(this.renderAnimationFrame);
+            }
+            
+            this.renderAnimationFrame = requestAnimationFrame(() => {
+                // 数据已变化，计算变化范围
+                const changedRange = this.calculateChangedRange(oldData, newData);
+                
+                // 如果变化范围小于30%，尝试使用增量更新
+                if (changedRange.ratio < 0.3 && oldData && oldData.length > 0) {
+                    this.updateChangedItems(changedRange);
+                    // 恢复滚动位置
+                    this.container.scrollTop = savedScrollTop;
+                } else {
+                    // 变化较大，使用全量更新
+                    // 基于滚动位置计算 startIndex
+                    const calculatedStartIndex = Math.floor(savedScrollTop / this.itemHeight);
+                    this.startIndex = calculatedStartIndex >= 0 ? calculatedStartIndex : -1;
+                    
+                    this.updateRenderRange();
+                    
+                    // 渲染后恢复滚动位置
+                    requestAnimationFrame(() => {
+                        this.container.scrollTop = savedScrollTop;
+                    });
+                }
+                
+                this.renderAnimationFrame = null;
+            });
+        }
+    }
+    
+    /**
+     * 【增量数据加载优化】检查是否需要加载更多数据
+     * 使用动态触发距离，根据屏幕高度和滚动速度智能调整
+     */
     checkLoadMore() {
         if (this.data.length >= this.totalItems || this.isLoading) return;
+        
         const scrollBottom = this.scrollTop + this.container.clientHeight;
         const totalHeight = this.totalItems * this.itemHeight;
-        if (totalHeight - scrollBottom < 200) {
+        const distanceToBottom = totalHeight - scrollBottom;
+        
+        // 【动态触发距离】根据屏幕高度和滚动速度智能调整触发距离
+        const screenHeight = this.container.clientHeight;
+        const baseDistance = this.baseTriggerDistance;
+        
+        // 根据屏幕高度调整（大屏幕使用更大的触发距离）
+        const screenBasedDistance = Math.max(baseDistance, screenHeight * 0.3);
+        
+        // 根据滚动速度调整（快速滚动时提前触发，慢速滚动时延迟触发）
+        // 滚动速度越快，触发距离越大（预加载）
+        const velocityMultiplier = 1 + Math.min(this.scrollVelocity * 10, 2); // 最大2倍
+        const dynamicTriggerDistance = screenBasedDistance * velocityMultiplier;
+        
+        if (distanceToBottom < dynamicTriggerDistance) {
             this.loadMoreData();
         }
     }
     
+    /**
+     * 【增量数据加载优化】加载更多数据
+     * 包含加载状态管理、错误提示和指数退避重试机制
+     */
     async loadMoreData() {
         if (this.isLoading) return;
+        
         this.isLoading = true;
+        this.showLoadingIndicator();
+        
         try {
             ListState.pagination.page += 1;
             await fetchTableData(true);
             this.updateData(ListState.data, ListState.totalCount);
+            
+            // 加载成功，重置重试计数
+            this.loadMoreRetryCount = 0;
+            this.loadMoreRetryDelay = 1000;
+            
         } catch (error) {
             console.error('加载更多数据失败:', error);
+            
+            // 【指数退避重试机制】网络不稳定时自动重试
+            const shouldRetry = this.loadMoreRetryCount < 5; // 最多重试5次
+            
+            if (shouldRetry) {
+                this.loadMoreRetryCount++;
+                
+                // 指数退避：延迟时间 = base * 2^(retryCount-1)
+                const retryDelay = Math.min(
+                    this.loadMoreRetryDelay * Math.pow(2, this.loadMoreRetryCount - 1),
+                    this.maxRetryDelay
+                );
+                
+                console.log(`加载失败，${retryDelay}ms后重试（第${this.loadMoreRetryCount}次）`);
+                
+                setTimeout(() => {
+                    this.isLoading = false; // 重置状态以允许重试
+                    this.loadMoreData();
+                }, retryDelay);
+                
+            } else {
+                // 重试次数过多，显示错误提示
+                this.showLoadError('加载失败，请稍后重试');
+                this.loadMoreRetryCount = 0;
+                this.loadMoreRetryDelay = 1000;
+            }
+            
         } finally {
-            this.isLoading = false;
+            // 只有在非重试情况下才隐藏加载指示器
+            if (this.loadMoreRetryCount === 0 || this.loadMoreRetryCount >= 5) {
+                this.hideLoadingIndicator();
+                this.isLoading = false;
+            }
+        }
+    }
+    
+    /**
+     * 【增量数据加载优化】显示加载指示器
+     */
+    showLoadingIndicator() {
+        if (this.loadingIndicator) {
+            this.loadingIndicator.style.display = 'flex';
+            return;
+        }
+        
+        // 创建加载指示器
+        const indicator = document.createElement('div');
+        indicator.className = 'load-more-indicator';
+        indicator.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            color: #64748b;
+            font-size: 14px;
+            gap: 8px;
+        `;
+        indicator.innerHTML = `
+            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>加载中...</span>
+        `;
+        
+        // 插入到容器底部
+        if (this.container && this.container.parentElement) {
+            this.container.parentElement.appendChild(indicator);
+            this.loadingIndicator = indicator;
+        }
+    }
+    
+    /**
+     * 【增量数据加载优化】隐藏加载指示器
+     */
+    hideLoadingIndicator() {
+        if (this.loadingIndicator) {
+            this.loadingIndicator.style.display = 'none';
+        }
+    }
+    
+    /**
+     * 【增量数据加载优化】显示加载错误提示
+     */
+    showLoadError(message) {
+        if (this.loadingIndicator) {
+            this.loadingIndicator.innerHTML = `
+                <span style="color: #ef4444;">${message}</span>
+            `;
+            setTimeout(() => {
+                this.hideLoadingIndicator();
+            }, 3000);
         }
     }
     
@@ -520,6 +825,12 @@ class VirtualScrollManager {
         });
         this.eventListeners.clear();
         
+        // 【增量数据加载优化】清理加载指示器
+        if (this.loadingIndicator && this.loadingIndicator.parentElement) {
+            this.loadingIndicator.parentElement.removeChild(this.loadingIndicator);
+            this.loadingIndicator = null;
+        }
+        
         if (this.container) {
             this.container.innerHTML = '';
         }
@@ -533,9 +844,19 @@ class VirtualScrollManager {
     }
 }
 
-// 【搜索功能增强】高亮搜索关键词
+// 【性能优化】高亮结果缓存（LRU策略）
+const highlightCache = new Map();
+const MAX_HIGHLIGHT_CACHE_SIZE = 1000;
+
+// 【搜索功能增强】高亮搜索关键词（性能优化版 - 带缓存）
 function highlightSearchTerm(text, searchTerm) {
     if (!text || !searchTerm) return text;
+    
+    // 【性能优化】使用缓存避免重复计算
+    const cacheKey = `${text}_${searchTerm}`;
+    if (highlightCache.has(cacheKey)) {
+        return highlightCache.get(cacheKey);
+    }
     
     // 转义HTML特殊字符
     const escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -545,7 +866,44 @@ function highlightSearchTerm(text, searchTerm) {
     const regex = new RegExp(`(${escapedTerm})`, 'gi');
     
     // 替换匹配的文本为高亮标记
-    return escapedText.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900/50 text-yellow-900 dark:text-yellow-200 font-semibold px-0.5 rounded">$1</mark>');
+    const highlighted = escapedText.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-900/50 text-yellow-900 dark:text-yellow-200 font-semibold px-0.5 rounded">$1</mark>');
+    
+    // 【性能优化】缓存管理（LRU策略 - 当缓存超过最大大小时，删除最旧的项）
+    if (highlightCache.size >= MAX_HIGHLIGHT_CACHE_SIZE) {
+        const firstKey = highlightCache.keys().next().value;
+        highlightCache.delete(firstKey);
+    }
+    highlightCache.set(cacheKey, highlighted);
+    
+    return highlighted;
+}
+
+// 【性能优化】统计结果缓存
+let cachedStats = null;
+let cachedDataHash = null;
+
+// 【性能优化】计算统计数据（带缓存）
+function calculateStats(data) {
+    // 计算数据哈希（只基于ID和金额，用于检测数据变化）
+    const dataHash = data.map(d => `${d.id}:${d.claim_total || 0}`).join(',');
+    
+    // 如果数据未变化，返回缓存
+    if (dataHash === cachedDataHash && cachedStats) {
+        return cachedStats;
+    }
+    
+    // 重新计算统计数据
+    const stats = {
+        total: data.length,
+        totalAmount: data.reduce((sum, item) => 
+            sum + parseFloat(item.claim_total || 0), 0)
+    };
+    
+    // 更新缓存
+    cachedStats = stats;
+    cachedDataHash = dataHash;
+    
+    return stats;
 }
 
 // 渲染数据库列表
@@ -599,33 +957,74 @@ function renderDatabase() {
             }
         }
         
-        virtualScrollManager.updateData(data, ListState.totalCount);
+        // 【修复】传递 forceRefresh 参数，确保强制刷新时立即渲染
+        // 检测是否是强制刷新场景（通过检查是否有全局标记）
+        const isForceRefresh = typeof window !== 'undefined' && window._forceRefreshTable;
+        virtualScrollManager.updateData(data, ListState.totalCount, isForceRefresh);
+        // 清除标记
+        if (typeof window !== 'undefined') {
+            window._forceRefreshTable = false;
+        }
     }
     
+    // 【性能优化】使用缓存的统计计算
     document.getElementById('count_text').innerText = ListState.totalCount;
-    const totalUSD = data.reduce((sum, item) => sum + parseFloat(item.claim_total||0), 0);
-    document.getElementById('money_text').innerText = `$${totalUSD.toFixed(2)}`;
-    updatePieChart(data);
+    const stats = calculateStats(data);
+    document.getElementById('money_text').innerText = `$${stats.totalAmount.toFixed(2)}`;
+    // 【性能优化】使用节流的图表更新（减少图表更新频率）
+    if (typeof updatePieChartThrottled === 'function') {
+        updatePieChartThrottled(data);
+    } else {
+        // 降级方案：如果节流函数不可用，使用原始函数
+        updatePieChart(data);
+    }
     
     // 【搜索功能增强】更新搜索结果提示
     if (typeof window.updateSearchResultHint === 'function') {
         window.updateSearchResultHint();
     }
+    
+    // 【修复】确保批量操作工具栏状态正确（数据渲染后更新）
+    if (typeof window.updateBatchActionBar === 'function') {
+        window.updateBatchActionBar();
+    }
 }
 
-// 渲染分页控件
+// 渲染分页控件（增强版：完整页码导航、跳转功能、加载状态处理）
 function renderPaginationControls() {
     const paginationContainer = document.getElementById('pagination-container');
     if (!paginationContainer) return;
     
-    const totalPages = Math.ceil(ListState.totalCount / ListState.pagination.pageSize);
-    const currentPage = ListState.pagination.page;
+    // 【数值验证】确保页码和数据计数的有效性
+    const totalCount = Math.max(0, ListState.totalCount || 0);
+    const pageSize = Math.max(1, ListState.pagination.pageSize || 20);
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+    let currentPage = Math.max(1, Math.min(ListState.pagination.page || 1, totalPages));
+    
+    // 如果当前页超出范围，自动修正
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+        ListState.pagination.page = currentPage;
+    }
+    
+    // 【加载状态处理】避免重复请求
+    const isLoading = ListState.isLoading || false;
+    
+    // 计算显示的页码范围（显示当前页前后各2页，最多显示7个页码按钮）
+    const maxVisiblePages = 7;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // 如果右侧页码不足，向左调整
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
     
     let paginationHTML = `
-        <div class="flex items-center justify-between p-4 border-t border-slate-100">
+        <div class="flex items-center justify-between p-4 border-t border-slate-100 dark:border-slate-700">
             <div class="flex items-center space-x-2">
-                <span class="text-sm text-slate-600">显示行数：</span>
-                <select id="page-size-select" class="text-sm border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <span class="text-sm text-slate-600 dark:text-slate-400">显示行数：</span>
+                <select id="page-size-select" class="text-sm border border-slate-300 dark:border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" ${isLoading ? 'disabled' : ''}>
     `;
     
     ListState.pagination.pageSizeOptions.forEach(size => {
@@ -634,39 +1033,180 @@ function renderPaginationControls() {
     
     paginationHTML += `
                 </select>
+                <span class="text-sm text-slate-600 dark:text-slate-400">共 ${totalCount} 条记录，第 ${currentPage} / ${totalPages} 页</span>
             </div>
-            <div class="flex items-center space-x-2">
-                <span class="text-sm text-slate-600">共 ${ListState.totalCount} 条记录，第 ${currentPage} / ${totalPages} 页</span>
-                <button id="prev-page" class="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage === 1 ? 'disabled' : ''}>
-                    上一页
+            <div class="flex items-center space-x-1">
+                <!-- 首页按钮 -->
+                <button id="first-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                    ${currentPage === 1 || isLoading ? 'disabled' : ''} title="首页">
+                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                    </svg>
                 </button>
-                <button id="next-page" class="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage < totalPages ? '' : 'disabled'}>
-                    下一页
+                <!-- 上一页按钮 -->
+                <button id="prev-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                    ${currentPage === 1 || isLoading ? 'disabled' : ''} title="上一页">
+                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
                 </button>
+    `;
+    
+    // 【完整页码导航】生成页码按钮
+    if (startPage > 1) {
+        paginationHTML += `
+            <button class="page-number-btn px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                data-page="1" ${isLoading ? 'disabled' : ''}>1</button>
+        `;
+        if (startPage > 2) {
+            paginationHTML += `<span class="px-2 text-slate-400">...</span>`;
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === currentPage;
+        paginationHTML += `
+            <button class="page-number-btn px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} ${
+                isActive 
+                    ? 'bg-blue-600 text-white border border-blue-600 shadow-sm' 
+                    : 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }" 
+                data-page="${i}" ${isLoading ? 'disabled' : ''} ${isActive ? 'aria-current="page"' : ''}>
+                ${i}
+            </button>
+        `;
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHTML += `<span class="px-2 text-slate-400">...</span>`;
+        }
+        paginationHTML += `
+            <button class="page-number-btn px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                data-page="${totalPages}" ${isLoading ? 'disabled' : ''}>${totalPages}</button>
+        `;
+    }
+    
+    paginationHTML += `
+                <!-- 下一页按钮 -->
+                <button id="next-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                    ${currentPage >= totalPages || isLoading ? 'disabled' : ''} title="下一页">
+                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+                <!-- 末页按钮 -->
+                <button id="last-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                    ${currentPage >= totalPages || isLoading ? 'disabled' : ''} title="末页">
+                    <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+                <!-- 页码跳转输入框 -->
+                <div class="flex items-center space-x-1 ml-2 pl-2 border-l border-slate-300 dark:border-slate-600">
+                    <span class="text-sm text-slate-600 dark:text-slate-400">跳转到</span>
+                    <input type="number" id="page-jump-input" 
+                        class="w-16 px-2 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        min="1" max="${totalPages}" value="${currentPage}" ${isLoading ? 'disabled' : ''}>
+                    <span class="text-sm text-slate-600 dark:text-slate-400">页</span>
+                    <button id="page-jump-btn" class="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                        ${isLoading ? 'disabled' : ''}>跳转</button>
+                </div>
             </div>
         </div>
     `;
     
     paginationContainer.innerHTML = paginationHTML;
     
+    // 【加载状态处理】避免重复请求 - 绑定事件处理器
+    if (isLoading) {
+        return; // 如果正在加载，不绑定事件，避免重复请求
+    }
+    
+    // 每页显示数量选择
     document.getElementById('page-size-select').addEventListener('change', (e) => {
-        ListState.pagination.pageSize = parseInt(e.target.value);
-        ListState.pagination.page = 1;
+        if (ListState.isLoading) return; // 防止重复请求
+        
+        const newPageSize = parseInt(e.target.value);
+        // 【数值验证】
+        if (isNaN(newPageSize) || newPageSize < 1) {
+            console.warn('无效的每页显示数量:', newPageSize);
+            return;
+        }
+        
+        ListState.pagination.pageSize = newPageSize;
+        ListState.pagination.page = 1; // 重置到第一页
         localStorage.setItem('wh_claims_pageSize', ListState.pagination.pageSize);
-        fetchTableData();
+        fetchTableData(false, false, 1, false);
     });
     
+    // 首页按钮
+    document.getElementById('first-page').addEventListener('click', () => {
+        if (ListState.isLoading || currentPage === 1) return;
+        fetchTableData(false, false, 1, false);
+    });
+    
+    // 上一页按钮
     document.getElementById('prev-page').addEventListener('click', () => {
-        if (ListState.pagination.page > 1) {
-            ListState.pagination.page--;
-            fetchTableData();
+        if (ListState.isLoading || currentPage <= 1) return;
+        fetchTableData(false, false, currentPage - 1, false);
+    });
+    
+    // 下一页按钮
+    document.getElementById('next-page').addEventListener('click', () => {
+        if (ListState.isLoading || currentPage >= totalPages) return;
+        fetchTableData(false, false, currentPage + 1, false);
+    });
+    
+    // 末页按钮
+    document.getElementById('last-page').addEventListener('click', () => {
+        if (ListState.isLoading || currentPage >= totalPages) return;
+        fetchTableData(false, false, totalPages, false);
+    });
+    
+    // 【页码直接跳转功能】页码按钮点击
+    document.querySelectorAll('.page-number-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (ListState.isLoading) return;
+            const targetPage = parseInt(btn.getAttribute('data-page'));
+            // 【数值验证】
+            if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+                console.warn('无效的页码:', targetPage);
+                return;
+            }
+            if (targetPage !== currentPage) {
+                fetchTableData(false, false, targetPage, false);
+            }
+        });
+    });
+    
+    // 【页码直接跳转功能】输入框跳转
+    const jumpInput = document.getElementById('page-jump-input');
+    const jumpBtn = document.getElementById('page-jump-btn');
+    
+    jumpInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            jumpBtn.click();
         }
     });
     
-    document.getElementById('next-page').addEventListener('click', () => {
-        if (ListState.pagination.page < totalPages) {
-            ListState.pagination.page++;
-            fetchTableData();
+    jumpBtn.addEventListener('click', () => {
+        if (ListState.isLoading) return;
+        
+        const targetPage = parseInt(jumpInput.value);
+        // 【数值验证】确保页码和数据计数的有效性
+        if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+            if (typeof showToast === 'function') {
+                showToast(`请输入有效的页码（1-${totalPages}）`, 'error');
+            } else {
+                alert(`请输入有效的页码（1-${totalPages}）`);
+            }
+            jumpInput.value = currentPage; // 恢复当前页
+            return;
+        }
+        
+        if (targetPage !== currentPage) {
+            fetchTableData(false, false, targetPage, false);
         }
     });
 }
@@ -909,7 +1449,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const day = String(today.getDate()).padStart(2, '0');
     document.getElementById('entry_date').value = `${year}-${month}-${day}`;
     
-    updateNavState('form');
+    // 恢复之前打开的视图，如果没有保存的视图则默认显示表单视图
+    // 注意：视图恢复会在认证完成后（handleAuthChange中）自动执行
+    // 这里只设置默认的导航状态，避免在认证检查期间显示错误的视图
+    const savedView = localStorage.getItem('wh_claims_currentView') || 'form';
+    
+    // 先隐藏所有视图，等待认证完成后再显示正确的视图
+    // 这样可以避免在认证检查期间出现视图闪烁
+    ['view-form', 'view-data', 'view-kanban', 'view-notice', 'view-users', 'view-login-monitor'].forEach(id => {
+        const viewEl = document.getElementById(id);
+        if (viewEl) {
+            viewEl.classList.add('hidden');
+        }
+    });
+    
+    // 设置导航状态（但不切换视图，视图切换会在认证完成后执行）
+    updateNavState(savedView);
+    
     window.onbeforeunload = () => isFormDirty ? "您有未保存的内容" : undefined;
     
     checkSupabaseTableStructure();
@@ -932,10 +1488,165 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 【性能优化】智能搜索防抖：根据输入速度动态调整防抖时间
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
-        const debouncedApplyFilters = debounce(applyFilters, 300);
-        searchInput.addEventListener('input', debouncedApplyFilters);
+        let searchDebounceTimer = null;
+        let lastInputTime = 0;
+        
+        const handleSmartSearchDebounce = () => {
+            const now = Date.now();
+            const timeSinceLastInput = lastInputTime > 0 ? now - lastInputTime : Infinity;
+            
+            // 智能防抖：快速输入时延长防抖时间，慢速输入时缩短防抖时间
+            // 如果两次输入间隔小于200ms（快速输入），使用500ms防抖
+            // 如果两次输入间隔大于200ms（慢速输入），使用300ms防抖
+            const debounceDelay = timeSinceLastInput < 200 ? 500 : 300;
+            
+            // 清除之前的定时器
+            if (searchDebounceTimer) {
+                clearTimeout(searchDebounceTimer);
+            }
+            
+            // 设置新的定时器
+            searchDebounceTimer = setTimeout(() => {
+                applyFilters();
+                searchDebounceTimer = null;
+            }, debounceDelay);
+            
+            lastInputTime = now;
+        };
+        
+        searchInput.addEventListener('input', handleSmartSearchDebounce);
+    }
+    
+    // ============================================
+    // 【防闪烁优化】页面状态缓存与恢复机制
+    // ============================================
+    
+    // 页面状态缓存键名
+    const PAGE_STATE_KEY = 'wh_claims_page_state';
+    
+    /**
+     * 保存页面状态到 localStorage
+     */
+    function savePageState() {
+        try {
+            const state = {
+                // 数据状态
+                data: ListState.data,
+                totalCount: ListState.totalCount,
+                // 分页状态
+                page: ListState.pagination.page,
+                pageSize: ListState.pagination.pageSize,
+                // 筛选状态
+                filters: {
+                    status: ListState.filters.status,
+                    type: ListState.filters.type,
+                    search: ListState.filters.search,
+                    advancedFilters: ListState.filters.advancedFilters
+                },
+                // 排序状态
+                sorting: {
+                    col: ListState.sorting.col,
+                    asc: ListState.sorting.asc
+                },
+                // 滚动位置
+                scrollTop: window.virtualScrollManager ? window.virtualScrollManager.container.scrollTop : 0,
+                // 时间戳
+                timestamp: Date.now()
+            };
+            
+            localStorage.setItem(PAGE_STATE_KEY, JSON.stringify(state));
+        } catch (error) {
+            console.warn('保存页面状态失败:', error);
+        }
+    }
+    
+    /**
+     * 恢复页面状态
+     */
+    function restorePageState() {
+        try {
+            const savedState = localStorage.getItem(PAGE_STATE_KEY);
+            if (!savedState) return;
+            
+            const state = JSON.parse(savedState);
+            
+            // 检查状态是否过期（超过5分钟）
+            const stateAge = Date.now() - (state.timestamp || 0);
+            if (stateAge > 5 * 60 * 1000) {
+                localStorage.removeItem(PAGE_STATE_KEY);
+                return;
+            }
+            
+            // 恢复分页状态
+            if (state.page) ListState.pagination.page = state.page;
+            if (state.pageSize) ListState.pagination.pageSize = state.pageSize;
+            
+            // 恢复筛选状态
+            if (state.filters) {
+                Object.assign(ListState.filters, state.filters);
+            }
+            
+            // 恢复排序状态
+            if (state.sorting) {
+                Object.assign(ListState.sorting, state.sorting);
+            }
+            
+            // 恢复数据（如果有缓存的数据）
+            if (state.data && state.data.length > 0) {
+                ListState.data = state.data;
+                ListState.totalCount = state.totalCount || state.data.length;
+                
+                // 使用 requestAnimationFrame 确保平滑渲染
+                requestAnimationFrame(() => {
+                    if (typeof renderDatabase === 'function') {
+                        renderDatabase();
+                    }
+                    
+                    // 恢复滚动位置
+                    if (state.scrollTop && window.virtualScrollManager) {
+                        requestAnimationFrame(() => {
+                            window.virtualScrollManager.container.scrollTop = state.scrollTop;
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('恢复页面状态失败:', error);
+        }
+    }
+    
+    // 监听页面可见性变化（切换标签页时）
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // 页面隐藏时保存状态
+            savePageState();
+        } else {
+            // 页面显示时恢复状态（可选，根据需求决定是否自动恢复）
+            // restorePageState();
+        }
+    });
+    
+    // 监听页面卸载前事件
+    window.addEventListener('beforeunload', () => {
+        savePageState();
+    });
+    
+    // 页面加载完成后，尝试恢复状态（仅在特定条件下）
+    // 注意：这里不自动恢复，因为可能会覆盖最新的数据
+    // 如果需要自动恢复，可以在特定场景下调用 restorePageState()
+    
+    // 暴露恢复函数到全局，供需要时手动调用
+    if (typeof window !== 'undefined') {
+        window.restorePageState = restorePageState;
+        window.savePageState = savePageState;
+    }
+    
+    // 【修复】页面加载时初始化批量操作工具栏状态（确保初始隐藏）
+    if (typeof window.updateBatchActionBar === 'function') {
+        window.updateBatchActionBar();
     }
 });
 

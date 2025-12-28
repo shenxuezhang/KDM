@@ -498,7 +498,7 @@
     <div id="toast-container" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-3 pointer-events-none px-4 md:px-0 w-full max-w-md items-center"></div>
     
     <!-- 登录界面 -->
-    <div id="login-container" class="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center z-50">
+    <div id="login-container" class="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center z-50 hidden">
         <div class="w-full max-w-md mx-4">
             <div class="glass-card rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700">
                 <!-- 登录头部 -->
@@ -1004,167 +1004,79 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
-                        <h2 class="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight whitespace-nowrap">搜索区</h2>
                         
                         <!-- 搜索输入框和按钮 - 移到标题右边 -->
-                        <div class="flex items-center gap-2 flex-1 max-w-xl">
-                            <div class="relative flex-1 group">
+                        <div class="flex items-center gap-2 flex-1 max-w-7xl">
+                            <div class="relative flex-1 group" style="min-width: 320px;">
                                 <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                                 <input 
                                     id="quickSearch"
                                     type="text"
-                                    placeholder="输入单号、SKU等关键词快速查询..."
-                                    class="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                    placeholder="搜索：海外仓单号、物流运单号、订单SKU"
+                                    class="w-full pl-9 pr-20 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                    style="min-width: 320px;"
                                 >
+                                <!-- 搜索模式选择下拉框 -->
+                                <select id="searchModeSelect" class="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option value="fuzzy">模糊</option>
+                                    <option value="exact">精准</option>
+                                </select>
                             </div>
+                            
+                            <!-- 【新增】发货仓、索赔类型、发货日期、申请提交日期 - 移到搜索框和搜索按钮之间 -->
+                            <div class="flex items-center gap-2">
+                                <!-- 发货仓 -->
+                                <select id="quickFilterWarehouse" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[100px]">
+                                    <option value="">全部仓库</option>
+                                    <option value="美西-4仓">美西-4仓</option>
+                                    <option value="美西-2仓">美西-2仓</option>
+                                    <option value="美东-4仓">美东-4仓</option>
+                                    <option value="美西-1仓">美西-1仓</option>
+                                </select>
+                                
+                                <!-- 索赔类型 -->
+                                <select id="quickFilterClaimType" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[120px]">
+                                    <option value="">全部类型</option>
+                                    <option value="货物损坏">货物损坏</option>
+                                    <option value="丢失">丢失</option>
+                                    <option value="延误">延误</option>
+                                    <option value="库存不符">库存不符</option>
+                                    <option value="错发">错发</option>
+                                    <option value="发货数量不符">发货数量不符</option>
+                                </select>
+                                
+                                <!-- 发货日期 -->
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">发货日期：</span>
+                                    <input id="quickFilterShipDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
+                                    <input id="quickFilterShipDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
+                                </div>
+                                
+                                <!-- 申请提交日期 -->
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">申请日期：</span>
+                                    <input id="quickFilterEntryDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
+                                    <input id="quickFilterEntryDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
+                                </div>
+                            </div>
+                            
                             <button onclick="handleQuickSearch()" class="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap">
                                 搜索
                             </button>
                             
-                            <!-- 【新增】重置和查询按钮 - 默认隐藏，展开高级筛选时显示 -->
-                            <div id="advancedFilterActions" class="hidden flex items-center gap-2">
-                                <button type="button" onclick="handleResetFilters()" class="flex items-center justify-center gap-1.5 px-4 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all whitespace-nowrap">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                    </svg>
-                                    重置条件
-                                </button>
-                                <button type="button" onclick="handleAdvancedSearch()" class="flex items-center justify-center gap-1.5 px-6 py-1.5 bg-blue-500 dark:bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 dark:hover:bg-blue-700 shadow-md transition-all active:scale-95 whitespace-nowrap">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                    开始查询
-                                </button>
-                            </div>
+                            <!-- 【优化】重置按钮 - 常显示，放在搜索按钮右边 -->
+                            <button type="button" onclick="handleResetFilters()" class="flex items-center justify-center gap-1.5 px-4 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                重置条件
+                            </button>
                         </div>
                     </div>
-                    
-                    <!-- 高级筛选按钮 - 移到右侧 -->
-                    <button 
-                        id="toggleFilter"
-                        onclick="toggleAdvancedFilterPanel()"
-                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 whitespace-nowrap"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                        </svg>
-                        <span>高级筛选</span>
-                        <svg id="toggleIcon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- 高级搜索展开面板 - 优化：恢复字体大小，通过缩窄输入框和调整间距来减少高度 -->
-                <div id="advancedPanel" class="hidden p-3 md:p-4 bg-white dark:bg-slate-800">
-                    <form id="searchForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-3 gap-y-2.5">
-                        
-                        <!-- 海外仓单号 -->
-                        <div class="space-y-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                </svg>
-                                海外仓单号
-                            </label>
-                            <input name="overseasWarehouseNo" type="text" placeholder="请输入单号" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 h-9">
-                        </div>
-
-                        <!-- 物流运单号 -->
-                        <div class="space-y-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                </svg>
-                                物流运单号
-                            </label>
-                            <input name="logisticsTrackingNo" type="text" placeholder="输入或粘贴运单号" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 h-9">
-                        </div>
-
-                        <!-- 发货仓 -->
-                        <div class="space-y-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <span>发货仓</span>
-                            </label>
-                            <select name="shippingWarehouse" id="filterWarehouse" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9">
-                                <option value="">全部仓库</option>
-                                <option value="美西-4仓">美西-4仓</option>
-                                <option value="美西-2仓">美西-2仓</option>
-                                <option value="美东-4仓">美东-4仓</option>
-                                <option value="美西-1仓">美西-1仓</option>
-                            </select>
-                        </div>
-
-                        <!-- 订单SKU -->
-                        <div class="space-y-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <span>订单SKU</span>
-                            </label>
-                            <input name="orderSku" type="text" placeholder="输入SKU编号" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 h-9">
-                        </div>
-
-                        <!-- 索赔类型 -->
-                        <div class="space-y-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <span>索赔类型</span>
-                            </label>
-                            <select name="claimType" id="filterClaimType" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9">
-                                <option value="">请选择类型</option>
-                                <option value="货物损坏">货物损坏</option>
-                                <option value="丢失">丢失</option>
-                                <option value="延误">延误</option>
-                                <option value="库存不符">库存不符</option>
-                                <option value="错发">错发</option>
-                                <option value="发货数量不符">发货数量不符</option>
-                            </select>
-                        </div>
-
-                        <!-- 发货日期 -->
-                        <div class="space-y-1 lg:col-span-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                发货日期
-                            </label>
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <input name="shippingDateStart" type="date" class="w-full px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9">
-                                <input name="shippingDateEnd" type="date" class="w-full px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9">
-                            </div>
-                        </div>
-
-                        <!-- 申请提交日期 -->
-                        <div class="space-y-1 lg:col-span-1">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                申请提交日期
-                            </label>
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <input name="submissionDateStart" type="date" class="w-full px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9">
-                                <input name="submissionDateEnd" type="date" class="w-full px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9">
-                            </div>
-                        </div>
-
-                        <!-- 处理状态 -->
-                        <div class="space-y-1 lg:col-span-3">
-                            <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <span>处理状态</span>
-                            </label>
-                            <div id="statusContainer" class="flex flex-wrap gap-2">
-                                <button type="button" data-status="all" class="filter-status-btn px-3 py-1 rounded-full text-xs font-semibold border bg-blue-500 dark:bg-blue-600 border-blue-500 dark:border-blue-600 text-white shadow-sm transition-all">全部</button>
-                                <button type="button" data-status="待审核" class="filter-status-btn px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all">待审核</button>
-                                <button type="button" data-status="处理中" class="filter-status-btn px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all">处理中</button>
-                                <button type="button" data-status="等待赔付" class="filter-status-btn px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all">等待赔付</button>
-                                <button type="button" data-status="已赔付" class="filter-status-btn px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all">已赔付</button>
-                                <button type="button" data-status="已驳回" class="filter-status-btn px-3 py-1 rounded-full text-xs font-semibold border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all">已驳回</button>
-                            </div>
-                            <input type="hidden" name="processStatus" id="processStatusInput" value="all">
-                        </div>
-                    </form>
                 </div>
             </div>
 
@@ -1193,7 +1105,7 @@
                         <button onclick="toggleColumnModal()" class="text-sm text-blue-600 font-bold hover:underline">自定义列</button>
                     </div>
                 </div>
-                <div class="table-container overflow-x-auto custom-scrollbar flex-1 relative">
+                <div class="table-container overflow-x-auto custom-scrollbar flex-1 relative pb-24">
                     <table class="w-full text-left border-collapse" id="dataTable">
                         <thead class="bg-slate-50 dark:bg-slate-900"><tr id="tableHeaderRow"></tr></thead>
                         <tbody id="dbContent" class="bg-white dark:bg-slate-800 divide-y divide-slate-50 dark:divide-slate-700"></tbody>
@@ -1201,6 +1113,51 @@
                     <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-300 dark:text-slate-600"><span class="font-bold text-sm">暂无数据</span></div>
                 </div>
                 <div id="pagination-container"></div>
+            </div>
+            
+            <!-- 批量操作工具栏 -->
+            <div id="batch-action-bar" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg transform transition-transform duration-300 translate-y-full z-40" style="display: none;">
+                <div class="container mx-auto px-4 py-3">
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
+                        <!-- 选择信息 -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                已选择 <span id="selected-count" class="text-blue-600 dark:text-blue-400">0</span> 项
+                            </span>
+                            <button onclick="clearSelection()" class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline">
+                                清除选择
+                            </button>
+                        </div>
+                        
+                        <!-- 操作按钮组 -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <!-- 状态选择下拉框和批量修改状态按钮 -->
+                            <div class="flex items-center gap-2">
+                                <select id="bulk-status-select" class="form-input bg-slate-50 text-slate-800 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-md px-2.5 py-1.5 text-xs">
+                                    <option value="">选择状态</option>
+                                    <option value="待审核">待审核</option>
+                                    <option value="处理中">处理中</option>
+                                    <option value="等待赔付">等待赔付</option>
+                                    <option value="已赔付">已赔付</option>
+                                    <option value="已驳回">已驳回</option>
+                                </select>
+                                <button id="batch-update-status-btn" onclick="batchUpdateStatusFromSelect()" class="px-4 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium transition-all hover:scale-105 whitespace-nowrap">
+                                    批量修改状态
+                                </button>
+                            </div>
+                            
+                            <!-- 导出选中按钮 -->
+                            <button id="batch-export-btn" onclick="batchExportSelected()" class="px-4 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-xs font-medium transition-all hover:scale-105 whitespace-nowrap">
+                                导出选中
+                            </button>
+                            
+                            <!-- 批量删除按钮 -->
+                            <button id="batch-delete-btn" onclick="batchDelete()" class="px-4 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 text-xs font-medium transition-all hover:scale-105 whitespace-nowrap">
+                                批量删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1736,33 +1693,9 @@ if (!updatedData || updatedData.length === 0) {
         // 此处不重复定义，直接使用模块中定义的版本
         // 刷新数据库数据
         async function refreshDatabase() {
-            try {
-                // 设置状态为连接中
-                setDbConnectionState('connecting');
-                setRefreshButtonState(true);
-                
-                // 加载数据
-                await loadDataFromSupabase();
-                
-                // 渲染表格
-                renderDatabase();
-                
-                // 设置状态为已连接
-                setDbConnectionState('connected');
-                
-                // 显示成功提示
-                showToast('数据已成功刷新', 'success');
-            } catch (error) {
-                console.error('刷新数据失败:', error);
-                // 设置状态为错误
-                setDbConnectionState('error');
-                
-                // 显示错误提示
-                showToast('数据刷新失败，请检查网络连接后重试', 'error');
-            } finally {
-                // 恢复按钮状态
-                setRefreshButtonState(false);
-            }
+            // 【简化方案】直接刷新页面，确保所有数据都是最新的
+            // 这样可以清除所有缓存和状态，确保数据完全刷新
+            location.reload();
         }
         // isFormDirty 已在 ui.js 中定义，此处不重复声明
         // lineChartInstance 和 pieChartInstance 已在 charts.js 中定义，此处不重复声明
@@ -1972,11 +1905,20 @@ if (!updatedData || updatedData.length === 0) {
         
         // 检查用户会话
         async function checkUserSession() {
+            // 先隐藏登录界面，等待session检查完成
+            const loginContainer = document.getElementById('login-container');
+            if (loginContainer) {
+                loginContainer.classList.add('hidden');
+            }
+            
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 handleAuthChange('SIGNED_IN', session);
             } else {
-                document.getElementById('login-container').classList.remove('hidden');
+                // 只有在确认没有session时才显示登录界面
+                if (loginContainer) {
+                    loginContainer.classList.remove('hidden');
+                }
             }
         }
         
@@ -2071,6 +2013,21 @@ if (!updatedData || updatedData.length === 0) {
                 
                 // 启动心跳机制，证明我在线
                 startHeartbeat(session.user.id);
+                
+                // 恢复之前打开的视图
+                const savedView = localStorage.getItem('wh_claims_currentView') || 'form';
+                if (typeof switchView === 'function') {
+                    await switchView(savedView);
+                } else if (typeof window.switchView === 'function') {
+                    await window.switchView(savedView);
+                } else {
+                    // 如果switchView还未加载，等待一下
+                    setTimeout(async () => {
+                        if (typeof window.switchView === 'function') {
+                            await window.switchView(savedView);
+                        }
+                    }, 100);
+                }
                 
                 const loginContainer = document.getElementById('login-container');
                 if (loginContainer && loginContainer.classList.contains('hidden') === false) {
@@ -2459,15 +2416,31 @@ if (!updatedData || updatedData.length === 0) {
             return password.length >= 6 && /[a-zA-Z]/.test(password) && /[0-9]/.test(password);
         }
         
-        // 显示加载状态
+        // 显示加载状态（优化：添加淡入淡出动画和10ms延迟）
+        let loadingTimeout = null;
         function showLoading(message = '加载中...') {
+            // 清除之前的延迟定时器
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+            }
+            
             // 检查是否已存在加载遮罩
             let loadingOverlay = document.getElementById('loading-overlay');
-            if (!loadingOverlay) {
+            if (loadingOverlay) {
+                // 如果已存在，只更新消息
+                const messageEl = loadingOverlay.querySelector('p');
+                if (messageEl) {
+                    messageEl.textContent = message;
+                }
+                return;
+            }
+            
+            // 10ms延迟显示，避免快速加载时的闪烁
+            loadingTimeout = setTimeout(() => {
                 // 创建加载遮罩
                 loadingOverlay = document.createElement('div');
                 loadingOverlay.id = 'loading-overlay';
-                loadingOverlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50';
+                loadingOverlay.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 opacity-0 transition-opacity duration-300';
                 loadingOverlay.innerHTML = `
                     <div class="bg-white dark:bg-slate-800 rounded-lg p-6 shadow-lg flex flex-col items-center">
                         <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
@@ -2475,14 +2448,35 @@ if (!updatedData || updatedData.length === 0) {
                     </div>
                 `;
                 document.body.appendChild(loadingOverlay);
-            }
+                
+                // 触发淡入动画
+                requestAnimationFrame(() => {
+                    loadingOverlay.classList.remove('opacity-0');
+                    loadingOverlay.classList.add('opacity-100');
+                });
+            }, 10);
         }
         
-        // 隐藏加载状态
+        // 隐藏加载状态（优化：添加淡出动画）
         function hideLoading() {
+            // 清除延迟定时器
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+                loadingTimeout = null;
+            }
+            
             const loadingOverlay = document.getElementById('loading-overlay');
             if (loadingOverlay) {
-                loadingOverlay.remove();
+                // 添加淡出动画
+                loadingOverlay.classList.remove('opacity-100');
+                loadingOverlay.classList.add('opacity-0');
+                
+                // 动画结束后移除元素
+                setTimeout(() => {
+                    if (loadingOverlay && loadingOverlay.parentNode) {
+                        loadingOverlay.remove();
+                    }
+                }, 300); // 与CSS transition duration一致
             }
         }
         
@@ -3109,6 +3103,15 @@ if (!updatedData || updatedData.length === 0) {
         function switchSubTab(status) {
             ListState.filters.status = status;
             
+            // 【修复】当切换到"全部"时，清空所有高级筛选条件，确保显示所有数据
+            if (status === 'all') {
+                ListState.filters.advancedFilters = null;
+                ListState.filters.advancedSearch = null;
+                ListState.filters.search = '';
+                ListState.filters.type = 'all';
+                console.log('[switchSubTab] 切换到"全部"，清空所有筛选条件');
+            }
+            
             // 【新样式】移除所有按钮的激活状态（蓝色背景）
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
@@ -3144,7 +3147,15 @@ if (!updatedData || updatedData.length === 0) {
             }
             
             ListState.pagination.page = 1; // 切换标签时重置到第一页
-            fetchTableData();
+            
+            // 【修复】强制刷新数据，跳过缓存
+            if (typeof window.fetchTableData === 'function') {
+                window.fetchTableData(false, true); // append=false, forceRefresh=true
+            } else if (typeof fetchTableData === 'function') {
+                fetchTableData(false, true); // append=false, forceRefresh=true
+            } else {
+                fetchTableData();
+            }
         }
         
         /**
@@ -3210,25 +3221,64 @@ if (!updatedData || updatedData.length === 0) {
                 // 2. 更新本地存储
                 localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
                 
-                // 3. 立即刷新UI，确保及时性
+                // 3. 【修复】同步更新 ListState.data 中对应的项，确保UI能立即反映状态变化
+                const listStateIndex = ListState.data.findIndex(i => i.id === id);
+                if (listStateIndex !== -1) {
+                    ListState.data[listStateIndex].process_status = newStatus;
+                    
+                    // 【修复】直接更新虚拟滚动管理器内部的数据，并强制重新渲染可见区域
+                    const vManager = (typeof window !== 'undefined' && window.virtualScrollManager) ? window.virtualScrollManager : null;
+                    if (vManager) {
+                        // 更新虚拟滚动管理器内部的数据引用（同步最新的ListState.data）
+                        const dataIndex = vManager.data.findIndex(i => i && i.id === id);
+                        if (dataIndex !== -1) {
+                            vManager.data[dataIndex].process_status = newStatus;
+                        }
+                        
+                        // 强制重新渲染可见区域
+                        if (vManager.startIndex >= 0 && vManager.endIndex > vManager.startIndex) {
+                            vManager.renderVisibleItems();
+                        }
+                    }
+                }
+                
+                // 4. 立即刷新UI，确保及时性
                 renderKanban(); 
                 renderDatabase();
                 
-                // 4. 同步到后端
+                // 5. 同步到后端
                 const success = await updateDataInSupabase(id, database[index]);
                 
-                // 5. 如果当前筛选的是特定状态，检查更新后的记录是否仍在筛选范围内
+                // 6. 【修复】清除所有缓存，确保获取最新数据
+                if (typeof window !== 'undefined' && typeof window.clearAllCache === 'function') {
+                    window.clearAllCache();
+                }
+                
+                // 7. 如果当前筛选的是特定状态，检查更新后的记录是否仍在筛选范围内
                 if (ListState.filters.status !== 'all') {
                     // 如果记录更新前在筛选范围内，更新后不在，则需要刷新数据
                     if (oldStatus === ListState.filters.status && newStatus !== ListState.filters.status) {
-                        fetchTableData(); // 重新获取服务端分页数据
+                        // 【修复】使用强制刷新参数，确保获取最新数据
+                        if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
+                            await window.fetchTableData(false, true); // append=false, forceRefresh=true
+                        } else if (typeof fetchTableData === 'function') {
+                            await fetchTableData(false, true);
+                        }
                     } else if (success) {
-                        // 如果更新成功且记录仍在筛选范围内，只刷新当前页数据
-                        fetchTableData();
+                        // 如果更新成功且记录仍在筛选范围内，只刷新当前页数据（强制刷新以确保显示最新状态）
+                        if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
+                            await window.fetchTableData(false, true); // append=false, forceRefresh=true
+                        } else if (typeof fetchTableData === 'function') {
+                            await fetchTableData(false, true);
+                        }
                     }
                 } else {
-                    // 如果筛选的是全部，刷新数据
-                    fetchTableData();
+                    // 如果筛选的是全部，刷新数据（强制刷新以确保显示最新状态）
+                    if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
+                        await window.fetchTableData(false, true); // append=false, forceRefresh=true
+                    } else if (typeof fetchTableData === 'function') {
+                        await fetchTableData(false, true);
+                    }
                 }
                 
                 showToast(`状态更新为：${newStatus}`, 'info');
@@ -3242,10 +3292,13 @@ if (!updatedData || updatedData.length === 0) {
         
         // 渲染数据列表：使用虚拟滚动（注意：renderDatabase 已在 ui.js 中定义，这里保留用于兼容性）
         // 如果 ui.js 中已有 renderDatabase，则此函数将被覆盖
+        // 【防闪烁优化】使用 requestAnimationFrame 包装渲染逻辑，确保平滑渲染
         function renderDatabase() {
-            // 使用ListState中的数据（已经在服务端完成筛选和排序）
-            const data = ListState.data;
-            currentFilteredData = data;
+            // 使用 requestAnimationFrame 包装渲染逻辑，避免闪烁
+            requestAnimationFrame(() => {
+                // 使用ListState中的数据（已经在服务端完成筛选和排序）
+                const data = ListState.data;
+                currentFilteredData = data;
             
             // 更新排序图标
             document.querySelectorAll('[id^="sort-icon-"]').forEach(el => { el.innerText = '↕'; el.className = 'ml-1 opacity-30 text-[10px]'; });
@@ -3306,9 +3359,17 @@ if (!updatedData || updatedData.length === 0) {
             
             // 更新统计信息
             document.getElementById('count_text').innerText = ListState.totalCount;
-            const totalUSD = data.reduce((sum, item) => sum + parseFloat(item.claim_total||0), 0);
-            document.getElementById('money_text').innerText = `$${totalUSD.toFixed(2)}`;
+            // 【性能优化】使用缓存的统计计算（calculateStats函数在main.js中定义）
+            if (typeof calculateStats === 'function') {
+                const stats = calculateStats(data);
+                document.getElementById('money_text').innerText = `$${stats.totalAmount.toFixed(2)}`;
+            } else {
+                // 降级方案：如果calculateStats函数不可用，使用原始计算方式
+                const totalUSD = data.reduce((sum, item) => sum + parseFloat(item.claim_total||0), 0);
+                document.getElementById('money_text').innerText = `$${totalUSD.toFixed(2)}`;
+            }
             updatePieChart(data);
+            }); // 结束 requestAnimationFrame 回调
         }
         
         function toggleRowCheckbox(tr) {
@@ -3960,158 +4021,143 @@ document.getElementById('entry_date').value = dateValue;
         }
 
         /**
-         * 【高级搜索重构】快速搜索处理函数
+         * 【优化】快速搜索处理函数 - 限制搜索字段为海外仓单号、物流运单号、订单SKU
+         * 同时处理快速筛选（发货仓、索赔类型、发货日期、申请提交日期）
          */
         function handleQuickSearch() {
             const quickSearchInput = document.getElementById('quickSearch');
             if (!quickSearchInput) return;
             
             const searchValue = quickSearchInput.value.trim();
+            const searchModeSelect = document.getElementById('searchModeSelect');
+            const searchMode = searchModeSelect ? searchModeSelect.value : 'fuzzy';
+            
+            // 【修复】获取快速筛选字段（发货仓、索赔类型、发货日期、申请提交日期）
+            const quickFilterWarehouse = document.getElementById('quickFilterWarehouse')?.value?.trim() || '';
+            const quickFilterClaimType = document.getElementById('quickFilterClaimType')?.value?.trim() || '';
+            const quickFilterShipDateStart = document.getElementById('quickFilterShipDateStart')?.value?.trim() || '';
+            const quickFilterShipDateEnd = document.getElementById('quickFilterShipDateEnd')?.value?.trim() || '';
+            const quickFilterEntryDateStart = document.getElementById('quickFilterEntryDateStart')?.value?.trim() || '';
+            const quickFilterEntryDateEnd = document.getElementById('quickFilterEntryDateEnd')?.value?.trim() || '';
+            
+            // 检查是否有快速筛选条件
+            const hasQuickFilters = !!(quickFilterWarehouse || quickFilterClaimType || 
+                                     quickFilterShipDateStart || quickFilterShipDateEnd || 
+                                     quickFilterEntryDateStart || quickFilterEntryDateEnd);
+            
+            // 【优化】限制搜索字段为：海外仓单号(order_no)、物流运单号(tracking_no)、订单SKU(sku)
+            // 设置搜索字段为这三个字段的组合
             ListState.filters.search = searchValue;
-            ListState.filters.advancedSearch = null; // 快速搜索时清空高级搜索
+            ListState.filters.searchMode = searchMode;
+            ListState.filters.searchField = 'order_tracking_sku'; // 自定义字段标识，用于标识只搜索这三个字段
             
-            // 清空高级搜索表单
-            const searchForm = document.getElementById('searchForm');
-            if (searchForm) {
-                searchForm.reset();
-                // 重置状态按钮
-                const statusBtns = document.querySelectorAll('.filter-status-btn');
-                if (statusBtns.length > 0) {
-                    statusBtns.forEach(btn => {
-                        btn.classList.remove('bg-blue-500', 'dark:bg-blue-600', 'border-blue-500', 'dark:border-blue-600', 'text-white', 'shadow-sm');
-                        btn.classList.add('bg-white', 'dark:bg-slate-700', 'border-slate-200', 'dark:border-slate-600', 'text-slate-600', 'dark:text-slate-300');
-                    });
-                    statusBtns[0].classList.remove('bg-white', 'dark:bg-slate-700', 'border-slate-200', 'dark:border-slate-600', 'text-slate-600', 'dark:text-slate-300');
-                    statusBtns[0].classList.add('bg-blue-500', 'dark:bg-blue-600', 'border-blue-500', 'dark:border-blue-600', 'text-white', 'shadow-sm');
-                }
-                document.getElementById('processStatusInput').value = 'all';
-                ListState.filters.status = 'all';
+            // 【修复】清空旧的type筛选，避免与快速筛选的claim_type冲突
+            // 当使用快速筛选的索赔类型时，应该忽略旧的type筛选
+            if (quickFilterClaimType) {
+                ListState.filters.type = 'all'; // 清空旧的type筛选
             }
             
-            ListState.pagination.page = 1;
-            fetchTableData();
-        }
-        
-        /**
-         * 【高级搜索重构】切换高级筛选面板
-         */
-        function toggleAdvancedFilterPanel() {
-            const advancedPanel = document.getElementById('advancedPanel');
-            const toggleIcon = document.getElementById('toggleIcon');
-            const toggleFilter = document.getElementById('toggleFilter');
-            const advancedFilterActions = document.getElementById('advancedFilterActions');
+            // 构建筛选条件对象
+            const allFilters = {};
             
-            if (!advancedPanel || !toggleIcon) return;
+            // 【修复】快速筛选字段映射到数据库字段
+            // 1. 发货仓 -> warehouse（对应明细列表中的"发货仓"字段）
+            if (quickFilterWarehouse) {
+                allFilters.warehouse = quickFilterWarehouse;
+                console.log('[handleQuickSearch] 发货仓筛选:', quickFilterWarehouse);
+            }
             
-            const isHidden = advancedPanel.classList.contains('hidden');
+            // 2. 索赔类型 -> claim_type（对应明细列表中的"索赔类型"字段）
+            if (quickFilterClaimType) {
+                allFilters.claim_type = quickFilterClaimType;
+                console.log('[handleQuickSearch] 索赔类型筛选:', quickFilterClaimType);
+            }
             
-            if (isHidden) {
-                // 展开面板
-                advancedPanel.classList.remove('hidden');
-                toggleIcon.style.transform = 'rotate(180deg)';
-                toggleFilter.classList.add('bg-blue-50', 'dark:bg-blue-900/30', 'border-blue-200', 'dark:border-blue-800', 'text-blue-600', 'dark:text-blue-400');
-                // 显示重置和查询按钮
-                if (advancedFilterActions) {
-                    advancedFilterActions.classList.remove('hidden');
-                }
+            // 3. 发货日期 -> ship_date（对应明细列表中的"发货日期"字段）
+            if (quickFilterShipDateStart) {
+                allFilters.ship_date_start = quickFilterShipDateStart;
+                console.log('[handleQuickSearch] 发货日期起始:', quickFilterShipDateStart);
+            }
+            if (quickFilterShipDateEnd) {
+                allFilters.ship_date_end = quickFilterShipDateEnd;
+                console.log('[handleQuickSearch] 发货日期结束:', quickFilterShipDateEnd);
+            }
+            
+            // 4. 申请提交日期 -> entry_date（对应明细列表中的"申请提交日期"字段）
+            if (quickFilterEntryDateStart) {
+                allFilters.entry_date_start = quickFilterEntryDateStart;
+                console.log('[handleQuickSearch] 申请提交日期起始:', quickFilterEntryDateStart);
+            }
+            if (quickFilterEntryDateEnd) {
+                allFilters.entry_date_end = quickFilterEntryDateEnd;
+                console.log('[handleQuickSearch] 申请提交日期结束:', quickFilterEntryDateEnd);
+            }
+            
+            // 设置高级筛选条件
+            // 【修复】即使没有搜索关键词，只要有筛选条件就应该应用
+            if (Object.keys(allFilters).length > 0) {
+                ListState.filters.advancedFilters = allFilters;
             } else {
-                // 收起面板
-                advancedPanel.classList.add('hidden');
-                toggleIcon.style.transform = 'rotate(0deg)';
-                toggleFilter.classList.remove('bg-blue-50', 'dark:bg-blue-900/30', 'border-blue-200', 'dark:border-blue-800', 'text-blue-600', 'dark:text-blue-400');
-                // 隐藏重置和查询按钮
-                if (advancedFilterActions) {
-                    advancedFilterActions.classList.add('hidden');
-                }
-            }
-        }
-        
-        /**
-         * 【高级搜索重构】处理高级搜索
-         */
-        function handleAdvancedSearch() {
-            const searchForm = document.getElementById('searchForm');
-            if (!searchForm) return;
-            
-            const formData = new FormData(searchForm);
-            const filterData = {};
-            
-            // 收集所有筛选条件
-            const overseasWarehouseNo = formData.get('overseasWarehouseNo')?.trim();
-            const logisticsTrackingNo = formData.get('logisticsTrackingNo')?.trim();
-            const shippingWarehouse = formData.get('shippingWarehouse')?.trim();
-            const orderSku = formData.get('orderSku')?.trim();
-            const shippingDateStart = formData.get('shippingDateStart')?.trim();
-            const shippingDateEnd = formData.get('shippingDateEnd')?.trim();
-            const submissionDateStart = formData.get('submissionDateStart')?.trim();
-            const submissionDateEnd = formData.get('submissionDateEnd')?.trim();
-            const claimType = formData.get('claimType')?.trim();
-            let processStatus = formData.get('processStatus')?.trim() || 'all';
-            // 处理"全部"字符串，统一转换为'all'
-            if (processStatus === '全部') {
-                processStatus = 'all';
+                ListState.filters.advancedFilters = null;
             }
             
-            // 快速搜索
-            const quickSearch = document.getElementById('quickSearch')?.value.trim();
-            
-            // 存储到ListState.filters
-            ListState.filters.search = quickSearch || '';
-            
-            // 高级筛选条件（存储为对象）
-            ListState.filters.advancedFilters = {
-                order_no: overseasWarehouseNo || null,
-                tracking_no: logisticsTrackingNo || null,
-                warehouse: shippingWarehouse || null,
-                sku: orderSku || null,
-                ship_date_start: shippingDateStart || null,
-                ship_date_end: shippingDateEnd || null,
-                entry_date_start: submissionDateStart || null,
-                entry_date_end: submissionDateEnd || null,
-                claim_type: claimType || null
-            };
-            
-            // 处理状态筛选（与状态按钮联动）
-            if (processStatus && processStatus !== 'all' && processStatus !== '全部') {
-                ListState.filters.status = processStatus;
-                // 同步顶部状态按钮
-                switchSubTab(processStatus);
-            } else {
-                ListState.filters.status = 'all';
-                // 同步顶部状态按钮
-                switchSubTab('all');
+            // 如果没有搜索关键词也没有筛选条件，清空所有筛选
+            if (!searchValue && !hasQuickFilters) {
+                ListState.filters.advancedFilters = null;
+                ListState.filters.advancedSearch = null;
             }
             
-            // 清空快速搜索（如果使用了高级筛选）
-            const hasAdvancedFilters = overseasWarehouseNo || logisticsTrackingNo || shippingWarehouse || 
-                                      orderSku || shippingDateStart || shippingDateEnd || 
-                                      submissionDateStart || submissionDateEnd || 
-                                      claimType || (processStatus && processStatus !== 'all');
-            if (hasAdvancedFilters) {
-                ListState.filters.search = '';
-                const quickSearchInput = document.getElementById('quickSearch');
-                if (quickSearchInput) {
-                    quickSearchInput.value = '';
-                }
-            }
-            
+            // 重置到第一页并强制刷新数据
             ListState.pagination.page = 1;
-            fetchTableData();
+            
+            // 【修复】确保使用全局的fetchTableData函数，并强制刷新
+            console.log('[handleQuickSearch] 开始搜索，筛选条件:', {
+                search: searchValue,
+                searchMode: searchMode,
+                searchField: ListState.filters.searchField,
+                advancedFilters: ListState.filters.advancedFilters,
+                allFilters: allFilters
+            });
+            
+            // 使用window.fetchTableData确保调用正确的函数，并强制刷新（跳过缓存）
+            if (typeof window.fetchTableData === 'function') {
+                window.fetchTableData(false, true); // append=false, forceRefresh=true
+            } else if (typeof fetchTableData === 'function') {
+                fetchTableData(false, true); // append=false, forceRefresh=true
+            } else {
+                console.error('[handleQuickSearch] fetchTableData函数未找到！');
+                alert('搜索功能异常：无法找到数据获取函数，请刷新页面重试。');
+            }
         }
         
+        
         /**
-         * 【高级搜索重构】重置所有筛选条件
+         * 【优化】重置所有筛选条件 - 包括快速筛选字段
          */
         function handleResetFilters() {
-            const searchForm = document.getElementById('searchForm');
-            if (searchForm) {
-                searchForm.reset();
-            }
-            
             const quickSearchInput = document.getElementById('quickSearch');
             if (quickSearchInput) {
                 quickSearchInput.value = '';
             }
+            
+            // 【新增】重置快速筛选字段（发货仓、索赔类型、发货日期、申请提交日期）
+            const quickFilterWarehouse = document.getElementById('quickFilterWarehouse');
+            if (quickFilterWarehouse) quickFilterWarehouse.value = '';
+            
+            const quickFilterClaimType = document.getElementById('quickFilterClaimType');
+            if (quickFilterClaimType) quickFilterClaimType.value = '';
+            
+            const quickFilterShipDateStart = document.getElementById('quickFilterShipDateStart');
+            if (quickFilterShipDateStart) quickFilterShipDateStart.value = '';
+            
+            const quickFilterShipDateEnd = document.getElementById('quickFilterShipDateEnd');
+            if (quickFilterShipDateEnd) quickFilterShipDateEnd.value = '';
+            
+            const quickFilterEntryDateStart = document.getElementById('quickFilterEntryDateStart');
+            if (quickFilterEntryDateStart) quickFilterEntryDateStart.value = '';
+            
+            const quickFilterEntryDateEnd = document.getElementById('quickFilterEntryDateEnd');
+            if (quickFilterEntryDateEnd) quickFilterEntryDateEnd.value = '';
             
             // 重置状态按钮
             const statusBtns = document.querySelectorAll('.filter-status-btn');
@@ -4129,13 +4175,29 @@ document.getElementById('entry_date').value = dateValue;
             ListState.filters.status = 'all';
             ListState.filters.advancedFilters = null;
             ListState.filters.advancedSearch = null;
-            document.getElementById('processStatusInput').value = 'all';
+            ListState.filters.searchField = 'order_tracking_sku'; // 重置为默认搜索字段
+            
+            const processStatusInput = document.getElementById('processStatusInput');
+            if (processStatusInput) {
+                processStatusInput.value = 'all';
+            }
             
             // 重置状态筛选按钮
-            switchSubTab('all');
+            if (typeof switchSubTab === 'function') {
+                switchSubTab('all');
+            }
             
+            // 重新加载数据
             ListState.pagination.page = 1;
-            fetchTableData();
+            
+            // 【修复】强制刷新数据，跳过缓存
+            if (typeof window.fetchTableData === 'function') {
+                window.fetchTableData(false, true); // append=false, forceRefresh=true
+            } else if (typeof fetchTableData === 'function') {
+                fetchTableData(false, true); // append=false, forceRefresh=true
+            } else {
+                fetchTableData();
+            }
         }
         
         /**
@@ -4145,12 +4207,24 @@ document.getElementById('entry_date').value = dateValue;
             const statusBtns = document.querySelectorAll('.filter-status-btn');
             const processStatusInput = document.getElementById('processStatusInput');
             
+            // 先移除所有现有的事件监听器（通过克隆节点）
             statusBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+            });
+            
+            // 重新获取按钮列表（因为已经替换了）
+            const newStatusBtns = document.querySelectorAll('.filter-status-btn');
+            
+            newStatusBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
                     const status = this.getAttribute('data-status');
                     
                     // 更新所有按钮样式
-                    statusBtns.forEach(b => {
+                    newStatusBtns.forEach(b => {
                         b.classList.remove('bg-blue-500', 'dark:bg-blue-600', 'border-blue-500', 'dark:border-blue-600', 'text-white', 'shadow-sm');
                         b.classList.add('bg-white', 'dark:bg-slate-700', 'border-slate-200', 'dark:border-slate-600', 'text-slate-600', 'dark:text-slate-300');
                     });
@@ -4159,7 +4233,7 @@ document.getElementById('entry_date').value = dateValue;
                     this.classList.remove('bg-white', 'dark:bg-slate-700', 'border-slate-200', 'dark:border-slate-600', 'text-slate-600', 'dark:text-slate-300');
                     this.classList.add('bg-blue-500', 'dark:bg-blue-600', 'border-blue-500', 'dark:border-blue-600', 'text-white', 'shadow-sm');
                     
-                    // 更新隐藏输入值
+                    // 更新隐藏输入值（确保搜索时能正确读取）
                     if (processStatusInput) {
                         processStatusInput.value = status === 'all' ? '全部' : status;
                     }
@@ -4168,16 +4242,21 @@ document.getElementById('entry_date').value = dateValue;
                     if (status === 'all') {
                         ListState.filters.status = 'all';
                         // 同步顶部状态按钮
-                        switchSubTab('all');
+                        if (typeof switchSubTab === 'function') {
+                            switchSubTab('all');
+                        }
                     } else {
                         ListState.filters.status = status;
                         // 同步顶部状态按钮
-                        switchSubTab(status);
+                        if (typeof switchSubTab === 'function') {
+                            switchSubTab(status);
+                        }
                     }
                     
-                    // 自动应用筛选
-                    ListState.pagination.page = 1;
-                    fetchTableData();
+                    // 注意：这里不自动应用筛选，让用户点击搜索按钮时统一应用
+                    // 如果需要在点击状态按钮时立即搜索，可以取消下面的注释
+                    // ListState.pagination.page = 1;
+                    // fetchTableData();
                 });
             });
         }
@@ -4869,6 +4948,10 @@ document.getElementById('entry_date').value = dateValue;
             const selectAllBox = document.getElementById('selectAll');
             const rowBoxes = document.querySelectorAll('.row-checkbox');
             rowBoxes.forEach(box => box.checked = selectAllBox.checked);
+            // 更新批量操作工具栏
+            if (typeof updateBatchActionBar === 'function') {
+                updateBatchActionBar();
+            }
         }
 
         // --- 单个勾选更新全选框状态 ---
@@ -4889,7 +4972,299 @@ document.getElementById('entry_date').value = dateValue;
                 selectAllBox.checked = false;
                 selectAllBox.indeterminate = false;
             }
+            // 更新批量操作工具栏
+            if (typeof updateBatchActionBar === 'function') {
+                updateBatchActionBar();
+            }
         }
+
+        // ============================================
+        // 【新增】批量操作功能
+        // ============================================
+
+        /**
+         * 【新增】获取选中行的ID数组
+         */
+        function getSelectedRowIds() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            return Array.from(checkedBoxes).map(cb => cb.value).filter(id => id);
+        }
+
+        /**
+         * 【新增】清除选择状态
+         */
+        function clearSelection() {
+            const selectAllBox = document.getElementById('selectAll');
+            const rowBoxes = document.querySelectorAll('.row-checkbox');
+            
+            // 清除所有行的复选框
+            rowBoxes.forEach(box => {
+                box.checked = false;
+            });
+            
+            // 清除全选框
+            if (selectAllBox) {
+                selectAllBox.checked = false;
+                selectAllBox.indeterminate = false;
+            }
+            
+            // 更新批量操作工具栏
+            if (typeof updateBatchActionBar === 'function') {
+                updateBatchActionBar();
+            }
+        }
+
+        /**
+         * 【新增】批量更新选中记录的状态
+         * @param {string} status - 状态值
+         */
+        async function batchUpdateStatus(status) {
+            const selectedIds = getSelectedRowIds();
+            if (selectedIds.length === 0) {
+                showToast('请先选择要更新的记录', 'error');
+                return;
+            }
+            
+            // 状态映射：英文标识 -> 中文名称（保留以兼容可能传入的英文值）
+            const statusMap = {
+                'pending_review': '待审核',
+                'processing': '处理中',
+                'pending_payment': '等待赔付',
+                'paid': '已赔付',
+                'rejected': '已驳回'
+            };
+            
+            // 获取中文状态名称
+            const chineseStatus = statusMap[status] || status;
+            
+            // 确认对话框
+            if (!confirm(`确定要批量更新 ${selectedIds.length} 条记录的状态为"${chineseStatus}"吗？`)) {
+                return;
+            }
+            
+            try {
+                // 批量更新API调用
+                const client = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+                if (!client) {
+                    showToast('数据库连接失败，请刷新页面重试', 'error');
+                    return;
+                }
+                
+                // 传输中文状态名称到后端
+                const { error } = await client
+                    .from('claims_v2')
+                    .update({ process_status: chineseStatus }) // 使用中文状态名称
+                    .in('id', selectedIds);
+                
+                if (error) throw error;
+                
+                showToast(`成功更新 ${selectedIds.length} 条记录`, 'success');
+                
+                // 【修复】立即更新 ListState.data 中对应项的状态，确保UI能立即反映状态变化
+                selectedIds.forEach(id => {
+                    const listStateIndex = ListState.data.findIndex(i => i && i.id === id);
+                    if (listStateIndex !== -1) {
+                        ListState.data[listStateIndex].process_status = chineseStatus;
+                    }
+                });
+                
+                // 【修复】直接更新虚拟滚动管理器内部的数据，并强制重新渲染可见区域
+                const vManager = (typeof window !== 'undefined' && window.virtualScrollManager) ? window.virtualScrollManager : null;
+                if (vManager && vManager.data) {
+                    selectedIds.forEach(id => {
+                        const dataIndex = vManager.data.findIndex(i => i && i.id === id);
+                        if (dataIndex !== -1) {
+                            vManager.data[dataIndex].process_status = chineseStatus;
+                        }
+                    });
+                    
+                    // 强制重新渲染可见区域
+                    if (vManager.startIndex >= 0 && vManager.endIndex > vManager.startIndex) {
+                        vManager.renderVisibleItems();
+                    }
+                }
+                
+                // 【修复】立即刷新UI，确保及时性
+                if (typeof renderDatabase === 'function') {
+                    renderDatabase();
+                }
+                
+                // 【修复】从后端获取最新数据，确保数据一致性（异步执行，不阻塞主流程）
+                // 添加小延迟确保数据库更新已传播
+                setTimeout(async () => {
+                    try {
+                        if (typeof window !== 'undefined' && typeof window.clearAllCache === 'function') {
+                            window.clearAllCache();
+                        }
+                        if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
+                            await window.fetchTableData(false, true); // append=false, forceRefresh=true
+                        } else if (typeof fetchTableData === 'function') {
+                            await fetchTableData(false, true);
+                        }
+                    } catch (error) {
+                        console.error('刷新数据失败:', error);
+                    }
+                }, 200); // 200ms 延迟，确保数据库更新已传播
+                
+                clearSelection(); // 清空选择
+            } catch (error) {
+                console.error('批量更新失败:', error);
+                showToast('批量更新失败: ' + (error.message || '未知错误'), 'error');
+            }
+        }
+
+        /**
+         * 【新增】从选择框中获取状态并批量更新选中记录
+         */
+        function batchUpdateStatusFromSelect() {
+            const statusSelect = document.getElementById('bulk-status-select');
+            const selectedStatus = statusSelect ? statusSelect.value : '';
+            
+            if (!selectedStatus) {
+                showToast('请选择要更新的状态', 'error');
+                return;
+            }
+            
+            batchUpdateStatus(selectedStatus);
+        }
+
+        /**
+         * 【新增】批量导出选中记录
+         */
+        async function batchExportSelected() {
+            const selectedIds = getSelectedRowIds();
+            if (selectedIds.length === 0) {
+                showToast('请先选择要导出的记录', 'error');
+                return;
+            }
+            
+            try {
+                // 获取选中记录的数据
+                const client = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+                if (!client) {
+                    showToast('数据库连接失败，请刷新页面重试', 'error');
+                    return;
+                }
+                
+                const { data, error } = await client
+                    .from('claims_v2')
+                    .select('*')
+                    .in('id', selectedIds);
+                
+                if (error) throw error;
+                
+                if (!data || data.length === 0) {
+                    showToast('没有找到要导出的数据', 'error');
+                    return;
+                }
+                
+                // 使用现有的导出功能（如果存在）
+                if (typeof exportToExcel === 'function') {
+                    exportToExcel(data, `批量导出_${new Date().toISOString().split('T')[0]}.xlsx`);
+                } else {
+                    // 简单的CSV导出
+                    const csvContent = convertToCSV(data);
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `批量导出_${new Date().toISOString().split('T')[0]}.csv`;
+                    link.click();
+                }
+                
+                showToast(`成功导出 ${data.length} 条记录`, 'success');
+            } catch (error) {
+                console.error('批量导出失败:', error);
+                showToast('批量导出失败: ' + (error.message || '未知错误'), 'error');
+            }
+        }
+
+        /**
+         * 【新增】批量删除选中记录
+         */
+        async function batchDelete() {
+            const selectedIds = getSelectedRowIds();
+            if (selectedIds.length === 0) {
+                showToast('请先选择要删除的记录', 'error');
+                return;
+            }
+            
+            // 二次确认
+            if (!confirm(`确定要删除 ${selectedIds.length} 条记录吗？此操作不可恢复！`)) {
+                return;
+            }
+            
+            if (!confirm(`再次确认：真的要删除这 ${selectedIds.length} 条记录吗？`)) {
+                return;
+            }
+            
+            try {
+                const client = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
+                if (!client) {
+                    showToast('数据库连接失败，请刷新页面重试', 'error');
+                    return;
+                }
+                
+                // 批量删除
+                const { error } = await client
+                    .from('claims_v2')
+                    .delete()
+                    .in('id', selectedIds);
+                
+                if (error) throw error;
+                
+                showToast(`成功删除 ${selectedIds.length} 条记录`, 'success');
+                
+                // 刷新列表
+                if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
+                    await window.fetchTableData(false, true); // append=false, forceRefresh=true
+                } else if (typeof fetchTableData === 'function') {
+                    await fetchTableData(false, true);
+                } else if (typeof renderDatabase === 'function') {
+                    renderDatabase();
+                }
+                
+                clearSelection(); // 清空选择
+            } catch (error) {
+                console.error('批量删除失败:', error);
+                showToast('批量删除失败: ' + (error.message || '未知错误'), 'error');
+            }
+        }
+
+        /**
+         * 【新增】将数据转换为CSV格式（用于导出）
+         */
+        function convertToCSV(data) {
+            if (!data || data.length === 0) return '';
+            
+            // 定义列头（中文）
+            const headers = ['海外仓单号', '物流运单号', '发货仓', '发货日期', '订单SKU', '索赔类型', '问题描述', '货物声明价值', '索赔数量', '总赔偿金额', '币种', '处理状态', '申请提交日期'];
+            const keys = ['order_no', 'tracking_no', 'warehouse', 'ship_date', 'sku', 'claim_type', 'description', 'val_amount', 'claim_qty', 'claim_total', 'currency', 'process_status', 'entry_date'];
+            
+            // 构建CSV内容
+            let csv = headers.join(',') + '\n';
+            
+            data.forEach(item => {
+                const row = keys.map(key => {
+                    let value = item[key] || '';
+                    // 处理包含逗号的值
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+                        value = '"' + value.replace(/"/g, '""') + '"';
+                    }
+                    return value;
+                });
+                csv += row.join(',') + '\n';
+            });
+            
+            return csv;
+        }
+
+        // 将批量操作函数暴露到全局作用域
+        window.getSelectedRowIds = getSelectedRowIds;
+        window.clearSelection = clearSelection;
+        window.batchUpdateStatus = batchUpdateStatus;
+        window.batchUpdateStatusFromSelect = batchUpdateStatusFromSelect;
+        window.batchExportSelected = batchExportSelected;
+        window.batchDelete = batchDelete;
     </script>
 </body>
 </html>

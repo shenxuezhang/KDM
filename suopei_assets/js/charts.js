@@ -88,8 +88,34 @@ function initCharts() {
     }
 }
 
+// 【性能优化】图表更新节流（300ms）
+let chartUpdateThrottleTimer = null;
+let pendingChartData = null;
+
 /**
- * 更新饼图数据
+ * 更新饼图数据（节流版本 - 限制更新频率）
+ */
+function updatePieChartThrottled(data) {
+    // 保存最新的数据
+    pendingChartData = data;
+    
+    // 如果已经有待执行的更新，清除它
+    if (chartUpdateThrottleTimer) {
+        clearTimeout(chartUpdateThrottleTimer);
+    }
+    
+    // 设置新的更新任务
+    chartUpdateThrottleTimer = setTimeout(() => {
+        if (pendingChartData) {
+            updatePieChart(pendingChartData);
+            pendingChartData = null;
+        }
+        chartUpdateThrottleTimer = null;
+    }, 300); // 300ms节流
+}
+
+/**
+ * 更新饼图数据（内部函数 - 实际执行更新）
  */
 function updatePieChart(data) {
     if (!pieChartInstance) return;
@@ -99,5 +125,11 @@ function updatePieChart(data) {
     pieChartInstance.data.datasets[0].data = Object.values(typeCounts);
     pieChartInstance.update();
     if (lineChartInstance) lineChartInstance.update();
+}
+
+// 将节流更新函数暴露到全局，供其他模块调用
+if (typeof window !== 'undefined') {
+    window.updatePieChartThrottled = updatePieChartThrottled;
+    window.updatePieChart = updatePieChart; // 也暴露原始函数，以防需要立即更新
 }
 

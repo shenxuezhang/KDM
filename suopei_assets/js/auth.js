@@ -218,8 +218,30 @@ async function handleAuthChange(event, session) {
         initCharts();
         fetchTableData();
         
+        // 【数据缓存机制增强】缓存预热：提前加载常用查询条件的数据
+        if (typeof window.warmupCache === 'function') {
+            setTimeout(() => {
+                window.warmupCache();
+            }, 2000); // 延迟2秒执行，不阻塞初始加载
+        }
+        
         // 启动心跳机制
         startHeartbeat(session.user.id);
+        
+        // 恢复之前打开的视图
+        const savedView = localStorage.getItem('wh_claims_currentView') || 'form';
+        if (typeof switchView === 'function') {
+            await switchView(savedView);
+        } else if (typeof window.switchView === 'function') {
+            await window.switchView(savedView);
+        } else {
+            // 如果switchView还未加载，等待一下
+            setTimeout(async () => {
+                if (typeof window.switchView === 'function') {
+                    await window.switchView(savedView);
+                }
+            }, 100);
+        }
         
         const loginContainer = document.getElementById('login-container');
         if (loginContainer && loginContainer.classList.contains('hidden') === false) {

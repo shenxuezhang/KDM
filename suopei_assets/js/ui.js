@@ -237,6 +237,12 @@ function updateNavState(activeView) {
  */
 async function switchView(view) {
     await trySwitchView(view);
+    
+    // 保存当前视图到 localStorage，以便刷新后恢复
+    if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('wh_claims_currentView', view);
+    }
+    
     if (view === 'users') {
         // loadUsersFromSupabase 函数在HTML中定义为window.loadUsersFromSupabase
         if (typeof window.loadUsersFromSupabase === 'function') {
@@ -333,6 +339,14 @@ async function trySwitchView(view) {
     if (typeof window !== 'undefined' && window.monitorInterval) {
         clearInterval(window.monitorInterval);
         window.monitorInterval = null;
+    }
+    
+    // 【修复】切换视图时清除所有复选框的勾选状态
+    clearAllCheckboxes();
+    
+    // 【修复】切换视图时确保批量操作工具栏隐藏
+    if (typeof window.updateBatchActionBar === 'function') {
+        window.updateBatchActionBar();
     }
     
     updateNavState(view);
@@ -881,6 +895,8 @@ function toggleSelectAll() {
     const selectAllBox = document.getElementById('selectAll');
     const rowBoxes = document.querySelectorAll('.row-checkbox');
     rowBoxes.forEach(box => box.checked = selectAllBox.checked);
+    // 更新批量操作工具栏
+    updateBatchActionBar();
 }
 
 /**
@@ -903,6 +919,92 @@ function updateSelectAllState() {
         selectAllBox.checked = false;
         selectAllBox.indeterminate = false;
     }
+    
+    // 【新增】更新批量操作工具栏显示
+    updateBatchActionBar();
+}
+
+/**
+ * 【修复】清除所有复选框的勾选状态
+ */
+function clearAllCheckboxes() {
+    const selectAllBox = document.getElementById('selectAll');
+    const rowBoxes = document.querySelectorAll('.row-checkbox');
+    
+    // 清除所有行的复选框
+    rowBoxes.forEach(box => {
+        box.checked = false;
+    });
+    
+    // 清除全选框
+    if (selectAllBox) {
+        selectAllBox.checked = false;
+        selectAllBox.indeterminate = false;
+    }
+    
+    // 【新增】更新批量操作工具栏显示
+    updateBatchActionBar();
+}
+
+/**
+ * 【新增】获取选中行的ID数组
+ */
+function getSelectedRowIds() {
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    return Array.from(checkedBoxes).map(cb => cb.value).filter(id => id);
+}
+
+/**
+ * 【新增】清除选择状态
+ */
+function clearSelection() {
+    clearAllCheckboxes();
+}
+
+/**
+ * 【新增】获取选中行的ID数组
+ */
+function getSelectedRowIds() {
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    return Array.from(checkedBoxes).map(cb => cb.value).filter(id => id);
+}
+
+/**
+ * 【新增】更新批量操作工具栏显示状态
+ * 【修复】确保工具栏在没有选中项时完全隐藏
+ */
+function updateBatchActionBar() {
+    const batchBar = document.getElementById('batch-action-bar');
+    const selectedCountEl = document.getElementById('selected-count');
+    const selectedCount = getSelectedRowIds().length;
+    
+    if (!batchBar) return;
+    
+    if (selectedCount > 0) {
+        // 显示工具栏
+        batchBar.classList.remove('translate-y-full', 'hidden');
+        batchBar.classList.add('translate-y-0');
+        batchBar.style.display = 'block';
+        if (selectedCountEl) {
+            selectedCountEl.textContent = selectedCount;
+        }
+    } else {
+        // 隐藏工具栏 - 使用 translate-y-full 和 hidden 双重保险
+        batchBar.classList.remove('translate-y-0');
+        batchBar.classList.add('translate-y-full');
+        // 确保工具栏完全隐藏（在动画完成后）
+        setTimeout(() => {
+            if (getSelectedRowIds().length === 0) {
+                batchBar.style.display = 'none';
+            }
+        }, 300); // 与 transition duration 一致
+    }
+}
+
+// 将函数暴露到全局作用域
+if (typeof window !== 'undefined') {
+    window.getSelectedRowIds = getSelectedRowIds;
+    window.updateBatchActionBar = updateBatchActionBar;
 }
 
 /**

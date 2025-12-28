@@ -13,10 +13,21 @@ let fetchRequestId = 0;
 // 全局数据库数组（兼容旧版，用于缓存）
 let database = [];
 
-// 【性能优化】请求缓存（缓存最近的分页查询结果）
-const requestCache = new Map();
+// 【数据缓存机制增强】多级缓存策略：内存缓存 + localStorage 持久化备份
+const requestCache = new Map(); // 内存缓存（一级缓存）
 const CACHE_TTL = 30000; // 缓存有效期：30秒
 const MAX_CACHE_SIZE = 50; // 最大缓存条目数
+const LOCALSTORAGE_CACHE_PREFIX = 'wh_claims_cache_'; // localStorage缓存键前缀
+const LOCALSTORAGE_CACHE_TTL = 300000; // localStorage缓存有效期：5分钟
+const MAX_LOCALSTORAGE_CACHE_SIZE = 20; // localStorage最大缓存条目数
+
+// 【数据缓存机制增强】缓存命中统计
+const cacheStats = {
+    memoryHits: 0,      // 内存缓存命中次数
+    localStorageHits: 0, // localStorage缓存命中次数
+    misses: 0,          // 缓存未命中次数
+    totalRequests: 0    // 总请求次数
+};
 
 // 【性能优化】生成缓存键
 function getCacheKey(page, pageSize, filters, sorting) {
@@ -31,22 +42,264 @@ function getCacheKey(page, pageSize, filters, sorting) {
     });
 }
 
-// 【性能优化】清理过期缓存
+/**
+ * 【数据缓存机制增强】从localStorage获取缓存
+ */
+function getCacheFromLocalStorage(cacheKey) {
+    try {
+        const stored = localStorage.getItem(LOCALSTORAGE_CACHE_PREFIX + cacheKey);
+        if (!stored) return null;
+        
+        const cacheData = JSON.parse(stored);
+        const now = Date.now();
+        
+        // 检查是否过期
+        if (now - cacheData.timestamp > LOCALSTORAGE_CACHE_TTL) {
+            localStorage.removeItem(LOCALSTORAGE_CACHE_PREFIX + cacheKey);
+            return null;
+        }
+        
+        return cacheData;
+    } catch (error) {
+        console.error('读取localStorage缓存失败:', error);
+        return null;
+    }
+}
+
+/**
+ * 【数据缓存机制增强】保存缓存到localStorage
+ */
+function saveCacheToLocalStorage(cacheKey, data, totalCount) {
+    try {
+        const cacheData = {
+            data,
+            totalCount,
+            timestamp: Date.now()
+        };
+        
+        // 清理过期和多余的localStorage缓存
+        cleanLocalStorageCache();
+        
+        localStorage.setItem(LOCALSTORAGE_CACHE_PREFIX + cacheKey, JSON.stringify(cacheData));
+    } catch (error) {
+        // localStorage可能已满，尝试清理后重试
+        if (error.name === 'QuotaExceededError') {
+            cleanLocalStorageCache(true);
+            try {
+                localStorage.setItem(LOCALSTORAGE_CACHE_PREFIX + cacheKey, JSON.stringify({
+                    data,
+                    totalCount,
+                    timestamp: Date.now()
+                }));
+            } catch (retryError) {
+                console.error('保存localStorage缓存失败（已尝试清理）:', retryError);
+            }
+        } else {
+            console.error('保存localStorage缓存失败:', error);
+        }
+    }
+}
+
+/**
+ * 【数据缓存机制增强】清理localStorage缓存
+ */
+function cleanLocalStorageCache(forceClean = false) {
+    try {
+        const keys = Object.keys(localStorage);
+        const cacheKeys = keys.filter(key => key.startsWith(LOCALSTORAGE_CACHE_PREFIX));
+        const now = Date.now();
+        const cacheEntries = [];
+        
+        // 收集所有缓存条目，包括时间戳信息
+        cacheKeys.forEach(key => {
+            try {
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    const cacheData = JSON.parse(stored);
+                    // 检查是否过期
+                    if (now - cacheData.timestamp > LOCALSTORAGE_CACHE_TTL) {
+                        localStorage.removeItem(key);
+                    } else {
+                        cacheEntries.push({ key, timestamp: cacheData.timestamp });
+                    }
+                }
+            } catch (error) {
+                // 无效的缓存条目，删除
+                localStorage.removeItem(key);
+            }
+        });
+        
+        // LRU策略：如果缓存条目过多，删除最久未访问的
+        if (cacheEntries.length > MAX_LOCALSTORAGE_CACHE_SIZE || forceClean) {
+            cacheEntries.sort((a, b) => a.timestamp - b.timestamp);
+            const toDelete = cacheEntries.slice(0, Math.max(0, cacheEntries.length - MAX_LOCALSTORAGE_CACHE_SIZE + (forceClean ? 5 : 0)));
+            toDelete.forEach(({ key }) => localStorage.removeItem(key));
+        }
+    } catch (error) {
+        console.error('清理localStorage缓存失败:', error);
+    }
+}
+
+/**
+ * 【数据缓存机制增强】LRU缓存清理策略（改进版）
+ * 优先清理最久未访问的缓存条目
+ */
 function cleanExpiredCache() {
     const now = Date.now();
+    
+    // 第一步：清理过期的内存缓存
     for (const [key, value] of requestCache.entries()) {
         if (now - value.timestamp > CACHE_TTL) {
             requestCache.delete(key);
         }
     }
     
-    // 如果缓存仍然过大，删除最旧的条目
+    // 第二步：LRU策略 - 如果缓存仍然过大，删除最久未访问的条目
     if (requestCache.size > MAX_CACHE_SIZE) {
+        // 按访问时间排序，删除最旧的
         const sortedEntries = Array.from(requestCache.entries())
-            .sort((a, b) => a[1].timestamp - b[1].timestamp);
+            .sort((a, b) => (a[1].lastAccessed || a[1].timestamp) - (b[1].lastAccessed || b[1].timestamp));
         const toDelete = sortedEntries.slice(0, requestCache.size - MAX_CACHE_SIZE);
         toDelete.forEach(([key]) => requestCache.delete(key));
     }
+    
+    // 清理localStorage缓存
+    cleanLocalStorageCache();
+}
+
+/**
+ * 【数据缓存机制增强】获取缓存（多级缓存策略）
+ */
+function getCachedData(cacheKey) {
+    cacheStats.totalRequests++;
+    
+    // 首先检查内存缓存
+    const memoryCache = requestCache.get(cacheKey);
+    if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_TTL) {
+        // 更新访问时间（LRU）
+        memoryCache.lastAccessed = Date.now();
+        cacheStats.memoryHits++;
+        return memoryCache;
+    }
+    
+    // 内存缓存未命中，检查localStorage
+    const localStorageCache = getCacheFromLocalStorage(cacheKey);
+    if (localStorageCache) {
+        // 将localStorage缓存提升到内存缓存
+        requestCache.set(cacheKey, {
+            ...localStorageCache,
+            lastAccessed: Date.now()
+        });
+        cacheStats.localStorageHits++;
+        return localStorageCache;
+    }
+    
+    // 两级缓存都未命中
+    cacheStats.misses++;
+    return null;
+}
+
+/**
+ * 【数据缓存机制增强】设置缓存（多级缓存策略）
+ */
+function setCachedData(cacheKey, data, totalCount) {
+    const now = Date.now();
+    
+    // 保存到内存缓存
+    requestCache.set(cacheKey, {
+        data,
+        totalCount,
+        timestamp: now,
+        lastAccessed: now
+    });
+    
+    // 异步保存到localStorage（不阻塞主线程）
+    setTimeout(() => {
+        saveCacheToLocalStorage(cacheKey, data, totalCount);
+    }, 0);
+    
+    // 清理过期缓存
+    cleanExpiredCache();
+}
+
+/**
+ * 【数据缓存机制增强】获取缓存统计信息
+ */
+function getCacheStats() {
+    return {
+        ...cacheStats,
+        hitRate: cacheStats.totalRequests > 0 
+            ? ((cacheStats.memoryHits + cacheStats.localStorageHits) / cacheStats.totalRequests * 100).toFixed(2) + '%'
+            : '0%',
+        memoryCacheSize: requestCache.size,
+        localStorageCacheSize: Object.keys(localStorage).filter(key => key.startsWith(LOCALSTORAGE_CACHE_PREFIX)).length
+    };
+}
+
+/**
+ * 【数据缓存机制增强】缓存预热机制
+ * 提前加载常用查询条件的数据
+ */
+async function warmupCache() {
+    try {
+        const commonQueries = [
+            { page: 1, pageSize: 20, filters: { status: 'all', type: 'all', search: '' }, sorting: { col: 'entry_date', asc: false } },
+            { page: 1, pageSize: 20, filters: { status: '待处理', type: 'all', search: '' }, sorting: { col: 'entry_date', asc: false } }
+        ];
+        
+        for (const query of commonQueries) {
+            const cacheKey = getCacheKey(query.page, query.pageSize, query.filters, query.sorting);
+            const cached = getCachedData(cacheKey);
+            if (!cached) {
+                // 异步预加载，不阻塞主线程
+                setTimeout(async () => {
+                    try {
+                        const originalFilters = { ...ListState.filters };
+                        const originalSorting = { ...ListState.sorting };
+                        const originalPage = ListState.pagination.page;
+                        
+                        ListState.filters = query.filters;
+                        ListState.sorting = query.sorting;
+                        ListState.pagination.page = query.page;
+                        
+                        await fetchTableData(false, false, query.page);
+                        
+                        // 恢复原始状态
+                        ListState.filters = originalFilters;
+                        ListState.sorting = originalSorting;
+                        ListState.pagination.page = originalPage;
+                    } catch (error) {
+                        console.error('缓存预热失败:', error);
+                    }
+                }, 100);
+            }
+        }
+    } catch (error) {
+        console.error('缓存预热异常:', error);
+    }
+}
+
+// 【修复】清除所有缓存（用于强制刷新数据）
+function clearAllCache() {
+    requestCache.clear();
+    
+    // 清理localStorage缓存
+    try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+            if (key.startsWith(LOCALSTORAGE_CACHE_PREFIX)) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch (error) {
+        console.error('清理localStorage缓存失败:', error);
+    }
+    
+    // 重置统计信息
+    cacheStats.memoryHits = 0;
+    cacheStats.localStorageHits = 0;
+    cacheStats.misses = 0;
+    cacheStats.totalRequests = 0;
 }
 
 // 初始化全局用户数组
@@ -155,25 +408,69 @@ async function loadDataFromSupabase() {
 /**
  * 服务端分页数据获取函数（性能优化版）
  * 从Supabase获取表格数据（支持分页、筛选、排序、字段筛选）
+ * @param {boolean} append - 是否为追加模式
+ * @param {boolean} forceRefresh - 是否强制刷新（跳过缓存）
  */
-async function fetchTableData(append = false) {
+/**
+ * 获取分页数据
+ * @param {boolean} append - 是否追加数据（用于加载更多）
+ * @param {boolean} forceRefresh - 是否强制刷新（忽略缓存）
+ * @param {number} page - 自定义页码（可选，不传则使用 ListState.pagination.page）
+ * @param {boolean} keepScrollPosition - 是否保持滚动位置
+ */
+async function fetchTableData(append = false, forceRefresh = false, page = null, keepScrollPosition = false) {
     if (!supabaseClient) return;
     
-    // 【性能优化】检查缓存（只在非追加模式下使用缓存）
-    if (!append) {
+    // 保存当前滚动位置（如果需要保持）
+    let savedScrollTop = 0;
+    if (keepScrollPosition && window.virtualScrollManager) {
+        savedScrollTop = window.virtualScrollManager.container.scrollTop;
+    }
+    
+    // 如果指定了页码，更新分页状态
+    if (page !== null && page > 0) {
+        ListState.pagination.page = page;
+    }
+    
+    const targetPage = page !== null ? page : ListState.pagination.page;
+    
+    // 【请求日志】记录请求信息
+    const requestLog = {
+        timestamp: new Date().toISOString(),
+        page: targetPage,
+        pageSize: ListState.pagination.pageSize,
+        filters: JSON.parse(JSON.stringify(ListState.filters)),
+        sorting: JSON.parse(JSON.stringify(ListState.sorting)),
+        append,
+        forceRefresh,
+        keepScrollPosition
+    };
+    console.log('[fetchTableData] 请求开始:', requestLog);
+    
+    // 【性能优化】检查缓存（只在非追加模式和未强制刷新时使用缓存）
+    if (!append && !forceRefresh) {
         cleanExpiredCache();
         const cacheKey = getCacheKey(
-            ListState.pagination.page,
+            targetPage,
             ListState.pagination.pageSize,
             ListState.filters,
             ListState.sorting
         );
-        const cached = requestCache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-            // 使用缓存数据
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+            // 【数据缓存机制增强】使用缓存数据（多级缓存）
+            console.log('[fetchTableData] 使用缓存数据:', { page: targetPage, dataCount: cached.data.length });
             ListState.data = cached.data;
             ListState.totalCount = cached.totalCount;
             setDbConnectionState('connected');
+            
+            // 恢复滚动位置
+            if (keepScrollPosition && savedScrollTop > 0 && window.virtualScrollManager) {
+                requestAnimationFrame(() => {
+                    window.virtualScrollManager.container.scrollTop = savedScrollTop;
+                });
+            }
+            
             renderDatabase();
             renderPaginationControls();
             return;
@@ -192,7 +489,7 @@ async function fetchTableData(append = false) {
     try {
         ListState.isLoading = true;
         
-        const start = (ListState.pagination.page - 1) * ListState.pagination.pageSize;
+        const start = (targetPage - 1) * ListState.pagination.pageSize;
         const end = start + ListState.pagination.pageSize - 1;
         
         // 【性能优化】只查询可见列对应的字段，减少数据传输量
@@ -209,13 +506,13 @@ async function fetchTableData(append = false) {
             query = query.eq('process_status', ListState.filters.status);
         }
         
-        if (ListState.filters.type !== 'all') {
-            query = query.eq('claim_type', ListState.filters.type);
-        }
-        
-        // 【高级搜索重构】应用高级筛选条件
+        // 【高级搜索重构】应用高级筛选条件（优先于旧的type筛选）
+        // 【修复】优先使用高级筛选中的条件，包括索赔类型和发货仓等
         if (ListState.filters.advancedFilters) {
             query = applyAdvancedFilters(query, ListState.filters.advancedFilters);
+        } else if (ListState.filters.type !== 'all') {
+            // 只有在没有高级筛选时才使用旧的type筛选
+            query = query.eq('claim_type', ListState.filters.type);
         }
         
         // 【搜索功能增强】应用快速搜索条件
@@ -229,7 +526,7 @@ async function fetchTableData(append = false) {
         
         // 检查请求是否已被取消或被新请求替换
         if (requestId !== fetchRequestId) {
-            console.log('请求已被新请求替换，忽略此响应');
+            console.log('[fetchTableData] 请求已被新请求替换，忽略此响应');
             return;
         }
         
@@ -242,27 +539,70 @@ async function fetchTableData(append = false) {
         ListState.totalCount = count || 0;
         setDbConnectionState('connected');
         
-        // 【性能优化】缓存查询结果（只在非追加模式下缓存）
-        if (!append) {
+        // 【请求日志】记录成功响应
+        console.log('[fetchTableData] 请求成功:', {
+            page: targetPage,
+            dataCount: newData.length,
+            totalCount: count || 0,
+            timestamp: new Date().toISOString()
+        });
+        
+        // 【性能优化】缓存查询结果（只在非追加模式且非强制刷新时缓存）
+        // 【数据缓存机制增强】使用多级缓存策略（内存 + localStorage）
+        if (!append && !forceRefresh) {
             const cacheKey = getCacheKey(
-                ListState.pagination.page,
+                targetPage,
                 ListState.pagination.pageSize,
                 ListState.filters,
                 ListState.sorting
             );
-            requestCache.set(cacheKey, {
-                data: newData,
-                totalCount: count || 0,
-                timestamp: Date.now()
+            setCachedData(cacheKey, newData, count || 0);
+            console.log('[fetchTableData] 数据已缓存:', { page: targetPage, cacheKey });
+        }
+        
+        // 【修复】强制刷新时立即渲染，非强制刷新时使用 requestAnimationFrame 防闪烁
+        if (forceRefresh) {
+            // 【修复】设置全局标记，通知 renderDatabase 进行强制刷新
+            if (typeof window !== 'undefined') {
+                window._forceRefreshTable = true;
+            }
+            
+            // 强制刷新时立即渲染，确保数据立即显示
+            if (typeof renderDatabase === 'function') {
+                renderDatabase();
+            }
+            if (typeof renderPaginationControls === 'function') {
+                renderPaginationControls();
+            }
+            
+            // 恢复滚动位置
+            if (keepScrollPosition && savedScrollTop > 0 && window.virtualScrollManager) {
+                requestAnimationFrame(() => {
+                    window.virtualScrollManager.container.scrollTop = savedScrollTop;
+                });
+            }
+        } else {
+            // 【防闪烁优化】非强制刷新时使用 requestAnimationFrame 包装数据更新和渲染逻辑
+            requestAnimationFrame(() => {
+                if (typeof renderDatabase === 'function') {
+                    renderDatabase();
+                }
+                if (typeof renderPaginationControls === 'function') {
+                    renderPaginationControls();
+                }
+                
+                // 恢复滚动位置
+                if (keepScrollPosition && savedScrollTop > 0 && window.virtualScrollManager) {
+                    requestAnimationFrame(() => {
+                        window.virtualScrollManager.container.scrollTop = savedScrollTop;
+                    });
+                }
             });
         }
         
-        renderDatabase();
-        renderPaginationControls();
-        
     } catch (error) {
         if (error.name === 'AbortError') {
-            console.log('数据请求已取消');
+            console.log('[fetchTableData] 数据请求已取消');
             return;
         }
         
@@ -270,20 +610,56 @@ async function fetchTableData(append = false) {
             return;
         }
         
-        console.error('获取分页数据异常：', error);
+        // 【请求日志】记录错误
+        console.error('[fetchTableData] 获取分页数据异常：', {
+            error: error.message,
+            page: targetPage,
+            timestamp: new Date().toISOString(),
+            requestLog
+        });
         
-        // 降级到本地缓存
-        const localData = JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
-        const start = (ListState.pagination.page - 1) * ListState.pagination.pageSize;
-        const end = start + ListState.pagination.pageSize - 1;
-        const localPageData = localData.slice(start, end + 1);
+        // 【数据缓存机制增强】客户端缓存降级策略：网络不可用时自动使用本地缓存
+        const cacheKey = getCacheKey(
+            targetPage,
+            ListState.pagination.pageSize,
+            ListState.filters,
+            ListState.sorting
+        );
         
-        ListState.data = append ? [...ListState.data, ...localPageData] : localPageData;
-        ListState.totalCount = localData.length;
-        setDbConnectionState('error');
+        // 首先尝试从缓存获取数据
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+            console.log('[fetchTableData] 网络错误，使用缓存数据:', { page: targetPage, dataCount: cached.data.length });
+            ListState.data = cached.data;
+            ListState.totalCount = cached.totalCount;
+            setDbConnectionState('connected');
+        } else {
+            // 缓存未命中，降级到localStorage中的旧数据
+            try {
+                const localData = JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
+                const start = (ListState.pagination.page - 1) * ListState.pagination.pageSize;
+                const end = start + ListState.pagination.pageSize - 1;
+                const localPageData = localData.slice(start, end + 1);
+                
+                ListState.data = append ? [...ListState.data, ...localPageData] : localPageData;
+                ListState.totalCount = localData.length;
+                setDbConnectionState('error');
+                console.log('[fetchTableData] 使用localStorage降级数据:', { page: targetPage, dataCount: localPageData.length });
+            } catch (localStorageError) {
+                console.error('[fetchTableData] 降级到localStorage失败:', localStorageError);
+                ListState.data = append ? ListState.data : [];
+                ListState.totalCount = 0;
+                setDbConnectionState('error');
+            }
+        }
         
-        renderDatabase();
-        renderPaginationControls();
+        // 【修复】错误处理时立即渲染，确保用户能看到错误状态
+        if (typeof renderDatabase === 'function') {
+            renderDatabase();
+        }
+        if (typeof renderPaginationControls === 'function') {
+            renderPaginationControls();
+        }
     } finally {
         if (requestId === fetchRequestId) {
             ListState.isLoading = false;
@@ -336,8 +712,12 @@ function applySearchConditions(query, filters) {
     // 确定要搜索的字段
     let fieldsToSearch = [];
     
-    if (searchField === 'all') {
-        // 搜索所有可搜索字段
+    // 【优化】限制搜索字段为：海外仓单号(order_no)、物流运单号(tracking_no)、订单SKU(sku)
+    if (searchField === 'order_tracking_sku') {
+        // 只搜索这三个指定字段
+        fieldsToSearch = ['order_no', 'tracking_no', 'sku'];
+    } else if (searchField === 'all') {
+        // 搜索所有可搜索字段（保留兼容性）
         const fieldMap = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
             window.SEARCH_FIELD_MAP : 
             (typeof SEARCH_FIELD_MAP !== 'undefined' ? SEARCH_FIELD_MAP : {});
@@ -433,45 +813,62 @@ function applySearchConditions(query, filters) {
 function applyAdvancedFilters(query, filters) {
     if (!filters) return query;
     
-    // 海外仓单号
+    // 【修复】海外仓单号 - 模糊匹配
     if (filters.order_no) {
         query = query.ilike('order_no', `%${filters.order_no}%`);
+        console.log('[applyAdvancedFilters] 应用海外仓单号筛选:', filters.order_no);
     }
     
-    // 物流运单号
+    // 【修复】物流运单号 - 模糊匹配
     if (filters.tracking_no) {
         query = query.ilike('tracking_no', `%${filters.tracking_no}%`);
+        console.log('[applyAdvancedFilters] 应用物流运单号筛选:', filters.tracking_no);
     }
     
-    // 发货仓
+    // 【修复】发货仓 - 精确匹配（对应明细列表中的warehouse字段）
     if (filters.warehouse) {
         query = query.eq('warehouse', filters.warehouse);
+        console.log('[applyAdvancedFilters] 应用发货仓筛选:', filters.warehouse);
     }
     
-    // 订单SKU
+    // 【修复】订单SKU - 模糊匹配
     if (filters.sku) {
         query = query.ilike('sku', `%${filters.sku}%`);
+        console.log('[applyAdvancedFilters] 应用订单SKU筛选:', filters.sku);
     }
     
-    // 发货日期范围
+    // 【修复】发货日期范围（对应明细列表中的ship_date字段）
     if (filters.ship_date_start) {
-        query = query.gte('ship_date', filters.ship_date_start);
+        // 确保日期格式正确（YYYY-MM-DD）
+        const startDate = filters.ship_date_start.trim();
+        query = query.gte('ship_date', startDate);
+        console.log('[applyAdvancedFilters] 应用发货日期起始筛选:', startDate);
     }
     if (filters.ship_date_end) {
-        query = query.lte('ship_date', filters.ship_date_end);
+        // 确保日期格式正确（YYYY-MM-DD）
+        const endDate = filters.ship_date_end.trim();
+        query = query.lte('ship_date', endDate);
+        console.log('[applyAdvancedFilters] 应用发货日期结束筛选:', endDate);
     }
     
-    // 申请提交日期范围
+    // 【修复】申请提交日期范围（对应明细列表中的entry_date字段）
     if (filters.entry_date_start) {
-        query = query.gte('entry_date', filters.entry_date_start);
+        // 确保日期格式正确（YYYY-MM-DD）
+        const startDate = filters.entry_date_start.trim();
+        query = query.gte('entry_date', startDate);
+        console.log('[applyAdvancedFilters] 应用申请提交日期起始筛选:', startDate);
     }
     if (filters.entry_date_end) {
-        query = query.lte('entry_date', filters.entry_date_end);
+        // 确保日期格式正确（YYYY-MM-DD）
+        const endDate = filters.entry_date_end.trim();
+        query = query.lte('entry_date', endDate);
+        console.log('[applyAdvancedFilters] 应用申请提交日期结束筛选:', endDate);
     }
     
-    // 索赔类型
+    // 【修复】索赔类型 - 精确匹配（对应明细列表中的claim_type字段）
     if (filters.claim_type) {
         query = query.eq('claim_type', filters.claim_type);
+        console.log('[applyAdvancedFilters] 应用索赔类型筛选:', filters.claim_type);
     }
     
     return query;
@@ -624,9 +1021,12 @@ function applyAdvancedSearch(query, conditions) {
     return query;
 }
 
-// 将 fetchTableData 暴露到全局，供 HTML 中的 onclick 等直接调用
+// 将函数暴露到全局，供 HTML 中的 onclick 等直接调用
 if (typeof window !== 'undefined') {
     window.fetchTableData = fetchTableData;
+    window.clearAllCache = clearAllCache;
+    window.getCacheStats = getCacheStats;
+    window.warmupCache = warmupCache;
 }
 
 /**
