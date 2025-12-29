@@ -18,7 +18,7 @@ const ListState = {
         search: '',              // 搜索关键词
         searchMode: 'fuzzy',     // 搜索模式：fuzzy（模糊）或 exact（精确）
         searchField: 'order_tracking_sku', // 【优化】默认只搜索：海外仓单号(order_no)、物流运单号(tracking_no)、订单SKU(sku)
-        advancedSearch: null     // 高级搜索条件（对象数组）
+        advancedSearch: null     // 【清理】已废弃，旧的高级搜索面板已删除，现在使用快速筛选系统（advancedFilters）
     },
     sorting: {
         col: 'entry_date',
@@ -195,10 +195,11 @@ class VirtualScrollManager {
         const visibleHeight = this.container.clientHeight;
         this.visibleCount = Math.ceil(visibleHeight / this.itemHeight);
 
+        // 服务端分页模式下，this.data 只包含当前页数据，必须用实际长度而非 totalItems 计算渲染范围
+        const actualDataLength = this.data ? this.data.length : 0;
         let newEndIndex = newStartIndex + this.visibleCount + (this.bufferCount * 2);
-        newEndIndex = Math.min(this.totalItems, newEndIndex);
+        newEndIndex = Math.min(actualDataLength, newEndIndex);
 
-        // 【性能优化】只在范围真正改变时才重新渲染
         if (newStartIndex !== this.startIndex || newEndIndex !== this.endIndex) {
             const oldStartIndex = this.startIndex;
             const oldEndIndex = this.endIndex;
@@ -206,7 +207,7 @@ class VirtualScrollManager {
             this.startIndex = newStartIndex;
             this.endIndex = newEndIndex;
             
-            // 如果只是小范围的滚动，使用增量更新而非全量重渲染
+            // 小范围滚动时使用增量更新，避免全量重渲染造成闪烁
             if (oldStartIndex !== -1 && 
                 Math.abs(newStartIndex - oldStartIndex) < this.visibleCount * 2 &&
                 Math.abs(newEndIndex - oldEndIndex) < this.visibleCount * 2) {
@@ -218,10 +219,15 @@ class VirtualScrollManager {
     }
     
     renderVisibleItems() {
+        // 【删除】删除了此处原本用于过滤 ListState.filters.status 的一大段 if 逻辑
+        // 直接使用 this.data，因为 this.data 已经是来自 database.js 的正确数据
+        
         const visibleData = this.data.slice(this.startIndex, this.endIndex);
         
+        // 使用实际数据长度计算 spacer，totalItems 仅用于分页计算
+        const actualDataLength = this.data ? this.data.length : 0;
         const topHeight = this.startIndex * this.itemHeight;
-        const bottomHeight = (this.totalItems - this.endIndex) * this.itemHeight;
+        const bottomHeight = (actualDataLength - this.endIndex) * this.itemHeight;
 
         this.topSpacer.style.height = `${topHeight}px`;
         this.bottomSpacer.style.height = `${bottomHeight}px`;
@@ -254,10 +260,16 @@ class VirtualScrollManager {
         this.container.insertBefore(fragment, this.bottomSpacer);
     }
     
-    // 【性能优化】增量渲染：只更新变化的行
+    /**
+     * 增量渲染：仅更新变化的行，避免全量重渲染
+     * @param {number} oldStartIndex - 旧的起始索引
+     * @param {number} oldEndIndex - 旧的结束索引
+     */
     renderVisibleItemsIncremental(oldStartIndex, oldEndIndex) {
+        // 使用实际数据长度计算 spacer，totalItems 仅用于分页计算
+        const actualDataLength = this.data ? this.data.length : 0;
         const topHeight = this.startIndex * this.itemHeight;
-        const bottomHeight = (this.totalItems - this.endIndex) * this.itemHeight;
+        const bottomHeight = (actualDataLength - this.endIndex) * this.itemHeight;
 
         this.topSpacer.style.height = `${topHeight}px`;
         this.bottomSpacer.style.height = `${bottomHeight}px`;
@@ -333,6 +345,9 @@ class VirtualScrollManager {
     }
     
     renderRowContent(tr, item) {
+        // 【删除】删除了此处检查 item.process_status 是否匹配的逻辑
+        // 如果数据源是对的，不需要在这里隐藏行
+        
         // 从配置中获取行高值
         const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
         const rowHeightPx = `${rowHeight}px`;
@@ -558,10 +573,10 @@ class VirtualScrollManager {
         const visibleHeight = this.container.clientHeight;
         this.visibleCount = Math.ceil(visibleHeight / this.itemHeight);
         
+        // 使用实际数据长度计算渲染范围，避免超出当前页数据
+        const actualDataLength = this.data ? this.data.length : 0;
         let newEndIndex = newStartIndex + this.visibleCount + (this.bufferCount * 2);
-        newEndIndex = Math.min(this.totalItems, newEndIndex);
-        
-        // 检查变化的范围是否与可见范围重叠
+        newEndIndex = Math.min(actualDataLength, newEndIndex);
         const overlapStart = Math.max(changedRange.start, newStartIndex);
         const overlapEnd = Math.min(changedRange.end, newEndIndex);
         
@@ -583,9 +598,10 @@ class VirtualScrollManager {
                 this.renderVisibleItems();
             }
         } else {
-            // 变化范围不在可见区域内，只需更新spacer高度，不需要重新渲染DOM
+            // 变化范围不在可见区域，仅更新 spacer 高度，避免不必要的 DOM 操作
+            const actualDataLength = this.data ? this.data.length : 0;
             const topHeight = this.startIndex * this.itemHeight;
-            const bottomHeight = (this.totalItems - this.endIndex) * this.itemHeight;
+            const bottomHeight = (actualDataLength - this.endIndex) * this.itemHeight;
             if (this.topSpacer) {
                 this.topSpacer.style.height = `${topHeight}px`;
             }
@@ -603,6 +619,10 @@ class VirtualScrollManager {
         const savedScrollTop = this.container.scrollTop;
         const oldData = this.data;
         const dataChanged = this.hasDataChanged(oldData, newData);
+        
+        // 【关键修复】验证传入的数据是否符合当前状态筛选条件
+        // 【删除】删除了此处用于过滤 ListState.filters.status 的逻辑
+        // 直接使用 newData，因为数据已经在 database.js 中正确筛选
         
         this.data = newData;
         this.totalItems = totalItems;
@@ -705,8 +725,6 @@ class VirtualScrollManager {
             this.loadMoreRetryDelay = 1000;
             
         } catch (error) {
-            console.error('加载更多数据失败:', error);
-            
             // 【指数退避重试机制】网络不稳定时自动重试
             const shouldRetry = this.loadMoreRetryCount < 5; // 最多重试5次
             
@@ -718,8 +736,6 @@ class VirtualScrollManager {
                     this.loadMoreRetryDelay * Math.pow(2, this.loadMoreRetryCount - 1),
                     this.maxRetryDelay
                 );
-                
-                console.log(`加载失败，${retryDelay}ms后重试（第${this.loadMoreRetryCount}次）`);
                 
                 setTimeout(() => {
                     this.isLoading = false; // 重置状态以允许重试
@@ -906,11 +922,19 @@ function calculateStats(data) {
     return stats;
 }
 
-// 渲染数据库列表
-function renderDatabase() {
+// 修改 main.js 中的 renderDatabase 函数签名，增加 resetScroll 参数
+/**
+ * 渲染数据库列表 - 修复版
+ * @param {boolean} resetScroll - 是否强制重置滚动条和虚拟DOM
+ */
+function renderDatabase(resetScroll = false) {
     const data = ListState.data;
-    currentFilteredData = data;
     
+    // 【修复】移除此处所有的 currentFilteredData 逻辑和 filter 逻辑
+    // 我们完全信任 database.js 传过来的 ListState.data
+    currentFilteredData = data; 
+
+    // 更新排序图标 (保持原样)
     document.querySelectorAll('[id^="sort-icon-"]').forEach(el => {
         el.innerText = '↕';
         el.className = 'ml-1 opacity-30 text-[10px]';
@@ -921,6 +945,7 @@ function renderDatabase() {
         activeIcon.className = 'ml-1 opacity-100 text-blue-600';
     }
 
+    // 重置全选框
     const selectAllBox = document.getElementById('selectAll');
     if (selectAllBox) {
         selectAllBox.checked = false;
@@ -929,41 +954,40 @@ function renderDatabase() {
 
     const container = document.getElementById('dbContent');
     
+    // 处理空数据
     if (data.length === 0) {
         container.innerHTML = '';
         document.getElementById('emptyState').classList.remove('hidden');
-        
+        // 如果没有数据，销毁虚拟滚动管理器
         if (virtualScrollManager) {
             virtualScrollManager.destroy();
             virtualScrollManager = null;
-            // 同步到全局
-            if (typeof window !== 'undefined') {
-                window.virtualScrollManager = null;
-            }
+            window.virtualScrollManager = null;
         }
     } else {
         document.getElementById('emptyState').classList.add('hidden');
         
-        if (!virtualScrollManager) {
+        // 【核心修复】如果是强制重置 (resetScroll) 或者管理器不存在，则重新创建
+        if (resetScroll || !virtualScrollManager) {
+            if (virtualScrollManager) virtualScrollManager.destroy(); // 先销毁旧的
+            
+            container.innerHTML = ''; // 清空容器 DOM
             container.style.overflowY = 'auto';
             container.style.height = 'calc(100vh - 400px)';
             
-            // 使用配置中的行高值
+            // 重新实例化
             const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
             virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
-            // 同步到全局
-            if (typeof window !== 'undefined') {
-                window.virtualScrollManager = virtualScrollManager;
-            }
+            window.virtualScrollManager = virtualScrollManager;
         }
         
-        // 【修复】传递 forceRefresh 参数，确保强制刷新时立即渲染
-        // 检测是否是强制刷新场景（通过检查是否有全局标记）
-        const isForceRefresh = typeof window !== 'undefined' && window._forceRefreshTable;
-        virtualScrollManager.updateData(data, ListState.totalCount, isForceRefresh);
-        // 清除标记
-        if (typeof window !== 'undefined') {
-            window._forceRefreshTable = false;
+        // 更新数据到虚拟滚动组件
+        // 这里的 true 表示强制刷新内部缓存
+        virtualScrollManager.updateData(data, ListState.totalCount, true);
+        
+        // 如果是重置，强制滚动到顶部
+        if (resetScroll) {
+            container.scrollTop = 0;
         }
     }
     
@@ -1130,7 +1154,6 @@ function renderPaginationControls() {
         const newPageSize = parseInt(e.target.value);
         // 【数值验证】
         if (isNaN(newPageSize) || newPageSize < 1) {
-            console.warn('无效的每页显示数量:', newPageSize);
             return;
         }
         
@@ -1171,7 +1194,6 @@ function renderPaginationControls() {
             const targetPage = parseInt(btn.getAttribute('data-page'));
             // 【数值验证】
             if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
-                console.warn('无效的页码:', targetPage);
                 return;
             }
             if (targetPage !== currentPage) {
@@ -1425,12 +1447,10 @@ async function checkSupabaseTableStructure() {
             .limit(1);
         
         if (tableError) {
-            console.error('获取表信息失败：', tableError);
-        } else {
-            console.log('表结构检查成功，表中现有数据行数：', tableInfo.length);
+            // 获取表信息失败，静默处理
         }
     } catch (error) {
-        console.error('检查表结构异常：', error);
+        // 检查表结构异常，静默处理
     }
 }
 
@@ -1479,11 +1499,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.loadNotices === 'function') {
             setTimeout(() => {
                 window.loadNotices();
-                // 运行公告排序测试
-                if (typeof window.testNoticeSorting === 'function') {
-                    console.log('\n=== 公告中心排序测试 ===');
-                    window.testNoticeSorting();
-                }
             }, 200);
         }
     }
@@ -1559,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             localStorage.setItem(PAGE_STATE_KEY, JSON.stringify(state));
         } catch (error) {
-            console.warn('保存页面状态失败:', error);
+            // 保存页面状态失败，静默处理
         }
     }
     
@@ -1594,27 +1609,107 @@ document.addEventListener('DOMContentLoaded', () => {
                 Object.assign(ListState.sorting, state.sorting);
             }
             
-            // 恢复数据（如果有缓存的数据）
-            if (state.data && state.data.length > 0) {
-                ListState.data = state.data;
-                ListState.totalCount = state.totalCount || state.data.length;
-                
-                // 使用 requestAnimationFrame 确保平滑渲染
-                requestAnimationFrame(() => {
-                    if (typeof renderDatabase === 'function') {
-                        renderDatabase();
-                    }
+            // 【P0修复】如果恢复了状态筛选，同步更新按钮样式
+            // 确保UI状态与数据状态完全同步
+            if (ListState.filters.status) {
+                const status = ListState.filters.status;
+                // 使用工具函数同步按钮样式
+                if (typeof window.syncStatusButtonStyle === 'function') {
+                    window.syncStatusButtonStyle(status);
+                } else {
+                    // 降级方案：直接更新按钮样式
+                    const statusMap = {'待审核':'pending','处理中':'processing','等待赔付':'waiting','已赔付':'paid','已驳回':'rejected'};
+                    const suffix = status === 'all' ? 'all' : statusMap[status];
                     
-                    // 恢复滚动位置
-                    if (state.scrollTop && window.virtualScrollManager) {
-                        requestAnimationFrame(() => {
-                            window.virtualScrollManager.container.scrollTop = state.scrollTop;
-                        });
+                    // 移除所有按钮的激活状态
+                    document.querySelectorAll('.filter-btn').forEach(btn => {
+                        btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+                        btn.classList.add('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+                    });
+                    
+                    // 激活当前状态的按钮
+                    const activeBtn = document.getElementById(`tab-${suffix}`);
+                    if (activeBtn) {
+                        activeBtn.classList.remove('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+                        activeBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
                     }
-                });
+                }
+            } else {
+                // 【P2-1优化】如果没有状态筛选，使用工具函数确保"全部"按钮是激活状态
+                if (typeof window.syncStatusButtonStyle === 'function') {
+                    window.syncStatusButtonStyle('all');
+                } else {
+                    // 降级方案：直接更新按钮样式
+                    const allBtn = document.getElementById('tab-all');
+                    if (allBtn) {
+                        document.querySelectorAll('.filter-btn').forEach(btn => {
+                            btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+                            btn.classList.add('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+                        });
+                        allBtn.classList.remove('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+                        allBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+                    }
+                }
+            }
+            
+            // 【P1-1修复】恢复数据逻辑：无论是否有状态筛选，都重新获取数据，确保数据最新
+            // 只在网络不可用时才使用缓存数据作为降级方案
+            if (state.data && state.data.length > 0) {
+                // 检查当前是否有状态筛选
+                const hasActiveStatusFilter = ListState.filters.status && 
+                    ListState.filters.status !== 'all' && 
+                    ListState.filters.status !== undefined && 
+                    ListState.filters.status !== null;
+                
+                if (hasActiveStatusFilter) {
+                    // 有状态筛选，直接重新获取数据（不显示缓存，避免数据不一致）
+                    if (typeof window.fetchTableData === 'function') {
+                        window.fetchTableData(false, true);
+                    } else if (typeof fetchTableData === 'function') {
+                        fetchTableData(false, true);
+                    }
+                    return; // 不恢复缓存数据，直接返回
+                } else {
+                    // 【P1-1修复】即使没有状态筛选，也重新获取数据，但可以先显示缓存数据提升体验
+                    // 先显示缓存数据（提升用户体验，避免白屏）
+                    ListState.data = state.data;
+                    ListState.totalCount = state.totalCount || state.data.length;
+                    
+                    // 立即渲染缓存数据
+                    requestAnimationFrame(() => {
+                        if (typeof renderDatabase === 'function') {
+                            renderDatabase();
+                        }
+                        
+                        // 恢复滚动位置
+                        if (state.scrollTop && window.virtualScrollManager) {
+                            requestAnimationFrame(() => {
+                                window.virtualScrollManager.container.scrollTop = state.scrollTop;
+                            });
+                        }
+                    });
+                    
+                    // 然后在后台获取最新数据（静默更新）
+                    setTimeout(() => {
+                        if (typeof window.fetchTableData === 'function') {
+                            window.fetchTableData(false, true);
+                        } else if (typeof fetchTableData === 'function') {
+                            fetchTableData(false, true);
+                        }
+                    }, 500);
+                    
+                    return;
+                }
+            } else {
+                // 如果没有缓存数据，直接获取最新数据
+                if (typeof window.fetchTableData === 'function') {
+                    window.fetchTableData(false, true);
+                } else if (typeof fetchTableData === 'function') {
+                    fetchTableData(false, true);
+                }
             }
         } catch (error) {
-            console.warn('恢复页面状态失败:', error);
+            // 恢复页面状态失败，静默处理
         }
     }
     
@@ -1642,6 +1737,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window !== 'undefined') {
         window.restorePageState = restorePageState;
         window.savePageState = savePageState;
+        window.renderDatabase = renderDatabase;
+        window.renderPaginationControls = renderPaginationControls;
     }
     
     // 【修复】页面加载时初始化批量操作工具栏状态（确保初始隐藏）

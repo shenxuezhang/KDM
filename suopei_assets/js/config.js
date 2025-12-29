@@ -18,7 +18,6 @@ if (typeof supabase !== 'undefined') {
         window.supabaseClient = supabaseClient;
     }
 } else {
-    console.error("Supabase SDK loading failed. Please check your internet connection.");
     alert("系统初始化失败：Supabase SDK 未加载，请检查网络后刷新页面。");
 }
 

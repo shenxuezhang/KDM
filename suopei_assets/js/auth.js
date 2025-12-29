@@ -71,7 +71,6 @@ async function logUserLogin(user) {
             login_at: new Date().toISOString()
         }]);
 
-    if (logError) console.error('记录登录日志失败:', logError);
 
     // 2. 立即更新 users_v2 表的活跃时间
     await updateUserHeartbeat(user.id);
@@ -87,7 +86,6 @@ async function updateUserHeartbeat(userId) {
         .update({ last_active_at: new Date().toISOString() })
         .eq('id', userId);
         
-    if (error) console.error('心跳更新失败:', error);
 }
 
 /**
@@ -149,11 +147,8 @@ async function handleAuthChange(event, session) {
                 .single();
             
             if (error) {
-                console.error('获取用户角色失败:', error);
-                
                 // 针对42P17错误（无限递归策略）进行特殊处理
                 if (error.code === '42P17') {
-                    console.error('数据库策略存在无限递归问题，请检查users_v2表的RLS策略');
                     showToast('数据库策略存在问题，无法获取用户角色', 'error');
                 }
                 
@@ -176,7 +171,6 @@ async function handleAuthChange(event, session) {
                 };
             }
         } catch (error) {
-            console.error('获取用户信息时发生错误:', error);
             currentUser = {
                 ...session.user,
                 permissions: session.user.user_metadata?.permissions || {}

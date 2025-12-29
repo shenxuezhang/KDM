@@ -132,28 +132,113 @@ function renderTableHeader() {
 }
 
 /**
- * 切换子标签（状态筛选）- 已适配新样式
+ * 切换子标签（状态筛选）
+ * 修复逻辑：点击状态按钮时，强制重置所有其他筛选条件，确保列表数据与按钮统计一致
+ * @param {string} status - 状态值：'all' 或中文状态名（'待审核'、'处理中'、'等待赔付'、'已赔付'、'已驳回'）
+ */
+/**
+ * 切换子标签（状态筛选）
+ * 修复版：精准筛选，清除干扰
+ * @param {string} status - 中文状态名（'待审核'、'处理中'等）
+ */
+/**
+ * 切换子标签（状态筛选）- 修复版
+ * 逻辑：点击即重置所有其他条件，只保留当前状态筛选
+ * 【焦土政策】彻底清除所有干扰项，只信任数据库返回的结果
  */
 function switchSubTab(status) {
+    // 1. 设置当前状态
     ListState.filters.status = status;
     
-    // 【新样式】移除所有按钮的激活状态（蓝色背景）
+    // 2. 【关键】彻底清空所有干扰条件
+    ListState.filters.search = '';
+    ListState.filters.searchMode = 'fuzzy';
+    ListState.filters.advancedFilters = null; // 清空高级筛选
+    // 【清理】advancedSearch 已废弃，但保留清空操作以确保兼容性
+    ListState.filters.advancedSearch = null;
+    ListState.filters.type = 'all';           // 重置类型
+
+    // 3. 【关键】同步清空 UI 上的输入框（视觉上也重置）
+    const inputsToClear = [
+        'quickSearch', 
+        'quickFilterWarehouse', 
+        'quickFilterClaimType',
+        'quickFilterShipDateStart', 
+        'quickFilterShipDateEnd',
+        'quickFilterEntryDateStart', 
+        'quickFilterEntryDateEnd',
+        'searchInput' // 如果有这个的话
+    ];
+    inputsToClear.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
+
+    // 4. 更新按钮样式（高亮当前选中的按钮）
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        // 移除所有高亮
+        btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+        // 恢复默认灰底
+        btn.classList.add('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+    });
+    
+    // 找到当前点击的按钮并高亮
+    // 映射关系：中文状态 -> ID后缀
+    const statusMap = {'待审核':'pending','处理中':'processing','等待赔付':'waiting','已赔付':'paid','已驳回':'rejected'};
+    const suffix = status === 'all' ? 'all' : statusMap[status];
+    const activeBtn = document.getElementById(`tab-${suffix}`);
+    
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
+        activeBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
+    }
+
+    // 5. 重置分页到第一页
+    ListState.pagination.page = 1;
+
+    // 6. 清除所有缓存（防止读取到旧的内存数据）
+    if (typeof window.clearAllCache === 'function') window.clearAllCache();
+    
+    // 7. 【核心】强制请求数据
+    // 参数含义: append=false (不追加), forceRefresh=true (强制刷新)
+    if (typeof window.fetchTableData === 'function') {
+        window.fetchTableData(false, true); 
+    } else {
+        console.error("fetchTableData 函数未找到，请检查 database.js 是否加载");
+    }
+}
+
+// 暴露到全局，确保 HTML 中的 onclick 能正确调用
+if (typeof window !== 'undefined') {
+    window.switchSubTab = switchSubTab;
+}
+
+/**
+ * 【P2-1优化】同步状态筛选按钮样式
+ * 统一的工具函数，用于在状态切换和状态恢复时同步更新按钮样式
+ * 确保UI状态与数据状态完全一致，减少代码重复，提高可维护性
+ * @param {string} status - 状态值：'all' 或中文状态名（'待审核'、'处理中'、'等待赔付'、'已赔付'、'已驳回'）
+ */
+function syncStatusButtonStyle(status) {
+    // 移除所有按钮的激活状态
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
         btn.classList.add('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
     });
     
-    // 【新样式】为当前点击的按钮添加激活状态
+    // 激活当前状态的按钮
     const statusMap = {'待审核':'pending','处理中':'processing','等待赔付':'waiting','已赔付':'paid','已驳回':'rejected'};
-    const activeId = `tab-${status === 'all' ? 'all' : statusMap[status]}`;
-    const activeBtn = document.getElementById(activeId);
+    const suffix = status === 'all' ? 'all' : statusMap[status];
+    const activeBtn = document.getElementById(`tab-${suffix}`);
     if (activeBtn) {
         activeBtn.classList.remove('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
         activeBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
     }
-    
-    ListState.pagination.page = 1;
-    fetchTableData();
+}
+
+// 暴露到全局，供 restorePageState() 调用
+if (typeof window !== 'undefined') {
+    window.syncStatusButtonStyle = syncStatusButtonStyle;
 }
 
 /**
@@ -260,7 +345,6 @@ async function switchView(view) {
             }
         } else {
             // 函数未定义时，等待一段时间后重试（因为HTML脚本在模块之后加载）
-            console.warn('loadUsersFromSupabase 函数未定义，可能是脚本加载顺序问题，等待后重试...');
             setTimeout(async () => {
                 if (typeof window.loadUsersFromSupabase === 'function') {
                     const success = await window.loadUsersFromSupabase();
@@ -270,7 +354,6 @@ async function switchView(view) {
                         window.renderUserManagementConnectionError();
                     }
                 } else {
-                    console.error('loadUsersFromSupabase 函数仍未定义，请检查HTML脚本是否正确加载');
                     // 显示友好的错误提示
                     const tbody = document.getElementById('usersTableBody');
                     if (tbody) {
@@ -325,7 +408,6 @@ async function trySwitchView(view) {
                 }
             } catch (error) {
                 showToast('保存失败，请稍后重试', 'error');
-                console.error('保存失败:', error);
                 return;
             }
         }
@@ -360,7 +442,25 @@ async function trySwitchView(view) {
     target.classList.add('animate-fade-up');
     
     if (view === 'data') {
-        renderDatabase();
+        // 【修复】切换到数据列表视图时，强制刷新数据（跳过缓存）
+        // 确保显示最新的数据，特别是从表单提交后返回列表时
+        if (typeof window.fetchTableData === 'function') {
+            window.fetchTableData(false, true); // forceRefresh=true 跳过缓存
+        } else if (typeof fetchTableData === 'function') {
+            fetchTableData(false, true); // forceRefresh=true 跳过缓存
+        } else {
+            // 如果 fetchTableData 未定义，等待模块加载后重试
+            setTimeout(() => {
+                if (typeof window.fetchTableData === 'function') {
+                    window.fetchTableData(false, true);
+                } else if (typeof fetchTableData === 'function') {
+                    fetchTableData(false, true);
+                } else {
+                    // 降级方案：如果 fetchTableData 仍然不可用，只渲染现有数据
+                    renderDatabase();
+                }
+            }, 100);
+        }
         setTimeout(initCharts, 50);
     }
     if (view === 'kanban') renderKanban();
@@ -371,17 +471,13 @@ async function trySwitchView(view) {
         requestAnimationFrame(() => {
             setTimeout(() => {
                 if (typeof window.loadNotices === 'function') {
-                    console.log('切换到公告视图，调用 window.loadNotices() 加载公告列表');
                     window.loadNotices();
                 } else {
-                    console.warn('loadNotices 函数未定义，等待后重试...');
                     // 延迟更长时间，确保HTML脚本已加载
                     setTimeout(() => {
                         if (typeof window.loadNotices === 'function') {
-                            console.log('延迟调用 window.loadNotices() 加载公告列表');
                             window.loadNotices();
                         } else {
-                            console.error('loadNotices 函数仍未定义，请检查HTML脚本是否正确加载');
                             // 显示友好的错误提示
                             const list = document.getElementById('notice-list');
                             if (list) {
@@ -398,12 +494,9 @@ async function trySwitchView(view) {
         if (typeof window.initLoginMonitor === 'function') {
             window.initLoginMonitor();
         } else {
-            console.warn('initLoginMonitor 函数未定义，等待后重试...');
             setTimeout(() => {
                 if (typeof window.initLoginMonitor === 'function') {
                     window.initLoginMonitor();
-                } else {
-                    console.error('initLoginMonitor 函数仍未定义');
                 }
             }, 200);
         }
@@ -508,6 +601,7 @@ function clearSearch() {
     }
     
     ListState.filters.search = '';
+    // 【清理】advancedSearch 已废弃，但保留清空操作以确保兼容性
     ListState.filters.advancedSearch = null;
     
     // 隐藏清除按钮
@@ -516,14 +610,7 @@ function clearSearch() {
         clearBtn.classList.add('hidden');
     }
     
-    // 隐藏高级搜索面板
-    const advancedPanel = document.getElementById('advancedSearchPanel');
-    if (advancedPanel) {
-        advancedPanel.classList.add('hidden');
-    }
-    
-    // 清空高级搜索条件
-    clearAdvancedSearchConditions();
+    // 【清理】旧的高级搜索面板已删除，无需处理
     
     // 重置搜索模式为模糊
     ListState.filters.searchMode = 'fuzzy';
@@ -535,6 +622,11 @@ function clearSearch() {
     ListState.pagination.page = 1;
     fetchTableData();
     
+    // 更新状态统计（重置筛选条件后，统计应反映全部数据）
+    if (typeof updateStatusCounts === 'function') {
+        updateStatusCounts();
+    }
+    
     // 隐藏搜索结果提示
     const hint = document.getElementById('searchResultHint');
     if (hint) {
@@ -543,138 +635,10 @@ function clearSearch() {
 }
 
 /**
- * 【搜索功能增强】切换高级搜索面板
+ * 【清理】旧的高级搜索面板相关函数已删除
+ * 这些函数引用的 HTML 元素（advancedSearchPanel、advancedSearchConditions）已不存在
+ * 现在使用新的快速筛选系统（quickSearch、quickFilterWarehouse 等）
  */
-function toggleAdvancedSearch() {
-    const panel = document.getElementById('advancedSearchPanel');
-    if (!panel) return;
-    
-    if (panel.classList.contains('hidden')) {
-        panel.classList.remove('hidden');
-        // 如果没有条件，添加一个默认条件
-        const conditions = document.getElementById('advancedSearchConditions');
-        if (conditions && conditions.children.length === 0) {
-            addAdvancedSearchCondition();
-        }
-    } else {
-        panel.classList.add('hidden');
-    }
-}
-
-/**
- * 【搜索功能增强】添加高级搜索条件
- */
-function addAdvancedSearchCondition() {
-    const container = document.getElementById('advancedSearchConditions');
-    if (!container) return;
-    
-    const fieldMap = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
-        window.SEARCH_FIELD_MAP : 
-        (typeof SEARCH_FIELD_MAP !== 'undefined' ? SEARCH_FIELD_MAP : {});
-    
-    // 【修复】排除日期类型字段，因为日期字段不支持文本搜索
-    const searchableFields = Object.keys(fieldMap).filter(key => {
-        const config = fieldMap[key];
-        return config.searchable && config.type !== 'date';
-    });
-    
-    const conditionId = `adv-condition-${Date.now()}`;
-    const conditionHtml = `
-        <div id="${conditionId}" class="flex flex-col lg:flex-row gap-3 p-4 bg-white dark:bg-slate-700 rounded-xl border-2 border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-shadow">
-            <select class="flex-1 form-input text-sm font-medium h-11 px-4 border-2 focus:border-blue-500" data-field>
-                <option value="">📋 选择搜索字段</option>
-                ${searchableFields.map(field => {
-                    const fieldType = fieldMap[field].type === 'date' ? '📅' : fieldMap[field].type === 'number' ? '🔢' : '📝';
-                    return `<option value="${field}">${fieldType} ${fieldMap[field].label || field}</option>`;
-                }).join('')}
-            </select>
-            <input type="text" class="flex-1 form-input text-sm h-11 px-4 border-2 focus:border-blue-500" placeholder="🔍 输入搜索关键词" data-value>
-            <select class="form-input text-sm font-medium h-11 px-4 w-28 border-2 focus:border-blue-500" data-mode>
-                <option value="fuzzy">🔍 模糊</option>
-                <option value="exact">✓ 精确</option>
-            </select>
-            <select class="form-input text-sm font-medium h-11 px-4 w-24 border-2 focus:border-blue-500" data-operator>
-                <option value="AND">AND</option>
-                <option value="OR">OR</option>
-            </select>
-            <button onclick="removeAdvancedSearchCondition('${conditionId}')" class="px-4 py-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition font-bold border-2 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 flex items-center justify-center gap-1">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                删除
-            </button>
-        </div>
-    `;
-    
-    container.insertAdjacentHTML('beforeend', conditionHtml);
-}
-
-/**
- * 【搜索功能增强】移除高级搜索条件
- */
-function removeAdvancedSearchCondition(conditionId) {
-    const condition = document.getElementById(conditionId);
-    if (condition) {
-        condition.remove();
-    }
-    
-    // 如果没有条件了，隐藏面板
-    const container = document.getElementById('advancedSearchConditions');
-    if (container && container.children.length === 0) {
-        const panel = document.getElementById('advancedSearchPanel');
-        if (panel) {
-            panel.classList.add('hidden');
-        }
-    }
-}
-
-/**
- * 【搜索功能增强】清空高级搜索条件
- */
-function clearAdvancedSearchConditions() {
-    const container = document.getElementById('advancedSearchConditions');
-    if (container) {
-        container.innerHTML = '';
-    }
-    ListState.filters.advancedSearch = null;
-}
-
-/**
- * 【搜索功能增强】应用高级搜索
- */
-function applyAdvancedSearch() {
-    const container = document.getElementById('advancedSearchConditions');
-    if (!container) return;
-    
-    const conditions = [];
-    const conditionElements = container.querySelectorAll('[id^="adv-condition-"]');
-    
-    conditionElements.forEach(element => {
-        const field = element.querySelector('[data-field]')?.value;
-        const value = element.querySelector('[data-value]')?.value?.trim();
-        const mode = element.querySelector('[data-mode]')?.value || 'fuzzy';
-        const operator = element.querySelector('[data-operator]')?.value || 'AND';
-        
-        if (field && value) {
-            conditions.push({ field, value, mode, operator });
-        }
-    });
-    
-    if (conditions.length > 0) {
-        ListState.filters.advancedSearch = conditions;
-        ListState.filters.search = ''; // 清空简单搜索
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.value = '';
-        }
-    } else {
-        ListState.filters.advancedSearch = null;
-    }
-    
-    ListState.pagination.page = 1;
-    fetchTableData();
-    updateSearchResultHint();
-}
 
 /**
  * 【搜索功能增强】更新搜索结果提示
@@ -683,12 +647,12 @@ function updateSearchResultHint() {
     const hint = document.getElementById('searchResultHint');
     if (!hint) return;
     
-    const hasSearch = ListState.filters.search || 
-                     (ListState.filters.advancedSearch && ListState.filters.advancedSearch.length > 0);
+    // 【清理】只检查简单搜索，不再检查已删除的 advancedSearch
+    const hasSearch = ListState.filters.search && ListState.filters.search.trim();
     
     if (hasSearch && ListState.totalCount !== undefined) {
         const searchMode = ListState.filters.searchMode === 'exact' ? '精确' : '模糊';
-        const searchText = ListState.filters.search || '高级搜索';
+        const searchText = ListState.filters.search;
         hint.innerHTML = `🔍 <span class="font-bold text-blue-600 dark:text-blue-400">${searchText}</span> (${searchMode}搜索) - 找到 <span class="font-bold text-emerald-600 dark:text-emerald-400">${ListState.totalCount}</span> 条结果`;
         hint.classList.remove('hidden');
     } else {
@@ -700,11 +664,7 @@ function updateSearchResultHint() {
 if (typeof window !== 'undefined') {
     window.toggleSearchMode = toggleSearchMode;
     window.clearSearch = clearSearch;
-    window.toggleAdvancedSearch = toggleAdvancedSearch;
-    window.addAdvancedSearchCondition = addAdvancedSearchCondition;
-    window.removeAdvancedSearchCondition = removeAdvancedSearchCondition;
-    window.clearAdvancedSearch = clearAdvancedSearchConditions; // 别名
-    window.applyAdvancedSearch = applyAdvancedSearch;
+    // 【清理】旧的高级搜索面板相关函数已删除
     window.updateSearchResultHint = updateSearchResultHint;
 }
 
@@ -724,7 +684,7 @@ function saveSearchHistory(searchTerm) {
         const limited = filtered.slice(0, 10);
         localStorage.setItem('search_history', JSON.stringify(limited));
     } catch (e) {
-        console.error('保存搜索历史失败:', e);
+        // 保存搜索历史失败，静默处理
     }
 }
 
@@ -1153,7 +1113,6 @@ function copyToWeChat() {
         navigator.clipboard.writeText(clipboardText).then(() => {
             showToast(`成功复制 ${count} 条数据到剪贴板！`, 'success');
         }).catch(err => {
-            console.error("Clipboard API failed, trying fallback...", err);
             fallbackCopyTextToClipboard(clipboardText, count);
         });
     } else {
@@ -1182,7 +1141,6 @@ function fallbackCopyTextToClipboard(text, count) {
             showToast('复制失败，请手动复制', 'error');
         }
     } catch (err) {
-        console.error('Fallback: Oops, unable to copy', err);
         showToast('复制失败，请手动复制', 'error');
     }
 

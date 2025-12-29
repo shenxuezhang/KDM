@@ -30,6 +30,7 @@ const cacheStats = {
 };
 
 // 【性能优化】生成缓存键
+// 【修复】包含advancedFilters，确保筛选条件变化时使用不同的缓存键
 function getCacheKey(page, pageSize, filters, sorting) {
     return JSON.stringify({
         page,
@@ -37,6 +38,10 @@ function getCacheKey(page, pageSize, filters, sorting) {
         status: filters.status,
         type: filters.type,
         search: filters.search,
+        searchMode: filters.searchMode,
+        searchField: filters.searchField,
+        advancedFilters: filters.advancedFilters, // 【修复】包含高级筛选条件
+        // 【清理】advancedSearch 已废弃，不再使用
         col: sorting.col,
         asc: sorting.asc
     });
@@ -61,7 +66,6 @@ function getCacheFromLocalStorage(cacheKey) {
         
         return cacheData;
     } catch (error) {
-        console.error('读取localStorage缓存失败:', error);
         return null;
     }
 }
@@ -92,10 +96,10 @@ function saveCacheToLocalStorage(cacheKey, data, totalCount) {
                     timestamp: Date.now()
                 }));
             } catch (retryError) {
-                console.error('保存localStorage缓存失败（已尝试清理）:', retryError);
+                // 保存localStorage缓存失败（已尝试清理），静默处理
             }
         } else {
-            console.error('保存localStorage缓存失败:', error);
+            // 保存localStorage缓存失败，静默处理
         }
     }
 }
@@ -136,7 +140,7 @@ function cleanLocalStorageCache(forceClean = false) {
             toDelete.forEach(({ key }) => localStorage.removeItem(key));
         }
     } catch (error) {
-        console.error('清理localStorage缓存失败:', error);
+        // 清理localStorage缓存失败，静默处理
     }
 }
 
@@ -269,13 +273,13 @@ async function warmupCache() {
                         ListState.sorting = originalSorting;
                         ListState.pagination.page = originalPage;
                     } catch (error) {
-                        console.error('缓存预热失败:', error);
+                        // 缓存预热失败，静默处理
                     }
                 }, 100);
             }
         }
     } catch (error) {
-        console.error('缓存预热异常:', error);
+        // 缓存预热异常，静默处理
     }
 }
 
@@ -292,7 +296,7 @@ function clearAllCache() {
             }
         });
     } catch (error) {
-        console.error('清理localStorage缓存失败:', error);
+        // 清理localStorage缓存失败，静默处理
     }
     
     // 重置统计信息
@@ -374,7 +378,6 @@ async function refreshDatabase() {
         setDbConnectionState('connected');
         showToast('数据已成功刷新', 'success');
     } catch (error) {
-        console.error('刷新数据失败:', error);
         setDbConnectionState('error');
         showToast('数据刷新失败，请检查网络连接后重试', 'error');
     } finally {
@@ -393,14 +396,12 @@ async function loadDataFromSupabase() {
             .order('entry_date', { ascending: false });
         
         if (error) {
-            console.error('加载数据失败，切换到本地缓存：', error);
             return JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
         } else {
             localStorage.setItem('wh_claims_db_pro', JSON.stringify(data || []));
             return data || [];
         }
     } catch (error) {
-        console.error('加载数据异常：', error);
         return JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
     }
 }
@@ -418,8 +419,16 @@ async function loadDataFromSupabase() {
  * @param {number} page - 自定义页码（可选，不传则使用 ListState.pagination.page）
  * @param {boolean} keepScrollPosition - 是否保持滚动位置
  */
+/**
+ * 获取表格数据 - 修复版
+ * 逻辑：完全依赖后端查询，移除前端冗余过滤
+ */
 async function fetchTableData(append = false, forceRefresh = false, page = null, keepScrollPosition = false) {
     if (!supabaseClient) return;
+
+    // 1. 设置页码
+    if (page !== null && page > 0) ListState.pagination.page = page;
+    const targetPage = page !== null ? page : ListState.pagination.page;
     
     // 保存当前滚动位置（如果需要保持）
     let savedScrollTop = 0;
@@ -427,27 +436,8 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
         savedScrollTop = window.virtualScrollManager.container.scrollTop;
     }
     
-    // 如果指定了页码，更新分页状态
-    if (page !== null && page > 0) {
-        ListState.pagination.page = page;
-    }
-    
-    const targetPage = page !== null ? page : ListState.pagination.page;
-    
-    // 【请求日志】记录请求信息
-    const requestLog = {
-        timestamp: new Date().toISOString(),
-        page: targetPage,
-        pageSize: ListState.pagination.pageSize,
-        filters: JSON.parse(JSON.stringify(ListState.filters)),
-        sorting: JSON.parse(JSON.stringify(ListState.sorting)),
-        append,
-        forceRefresh,
-        keepScrollPosition
-    };
-    console.log('[fetchTableData] 请求开始:', requestLog);
-    
     // 【性能优化】检查缓存（只在非追加模式和未强制刷新时使用缓存）
+    // 因为 switchSubTab 传了 forceRefresh=true，会自动跳过缓存
     if (!append && !forceRefresh) {
         cleanExpiredCache();
         const cacheKey = getCacheKey(
@@ -459,7 +449,6 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
         const cached = getCachedData(cacheKey);
         if (cached) {
             // 【数据缓存机制增强】使用缓存数据（多级缓存）
-            console.log('[fetchTableData] 使用缓存数据:', { page: targetPage, dataCount: cached.data.length });
             ListState.data = cached.data;
             ListState.totalCount = cached.totalCount;
             setDbConnectionState('connected');
@@ -476,194 +465,125 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
             return;
         }
     }
-    
-    // 取消上一个请求
-    if (currentFetchController) {
-        currentFetchController.abort();
-    }
-    
-    // 创建新的请求控制器和ID
+
+    // 2. 取消旧请求，防止竞态条件
+    if (currentFetchController) currentFetchController.abort();
     currentFetchController = new AbortController();
     const requestId = ++fetchRequestId;
-    
+
     try {
         ListState.isLoading = true;
-        
+        // 显示加载状态（可选）
+        if(typeof showLoading === 'function' && !append) showLoading();
+
         const start = (targetPage - 1) * ListState.pagination.pageSize;
         const end = start + ListState.pagination.pageSize - 1;
-        
-        // 【性能优化】只查询可见列对应的字段，减少数据传输量
-        const fieldsToSelect = getRequiredFieldsForVisibleColumns();
-        
-        // 构建查询
+
+        // 3. 构建 Supabase 查询
         let query = supabaseClient
             .from('claims_v2')
-            .select(fieldsToSelect, { count: 'exact' })
+            .select('*', { count: 'exact' })
             .order(ListState.sorting.col, { ascending: ListState.sorting.asc });
-        
-        // 应用筛选
-        if (ListState.filters.status !== 'all') {
-            query = query.eq('process_status', ListState.filters.status);
+
+        // 4. 【核心修复】应用状态筛选
+        // 只要状态不是 'all'，就严格让数据库只返回该状态的数据
+        if (ListState.filters.status && ListState.filters.status !== 'all') {
+            // 去除空格，确保精准匹配
+            const statusValue = String(ListState.filters.status).trim();
+            query = query.eq('process_status', statusValue);
         }
-        
-        // 【高级搜索重构】应用高级筛选条件（优先于旧的type筛选）
-        // 【修复】优先使用高级筛选中的条件，包括索赔类型和发货仓等
+
+        // 应用高级筛选条件
         if (ListState.filters.advancedFilters) {
             query = applyAdvancedFilters(query, ListState.filters.advancedFilters);
-        } else if (ListState.filters.type !== 'all') {
-            // 只有在没有高级筛选时才使用旧的type筛选
-            query = query.eq('claim_type', ListState.filters.type);
         }
         
-        // 【搜索功能增强】应用快速搜索条件
+        // 应用搜索条件
         if (ListState.filters.search && ListState.filters.search.trim()) {
             query = applySearchConditions(query, ListState.filters);
         }
-        
+
+        // 5. 应用分页
         query = query.range(start, end);
-        
+
+        // 6. 发送请求
         const { data, count, error } = await query;
-        
-        // 检查请求是否已被取消或被新请求替换
-        if (requestId !== fetchRequestId) {
-            console.log('[fetchTableData] 请求已被新请求替换，忽略此响应');
-            return;
-        }
-        
-        if (error) {
-            throw error;
-        }
-        
+
+        if (requestId !== fetchRequestId) return; // 请求已过期
+        if (error) throw error;
+
+        // 7. 【核心修复】直接使用数据，不要再做任何前端 filter
         const newData = data || [];
+        
+        // 如果是追加模式（滚动加载），拼接数据；否则直接替换
         ListState.data = append ? [...ListState.data, ...newData] : newData;
         ListState.totalCount = count || 0;
+
         setDbConnectionState('connected');
+
+        // 8. 渲染视图
+        // 传递 forceRefresh 给 renderDatabase，告诉它这是一次强制刷新，需要重置虚拟滚动位置
+        if (typeof renderDatabase === 'function') {
+            renderDatabase(forceRefresh); 
+        }
         
-        // 【请求日志】记录成功响应
-        console.log('[fetchTableData] 请求成功:', {
-            page: targetPage,
-            dataCount: newData.length,
-            totalCount: count || 0,
-            timestamp: new Date().toISOString()
-        });
+        if (typeof renderPaginationControls === 'function') renderPaginationControls();
+        if (typeof updateStatusCounts === 'function') updateStatusCounts();
         
-        // 【性能优化】缓存查询结果（只在非追加模式且非强制刷新时缓存）
-        // 【数据缓存机制增强】使用多级缓存策略（内存 + localStorage）
-        if (!append && !forceRefresh) {
+    } catch (error) {
+        console.error("数据加载失败:", error);
+        if (error.name !== 'AbortError') {
+            if (typeof showToast === 'function') {
+                showToast("数据加载失败", "error");
+            }
+        }
+        
+        // 【数据缓存机制增强】客户端缓存降级策略：网络不可用时自动使用本地缓存
+        if (requestId === fetchRequestId) {
             const cacheKey = getCacheKey(
                 targetPage,
                 ListState.pagination.pageSize,
                 ListState.filters,
                 ListState.sorting
             );
-            setCachedData(cacheKey, newData, count || 0);
-            console.log('[fetchTableData] 数据已缓存:', { page: targetPage, cacheKey });
-        }
-        
-        // 【修复】强制刷新时立即渲染，非强制刷新时使用 requestAnimationFrame 防闪烁
-        if (forceRefresh) {
-            // 【修复】设置全局标记，通知 renderDatabase 进行强制刷新
-            if (typeof window !== 'undefined') {
-                window._forceRefreshTable = true;
+            
+            // 首先尝试从缓存获取数据
+            const cached = getCachedData(cacheKey);
+            if (cached) {
+                ListState.data = cached.data;
+                ListState.totalCount = cached.totalCount;
+                setDbConnectionState('connected');
+            } else {
+                // 缓存未命中，降级到localStorage中的旧数据
+                try {
+                    const localData = JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
+                    const start = (ListState.pagination.page - 1) * ListState.pagination.pageSize;
+                    const end = start + ListState.pagination.pageSize - 1;
+                    const localPageData = localData.slice(start, end + 1);
+                    
+                    ListState.data = append ? [...ListState.data, ...localPageData] : localPageData;
+                    ListState.totalCount = localData.length;
+                    setDbConnectionState('error');
+                } catch (localStorageError) {
+                    ListState.data = append ? ListState.data : [];
+                    ListState.totalCount = 0;
+                    setDbConnectionState('error');
+                }
             }
             
-            // 强制刷新时立即渲染，确保数据立即显示
+            // 【修复】错误处理时立即渲染，确保用户能看到错误状态
             if (typeof renderDatabase === 'function') {
                 renderDatabase();
             }
             if (typeof renderPaginationControls === 'function') {
                 renderPaginationControls();
             }
-            
-            // 恢复滚动位置
-            if (keepScrollPosition && savedScrollTop > 0 && window.virtualScrollManager) {
-                requestAnimationFrame(() => {
-                    window.virtualScrollManager.container.scrollTop = savedScrollTop;
-                });
-            }
-        } else {
-            // 【防闪烁优化】非强制刷新时使用 requestAnimationFrame 包装数据更新和渲染逻辑
-            requestAnimationFrame(() => {
-                if (typeof renderDatabase === 'function') {
-                    renderDatabase();
-                }
-                if (typeof renderPaginationControls === 'function') {
-                    renderPaginationControls();
-                }
-                
-                // 恢复滚动位置
-                if (keepScrollPosition && savedScrollTop > 0 && window.virtualScrollManager) {
-                    requestAnimationFrame(() => {
-                        window.virtualScrollManager.container.scrollTop = savedScrollTop;
-                    });
-                }
-            });
-        }
-        
-    } catch (error) {
-        if (error.name === 'AbortError') {
-            console.log('[fetchTableData] 数据请求已取消');
-            return;
-        }
-        
-        if (requestId !== fetchRequestId) {
-            return;
-        }
-        
-        // 【请求日志】记录错误
-        console.error('[fetchTableData] 获取分页数据异常：', {
-            error: error.message,
-            page: targetPage,
-            timestamp: new Date().toISOString(),
-            requestLog
-        });
-        
-        // 【数据缓存机制增强】客户端缓存降级策略：网络不可用时自动使用本地缓存
-        const cacheKey = getCacheKey(
-            targetPage,
-            ListState.pagination.pageSize,
-            ListState.filters,
-            ListState.sorting
-        );
-        
-        // 首先尝试从缓存获取数据
-        const cached = getCachedData(cacheKey);
-        if (cached) {
-            console.log('[fetchTableData] 网络错误，使用缓存数据:', { page: targetPage, dataCount: cached.data.length });
-            ListState.data = cached.data;
-            ListState.totalCount = cached.totalCount;
-            setDbConnectionState('connected');
-        } else {
-            // 缓存未命中，降级到localStorage中的旧数据
-            try {
-                const localData = JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
-                const start = (ListState.pagination.page - 1) * ListState.pagination.pageSize;
-                const end = start + ListState.pagination.pageSize - 1;
-                const localPageData = localData.slice(start, end + 1);
-                
-                ListState.data = append ? [...ListState.data, ...localPageData] : localPageData;
-                ListState.totalCount = localData.length;
-                setDbConnectionState('error');
-                console.log('[fetchTableData] 使用localStorage降级数据:', { page: targetPage, dataCount: localPageData.length });
-            } catch (localStorageError) {
-                console.error('[fetchTableData] 降级到localStorage失败:', localStorageError);
-                ListState.data = append ? ListState.data : [];
-                ListState.totalCount = 0;
-                setDbConnectionState('error');
-            }
-        }
-        
-        // 【修复】错误处理时立即渲染，确保用户能看到错误状态
-        if (typeof renderDatabase === 'function') {
-            renderDatabase();
-        }
-        if (typeof renderPaginationControls === 'function') {
-            renderPaginationControls();
         }
     } finally {
         if (requestId === fetchRequestId) {
             ListState.isLoading = false;
             currentFetchController = null;
+            if(typeof hideLoading === 'function') hideLoading();
         }
     }
 }
@@ -701,12 +621,8 @@ function applySearchConditions(query, filters) {
     const searchTerm = filters.search.trim();
     const searchMode = filters.searchMode || 'fuzzy';
     const searchField = filters.searchField || 'all';
-    const advancedSearch = filters.advancedSearch;
     
-    // 如果使用高级搜索
-    if (advancedSearch && Array.isArray(advancedSearch) && advancedSearch.length > 0) {
-        return applyAdvancedSearch(query, advancedSearch);
-    }
+    // 【清理】旧的高级搜索（advancedSearch）已删除，现在使用快速筛选系统（advancedFilters）
     
     // 简单搜索模式
     // 确定要搜索的字段
@@ -816,25 +732,23 @@ function applyAdvancedFilters(query, filters) {
     // 【修复】海外仓单号 - 模糊匹配
     if (filters.order_no) {
         query = query.ilike('order_no', `%${filters.order_no}%`);
-        console.log('[applyAdvancedFilters] 应用海外仓单号筛选:', filters.order_no);
     }
     
     // 【修复】物流运单号 - 模糊匹配
     if (filters.tracking_no) {
         query = query.ilike('tracking_no', `%${filters.tracking_no}%`);
-        console.log('[applyAdvancedFilters] 应用物流运单号筛选:', filters.tracking_no);
     }
     
     // 【修复】发货仓 - 精确匹配（对应明细列表中的warehouse字段）
     if (filters.warehouse) {
-        query = query.eq('warehouse', filters.warehouse);
-        console.log('[applyAdvancedFilters] 应用发货仓筛选:', filters.warehouse);
+        // 【修复】确保值完全匹配，去除首尾空格
+        const warehouseValue = filters.warehouse.trim();
+        query = query.eq('warehouse', warehouseValue);
     }
     
     // 【修复】订单SKU - 模糊匹配
     if (filters.sku) {
         query = query.ilike('sku', `%${filters.sku}%`);
-        console.log('[applyAdvancedFilters] 应用订单SKU筛选:', filters.sku);
     }
     
     // 【修复】发货日期范围（对应明细列表中的ship_date字段）
@@ -842,13 +756,11 @@ function applyAdvancedFilters(query, filters) {
         // 确保日期格式正确（YYYY-MM-DD）
         const startDate = filters.ship_date_start.trim();
         query = query.gte('ship_date', startDate);
-        console.log('[applyAdvancedFilters] 应用发货日期起始筛选:', startDate);
     }
     if (filters.ship_date_end) {
         // 确保日期格式正确（YYYY-MM-DD）
         const endDate = filters.ship_date_end.trim();
         query = query.lte('ship_date', endDate);
-        console.log('[applyAdvancedFilters] 应用发货日期结束筛选:', endDate);
     }
     
     // 【修复】申请提交日期范围（对应明细列表中的entry_date字段）
@@ -856,170 +768,28 @@ function applyAdvancedFilters(query, filters) {
         // 确保日期格式正确（YYYY-MM-DD）
         const startDate = filters.entry_date_start.trim();
         query = query.gte('entry_date', startDate);
-        console.log('[applyAdvancedFilters] 应用申请提交日期起始筛选:', startDate);
     }
     if (filters.entry_date_end) {
         // 确保日期格式正确（YYYY-MM-DD）
         const endDate = filters.entry_date_end.trim();
         query = query.lte('entry_date', endDate);
-        console.log('[applyAdvancedFilters] 应用申请提交日期结束筛选:', endDate);
     }
     
     // 【修复】索赔类型 - 精确匹配（对应明细列表中的claim_type字段）
     if (filters.claim_type) {
-        query = query.eq('claim_type', filters.claim_type);
-        console.log('[applyAdvancedFilters] 应用索赔类型筛选:', filters.claim_type);
+        // 【修复】确保值完全匹配，去除首尾空格
+        const claimTypeValue = filters.claim_type.trim();
+        query = query.eq('claim_type', claimTypeValue);
     }
     
     return query;
 }
 
 /**
- * 应用高级搜索条件（支持字段指定和组合条件）
- * @param {Object} query - Supabase 查询对象
- * @param {Array} conditions - 高级搜索条件数组
- * @returns {Object} 修改后的查询对象
+ * 【清理】旧的高级搜索函数（applyAdvancedSearch）已删除
+ * 旧的高级搜索面板（advancedSearchPanel）已删除，现在使用快速筛选系统（advancedFilters）
+ * 快速筛选通过 applyAdvancedFilters() 函数处理
  */
-function applyAdvancedSearch(query, conditions) {
-    // 高级搜索格式：
-    // conditions = [
-    //   { field: 'order_no', value: 'ABC123', mode: 'fuzzy', operator: 'AND' },
-    //   { field: 'process_status', value: '待审核', mode: 'exact', operator: 'OR' }
-    // ]
-    
-    // 分离AND和OR条件
-    const andConditions = [];
-    const orConditions = [];
-    
-    conditions.forEach((condition) => {
-        const { field, value, mode = 'fuzzy', operator = 'AND' } = condition;
-        
-        if (!field || !value || !value.trim()) {
-            return; // 跳过无效条件
-        }
-        
-        const fieldConfig = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
-            window.SEARCH_FIELD_MAP[field] : null;
-        
-        if (!fieldConfig || !fieldConfig.searchable) {
-            return; // 跳过不可搜索的字段
-        }
-        
-        const searchValue = value.trim();
-        
-        if (operator === 'OR') {
-            orConditions.push({ field, value: searchValue, mode, fieldConfig });
-        } else {
-            andConditions.push({ field, value: searchValue, mode, fieldConfig });
-        }
-    });
-    
-    // 先应用AND条件
-    andConditions.forEach(({ field, value, mode, fieldConfig }) => {
-        // 【修复】日期类型字段不支持文本搜索
-        if (fieldConfig.type === 'date') {
-            // 如果搜索值看起来像日期，尝试日期匹配
-            const dateMatch = value.match(/^\d{4}-\d{2}-\d{2}/);
-            if (dateMatch) {
-                try {
-                    const dateValue = new Date(value);
-                    if (!isNaN(dateValue.getTime())) {
-                        query = query.eq(field, value.split(' ')[0]); // 只取日期部分
-                    }
-                } catch (e) {
-                    // 日期解析失败，跳过此条件
-                }
-            }
-            return; // 跳过日期字段的文本搜索
-        }
-        
-        if (mode === 'exact') {
-            if (fieldConfig.type === 'number') {
-                const numValue = parseFloat(value);
-                if (!isNaN(numValue)) {
-                    query = query.eq(field, numValue);
-                }
-            } else {
-                // 文本字段精确匹配
-                query = query.eq(field, value);
-            }
-        } else {
-            // 模糊搜索
-            // 【修复】数字字段不能使用ilike，需要特殊处理
-            if (fieldConfig.type === 'number') {
-                // 尝试将搜索值转换为数字
-                const numValue = parseFloat(value);
-                if (!isNaN(numValue)) {
-                    // 如果转换成功，使用等号精确匹配
-                    query = query.eq(field, numValue);
-                }
-                // 如果转换失败，跳过这个字段
-            } else {
-                // 文本字段使用模糊匹配
-                const searchPattern = `%${value.toLowerCase()}%`;
-                query = query.ilike(field, searchPattern);
-            }
-        }
-    });
-    
-    // 再应用OR条件（如果有）
-    if (orConditions.length > 0) {
-        const orQueries = orConditions.map(({ field, value, mode, fieldConfig }) => {
-            // 【修复】日期类型字段不支持文本搜索
-            if (fieldConfig.type === 'date') {
-                // 如果搜索值看起来像日期，尝试日期匹配
-                const dateMatch = value.match(/^\d{4}-\d{2}-\d{2}/);
-                if (dateMatch) {
-                    try {
-                        const dateValue = new Date(value);
-                        if (!isNaN(dateValue.getTime())) {
-                            return `${field}.eq.${value.split(' ')[0]}`;
-                        }
-                    } catch (e) {
-                        // 日期解析失败，跳过
-                    }
-                }
-                return null; // 跳过日期字段的文本搜索
-            }
-            
-            if (mode === 'exact') {
-                if (fieldConfig.type === 'number') {
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                        return `${field}.eq.${numValue}`;
-                    }
-                    return null;
-                } else {
-                    // 文本字段精确匹配
-                    return `${field}.eq.${value}`;
-                }
-            } else {
-                // 模糊搜索
-                // 【修复】数字字段不能使用ilike
-                if (fieldConfig.type === 'number') {
-                    // 尝试将搜索值转换为数字
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue)) {
-                        // 如果转换成功，使用等号精确匹配
-                        return `${field}.eq.${numValue}`;
-                    }
-                    // 如果转换失败，跳过这个字段
-                    return null;
-                } else {
-                    // 文本字段使用模糊匹配
-                    const searchPattern = `%${value.toLowerCase()}%`;
-                    return `${field}.ilike.${searchPattern}`;
-                }
-            }
-        }).filter(q => q !== null);
-        
-        if (orQueries.length > 0) {
-            query = query.or(orQueries.join(','));
-        }
-    }
-    
-    return query;
-}
 
 // 将函数暴露到全局，供 HTML 中的 onclick 等直接调用
 if (typeof window !== 'undefined') {
@@ -1027,6 +797,8 @@ if (typeof window !== 'undefined') {
     window.clearAllCache = clearAllCache;
     window.getCacheStats = getCacheStats;
     window.warmupCache = warmupCache;
+    window.applyAdvancedFilters = applyAdvancedFilters;
+    window.applySearchConditions = applySearchConditions;
 }
 
 /**
@@ -1040,7 +812,6 @@ async function saveDataToSupabase() {
         const dataToSave = sanitizeDataForSupabase(latestRecord);
         
         if (!dataToSave.id) {
-            console.error("Missing ID for new record");
             return;
         }
 
@@ -1050,15 +821,12 @@ async function saveDataToSupabase() {
             .select();
         
         if (error) {
-            console.error('保存数据到Supabase失败：', error);
             showToast('云端保存失败: ' + error.message, 'error');
             localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
         } else {
-            console.log('数据成功保存到Supabase！');
             showToast('数据已同步至云端', 'success');
         }
     } catch (error) {
-        console.error('保存数据异常：', error);
         localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
     }
 }
@@ -1085,12 +853,10 @@ async function updateDataInSupabase(id, data) {
             }
             return false;
         } else {
-            console.log('数据成功更新到Supabase');
             showToast('云端数据已更新', 'success');
             return true;
         }
     } catch (error) {
-        console.error('更新数据异常：', error);
         const index = database.findIndex(item => item.id === id);
         if (index !== -1) {
             database[index] = data;
@@ -1115,12 +881,10 @@ async function deleteDataFromSupabase(id) {
             database = database.filter(item => item.id !== id);
             localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
         } else {
-            console.log('数据成功从Supabase删除');
             database = database.filter(item => item.id !== id);
             localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
         }
     } catch (error) {
-        console.error('删除数据异常：', error);
         database = database.filter(item => item.id !== id);
         localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
     }
@@ -1138,12 +902,10 @@ async function checkSupabaseTableStructure() {
             .limit(1);
         
         if (tableError) {
-            console.error('获取表信息失败：', tableError);
-        } else {
-            console.log('表结构检查成功，表中现有数据行数：', tableInfo.length);
+            // 获取表信息失败，静默处理
         }
     } catch (error) {
-        console.error('检查表结构异常：', error);
+        // 检查表结构异常，静默处理
     }
 }
 
@@ -1159,7 +921,6 @@ async function loadUsersFromSupabase() {
     
     try {
         if (!supabaseClient) {
-            console.error('Supabase客户端未初始化');
             if (typeof hideLoading === 'function') {
                 hideLoading();
             }
@@ -1176,8 +937,6 @@ async function loadUsersFromSupabase() {
             .order('created_at', { ascending: false });
         
         if (error) {
-            console.error('加载用户列表出错:', error);
-            
             // 隐藏加载状态
             if (typeof hideLoading === 'function') {
                 hideLoading();
@@ -1185,7 +944,6 @@ async function loadUsersFromSupabase() {
             
             // 针对42P17错误（无限递归策略）进行特殊处理
             if (error.code === '42P17') {
-                console.error('数据库策略存在无限递归问题，请检查users_v2表的RLS策略');
                 // 使用空数组作为备选，显示"暂无用户数据"
                 window.users = [];
                 return true;
@@ -1207,7 +965,6 @@ async function loadUsersFromSupabase() {
                     try {
                         permissions = JSON.parse(user.permissions);
                     } catch (e) {
-                        console.warn('解析用户权限 JSON 失败:', e, user.permissions);
                         permissions = {};
                     }
                 } else if (typeof user.permissions === 'object') {
@@ -1234,10 +991,8 @@ async function loadUsersFromSupabase() {
             hideLoading();
         }
         
-        console.log(`成功加载 ${formattedUsers.length} 个用户`);
         return true;
     } catch (error) {
-        console.error('加载用户数据时发生异常:', error);
         if (typeof hideLoading === 'function') {
             hideLoading();
         }

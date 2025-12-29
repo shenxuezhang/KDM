@@ -85,8 +85,6 @@ const $ = {
  * @param {string} context - 操作上下文（用于错误提示）
  */
 function handleError(error, context = '操作') {
-    console.error(`[${context}]`, error);
-    
     let userMessage = `${context}失败`;
     
     // 根据错误类型提供更友好的提示
@@ -109,7 +107,6 @@ function handleError(error, context = '操作') {
     // 如果是关键错误，可以上报到监控系统
     if (error.code === '42P17' || error.message && error.message.includes('database')) {
         // 这里可以添加错误上报逻辑
-        console.error('关键数据库错误，建议联系管理员', error);
     }
 }
 

@@ -810,70 +810,88 @@
         <!-- 视图一：填写登记 -->
         <section id="view-form" class="space-y-6 animate-fade-up">
             <div class="glass-card overflow-hidden">
-                <div class="p-6 border-b border-slate-100 dark:border-slate-700">
+                <div class="p-4 border-b border-slate-100 dark:border-slate-700">
                     <h2 class="text-xl font-bold text-slate-800 dark:text-white">新建索赔申请</h2>
                 </div>
-                <form id="claimForm" class="p-6 md:p-10 space-y-8" oninput="markFormDirty()">
+                <form id="claimForm" class="p-4 md:p-6 space-y-5" oninput="markFormDirty()">
                     
                     <!-- 1. 客户信息 -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-inner dark:bg-slate-800 dark:border-slate-700">
-                        <h3 class="flex items-center gap-2 text-lg font-extrabold text-blue-800 dark:text-blue-400 pb-4 mb-6 border-b border-blue-200/50 dark:border-slate-600">
-                            <span class="w-1.5 h-5 bg-indigo-500 rounded-full"></span>客户信息
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-blue-800 dark:text-blue-400 pb-3 mb-4 border-b border-blue-200/50 dark:border-slate-600">
+                            <svg class="section-title-icon w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span class="w-2 h-6 bg-indigo-500 rounded-md"></span>
+                            <span>客户信息</span>
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>客户名称 (公司全称)：</label><input type="text" id="cust_name" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="深圳市信凯源科技有限公司" required></div>
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>联系人：</label><input type="text" id="contact_name" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="沈学章" required></div>
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>联系方式：</label><input type="text" id="contact_info" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="shenxz1989@foxmail.com" required></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>客户名称 (公司全称)：</label><input type="text" id="cust_name" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="深圳市信凯源科技有限公司" required></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>联系人：</label><input type="text" id="contact_name" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="沈学章" required></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>联系方式：</label><input type="text" id="contact_info" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="shenxz1989@foxmail.com" required></div>
                         </div>
                     </div>
 
                     <!-- 2. 订单信息 -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-inner dark:bg-slate-800 dark:border-slate-700">
-                        <h3 class="flex items-center gap-2 text-lg font-extrabold text-blue-800 dark:text-blue-400 pb-4 mb-6 border-b border-blue-200/50 dark:border-slate-600">
-                            <span class="w-1.5 h-5 bg-blue-500 rounded-full"></span>订单信息
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-purple-800 dark:text-purple-400 pb-3 mb-4 border-b border-purple-200/50 dark:border-slate-600">
+                            <svg class="section-title-icon w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span class="w-2 h-6 bg-purple-500 rounded-md"></span>
+                            <span>订单信息</span>
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>海外仓单号（OBS出库号）：</label><input type="text" id="order_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="系统生成的唯一单号(领星ERP-运单号)"></div>
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>物流运单号：</label><input type="text" id="tracking_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="头程/尾程物流单号"></div>
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>发货日期：</label><input type="date" id="ship_date" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required></div>
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>订单 SKU：</label><input type="text" id="sku" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="货物发货SKU"></div>
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>发货仓：</label><select id="warehouse" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required><option value="美西-4仓">美西-4仓</option><option value="美西-2仓">美西-2仓</option><option value="美东-4仓">美东-4仓</option><option value="美西-1仓">美西-1仓</option></select></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>海外仓单号（OBS出库号）：</label><input type="text" id="order_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="系统生成的唯一单号(领星ERP-运单号)"></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>物流运单号：</label><input type="text" id="tracking_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="头程/尾程物流单号"></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货日期：</label><input type="date" id="ship_date" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>订单 SKU：</label><input type="text" id="sku" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="货物发货SKU"></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货仓：</label><select id="warehouse" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required><option value="美西-4仓">美西-4仓</option><option value="美西-2仓">美西-2仓</option><option value="美东-4仓">美东-4仓</option><option value="美西-1仓">美西-1仓</option></select></div>
                         </div>
                     </div>
 
                     <!-- 3. 索赔详情 -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-inner dark:bg-slate-800 dark:border-slate-700">
-                        <h3 class="flex items-center gap-2 text-lg font-extrabold text-blue-800 dark:text-blue-400 pb-4 mb-6 border-b border-blue-200/50 dark:border-slate-600">
-                            <span class="w-1.5 h-5 bg-orange-500 rounded-full"></span>索赔详情
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-orange-800 dark:text-orange-400 pb-3 mb-4 border-b border-orange-200/50 dark:border-slate-600">
+                            <svg class="section-title-icon w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <span class="w-2 h-6 bg-orange-500 rounded-md"></span>
+                            <span>索赔详情</span>
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div><label class="input-group-label"><span class="text-red-500 mr-1">*</span>索赔类型：</label><select id="claim_type" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option>货物损坏</option><option>丢失</option><option>延误</option><option>库存不符</option><option>错发</option><option>发货数量不符</option></select></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>索赔类型：</label><select id="claim_type" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option>货物损坏</option><option>丢失</option><option>延误</option><option>库存不符</option><option>错发</option><option>发货数量不符</option></select></div>
                             <div><label class="input-group-label">责任方判定：</label><select id="liable_party" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option>待核实</option><option>海外仓责任</option><option>物流商责任</option><option>客户责任</option></select></div>
                             <div class="md:col-span-2">
-                                <label class="input-group-label"><span class="text-red-500 mr-1">*</span>问题描述：</label>
+                                <label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>问题描述：</label>
                                 <textarea id="description" rows="2" class="form-textarea bg-white dark:bg-slate-700 dark:border-slate-600 resize" placeholder="详细说明异常情况（如损坏程度、延误天数等）" required></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- 4. 赔偿计算 -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-inner dark:bg-slate-800 dark:border-slate-700">
-                        <h3 class="flex items-center gap-2 text-lg font-black text-blue-800 dark:text-blue-400 pb-4 mb-6 border-b border-blue-200/50 dark:border-slate-600"><span class="w-1.5 h-5 bg-blue-600 rounded-full"></span>赔偿计算</h3>
-                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-6">
-                            <div><label class="input-group-label text-blue-900/60 dark:text-blue-300">赔偿币种：</label><select id="currency" class="form-input dark:bg-slate-700 dark:border-slate-600 cursor-pointer bg-white"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="CNY">CNY (¥)</option></select></div>
-                            <div><label class="input-group-label text-blue-900/60 dark:text-blue-300"><span class="text-red-500 mr-1">*</span>货物声明价值：</label><input type="number" id="val_amount" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="商品采购价或投保价值"></div>
-                            <div><label class="input-group-label text-blue-900/60 dark:text-blue-300"><span class="text-red-500 mr-1">*</span>索赔数量：</label><input type="number" id="claim_qty" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="需赔付的商品数量"></div>
-                            <div><label class="input-group-label text-blue-900/60 dark:text-blue-300">赔偿比例 (%)：</label><input type="number" id="claim_ratio" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="100" required></div>
-                            <div><label class="input-group-label text-blue-700 dark:text-blue-400"><span class="text-red-500 mr-1">*</span>总赔偿金额：</label><input type="number" id="claim_total" class="form-input text-blue-700 font-black text-lg bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="最高赔偿100USD"></div>
+                    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-emerald-800 dark:text-emerald-400 pb-3 mb-4 border-b border-emerald-200/50 dark:border-slate-600">
+                            <svg class="section-title-icon w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="w-2 h-6 bg-emerald-500 rounded-md"></span>
+                            <span>赔偿计算</span>
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300">赔偿币种：</label><select id="currency" class="form-input dark:bg-slate-700 dark:border-slate-600 cursor-pointer bg-white"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="CNY">CNY (¥)</option></select></div>
+                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300"><span class="text-red-600 font-extrabold mr-1">*</span>货物声明价值：</label><input type="number" id="val_amount" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="商品采购价或投保价值"></div>
+                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300"><span class="text-red-600 font-extrabold mr-1">*</span>索赔数量：</label><input type="number" id="claim_qty" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="需赔付的商品数量"></div>
+                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300">赔偿比例 (%)：</label><input type="number" id="claim_ratio" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="100" required></div>
+                            <div><label class="input-group-label text-emerald-700 dark:text-emerald-400"><span class="text-red-600 font-extrabold mr-1">*</span>总赔偿金额：</label><input type="number" id="claim_total" class="form-input text-emerald-700 font-black text-lg bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="最高赔偿100USD"></div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="glass-card p-6 border border-slate-100 dark:border-slate-700"><h3 class="text-sm font-bold text-slate-800 dark:text-white mb-4">证明资料</h3><label class="input-group-label">附件清单：</label><input type="text" id="attachments" class="form-input bg-slate-50 dark:bg-slate-700 dark:border-slate-600" placeholder="上传图片/视频/物流凭证（用超链接或标注存储路径）"></div>
-                        <div class="glass-card p-6 border border-slate-100 dark:border-slate-700">
-                            <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-4">处理进度</h3>
-                            <div class="space-y-4">
-                                <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow"><h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">证明资料</h3><label class="input-group-label">附件清单：</label><input type="text" id="attachments" class="form-input bg-slate-50 dark:bg-slate-700 dark:border-slate-600" placeholder="上传图片/视频/物流凭证（用超链接或标注存储路径）"></div>
+                        <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">处理进度</h3>
+                            <div class="space-y-3">
+                                <div class="grid grid-cols-2 gap-3">
                                     <div><label class="input-group-label">申请提交日期：</label><input type="date" id="entry_date" class="form-input bg-slate-200 dark:bg-slate-700 dark:border-slate-600" readonly></div>
                                     <div><label class="input-group-label">处理状态：</label><select id="process_status" class="form-input bg-slate-50 font-bold text-blue-600 dark:text-blue-400 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option value="待审核">待审核</option><option value="处理中">处理中</option><option value="等待赔付">等待赔付</option><option value="已赔付">已赔付</option><option value="已驳回">已驳回</option></select></div>
                                 </div>
@@ -881,9 +899,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="pt-4 flex gap-4">
-                        <button type="button" id="submitBtn" onclick="processEntry()" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition"><span id="submitBtnText">确认提交并保存</span></button>
-                        <button type="button" id="cancelEditBtn" onclick="cancelEditMode()" class="hidden flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition">取消修改</button>
+                    <div class="pt-3 flex gap-3">
+                        <button type="button" id="submitBtn" onclick="processEntry()" class="btn-primary flex-[2]"><span id="submitBtnText">确认提交并保存</span></button>
+                        <button type="button" id="cancelEditBtn" onclick="cancelEditMode()" class="btn-secondary hidden flex-1">取消修改</button>
                     </div>
                 </form>
             </div>
@@ -1166,7 +1184,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold text-slate-800 dark:text-white">进度看板</h2>
                 <div class="flex gap-2">
-                    <button onclick="switchSubTab('all'); renderDatabase();" class="px-3 py-1 bg-white border border-slate-200 rounded text-sm font-bold shadow-sm">刷新</button>
+                    <button onclick="switchSubTab('all')" class="px-3 py-1 bg-white border border-slate-200 rounded text-sm font-bold shadow-sm">刷新</button>
                 </div>
             </div>
             <div class="flex gap-4 overflow-x-auto h-[calc(100vh-140px)] pb-4 items-start" id="kanban-container"></div>
@@ -1446,7 +1464,6 @@
                     .single();
                 
                 if (error) {
-                    console.error('获取公告数据失败:', error);
                     showToast('获取公告数据失败', 'error');
                     return;
                 }
@@ -1460,7 +1477,6 @@
                 const modal = document.getElementById('editNoticeModal');
                 modal.classList.add('active');
             } catch (error) {
-                console.error('编辑公告过程中发生错误:', error);
                 showToast('编辑公告失败', 'error');
             }
         };
@@ -1536,7 +1552,6 @@
                                 .from('claim-images')
                                 .remove([path]);
                         } catch (urlError) {
-                            console.error('旧图片URL解析失败:', urlError);
                             // 继续执行，不影响新图片上传
                         }
                     }
@@ -1551,7 +1566,6 @@
                         .upload(fileName, file);
                     
                     if (uploadError) {
-                        console.error('图片上传失败:', uploadError);
                         showToast('图片上传失败', 'error');
                         return;
                     }
@@ -1600,7 +1614,6 @@ if (!updatedData || updatedData.length === 0) {
                     }]);
                 
                 if (historyError) {
-                    console.error('记录修改历史失败:', historyError);
                     // 历史记录失败不影响公告修改，继续执行
                 }
                 
@@ -1613,7 +1626,6 @@ if (!updatedData || updatedData.length === 0) {
                 // 10. 显示成功提示
                 showToast('公告修改成功', 'success');
             } catch (error) {
-                console.error('保存公告修改失败:', error);
                 showToast('保存公告修改失败', 'error');
             }
         };
@@ -1665,7 +1677,7 @@ if (!updatedData || updatedData.length === 0) {
                     search: '', // 搜索关键词（快速搜索）
                     searchMode: 'fuzzy', // 搜索模式：fuzzy（模糊）或 exact（精确）
                     searchField: 'all', // 搜索字段：'all'（全部字段）或指定字段名
-                    advancedSearch: null, // 高级搜索条件（对象数组，保留兼容性）
+                    advancedSearch: null, // 【清理】已废弃，旧的高级搜索面板已删除，现在使用快速筛选系统（advancedFilters）
                     advancedFilters: null // 【高级搜索重构】高级筛选条件对象
                 },
                 sorting: {
@@ -1711,9 +1723,6 @@ if (!updatedData || updatedData.length === 0) {
                 // 加载公告列表
                 if (document.getElementById('notice-list')) {
                     window.loadNotices();
-                    // 运行公告排序测试
-                    console.log('\n=== 公告中心排序测试 ===');
-                    window.testNoticeSorting();
                 }
                 
                 // 【行高优化】从配置中读取行高值并设置CSS变量
@@ -1765,12 +1774,10 @@ if (!updatedData || updatedData.length === 0) {
                     .limit(1);
                 
                 if (tableError) {
-                    console.error('获取表信息失败：', tableError);
-                } else {
-                    console.log('表结构检查成功，表中现有数据行数：', tableInfo.length);
+                    // 表结构检查失败，静默处理
                 }
             } catch (error) {
-                console.error('检查表结构异常：', error);
+                // 检查表结构异常，静默处理
             }
         }
         
@@ -1934,11 +1941,8 @@ if (!updatedData || updatedData.length === 0) {
                         .single();
                     
                     if (error) {
-                        console.error('获取用户角色失败:', error);
-                        
                         // 针对42P17错误（无限递归策略）进行特殊处理
                         if (error.code === '42P17') {
-                            console.error('数据库策略存在无限递归问题，请检查users_v2表的RLS策略');
                             showToast('数据库策略存在问题，无法获取用户角色', 'error');
                         }
                         
@@ -1961,7 +1965,6 @@ if (!updatedData || updatedData.length === 0) {
                         };
                     }
                 } catch (error) {
-                    console.error('获取用户信息时发生错误:', error);
                     currentUser = {
                         ...session.user,
                         permissions: session.user.user_metadata?.permissions || {}
@@ -2009,7 +2012,18 @@ if (!updatedData || updatedData.length === 0) {
                 renderColumnModal();
                 renderKanban();
                 initCharts();
-                fetchTableData();
+                if (typeof window.fetchTableData === 'function') {
+                    window.fetchTableData();
+                } else if (typeof fetchTableData === 'function') {
+                    fetchTableData();
+                } else {
+                    // fetchTableData函数未定义，等待模块加载
+                    setTimeout(() => {
+                        if (typeof window.fetchTableData === 'function') {
+                            window.fetchTableData();
+                        }
+                    }, 100);
+                }
                 
                 // 启动心跳机制，证明我在线
                 startHeartbeat(session.user.id);
@@ -2109,7 +2123,6 @@ if (!updatedData || updatedData.length === 0) {
                     login_at: new Date().toISOString()
                 }]);
 
-            if (logError) console.error('记录登录日志失败:', logError);
 
             // 2. 立即更新 users_v2 表的活跃时间
             await updateUserHeartbeat(user.id);
@@ -2123,7 +2136,6 @@ if (!updatedData || updatedData.length === 0) {
                 .update({ last_active_at: new Date().toISOString() })
                 .eq('id', userId);
                 
-            if (error) console.error('心跳更新失败:', error);
         }
 
         // --- 新增：启动心跳定时器 ---
@@ -2203,7 +2215,6 @@ if (!updatedData || updatedData.length === 0) {
                     .order('entry_date', { ascending: false });
                 
                 if (error) {
-                    console.error('加载数据失败，切换到本地缓存：', error);
                     return JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
                 } else {
                     // 保存到本地缓存
@@ -2211,7 +2222,6 @@ if (!updatedData || updatedData.length === 0) {
                     return data || [];
                 }
             } catch (error) {
-                console.error('加载数据异常：', error);
                 return JSON.parse(localStorage.getItem('wh_claims_db_pro')) || [];
             }
         }
@@ -2288,11 +2298,6 @@ if (!updatedData || updatedData.length === 0) {
         
         // 日志记录函数
         function logAction(action, details) {
-            const timestamp = new Date().toISOString();
-            const logMessage = `${timestamp} - ${action} - ${JSON.stringify(details)}`;
-            console.log(logMessage);
-            
-            // 可以在这里添加更详细的日志存储逻辑，如发送到服务器等
         }
         
         // 验证邮箱唯一性（异步版）
@@ -2327,7 +2332,6 @@ if (!updatedData || updatedData.length === 0) {
                 });
                 
                 if (error) {
-                    console.error('检查邮箱唯一性时出错:', error);
                     logAction('邮箱唯一性检查错误', {
                         email,
                         error: error.message,
@@ -2350,7 +2354,6 @@ if (!updatedData || updatedData.length === 0) {
                 // 如果数据库中存在该邮箱，返回false
                 return isUnique;
             } catch (error) {
-                console.error('检查邮箱唯一性时发生异常:', error);
                 logAction('邮箱唯一性检查异常', {
                     email,
                     error: error.message,
@@ -2601,7 +2604,6 @@ if (!updatedData || updatedData.length === 0) {
                     await window.handleEditUserSubmit(e);
                 });
             } catch (error) {
-                console.error('打开编辑用户模态框失败:', error);
                 showToast('打开编辑用户模态框失败：' + error.message, 'error');
             }
         };
@@ -2666,7 +2668,6 @@ if (!updatedData || updatedData.length === 0) {
                     .eq('id', id);
                 
                 if (error) {
-                    console.error('更新用户失败:', error);
                     hideLoading();
                     showToast('更新用户失败：' + error.message, 'error');
                     return;
@@ -2684,7 +2685,6 @@ if (!updatedData || updatedData.length === 0) {
                 hideLoading();
                 showToast('用户信息更新成功！', 'success');
             } catch (error) {
-                console.error('编辑用户时发生异常:', error);
                 hideLoading();
                 showToast('编辑用户失败：' + error.message, 'error');
             }
@@ -2706,7 +2706,6 @@ if (!updatedData || updatedData.length === 0) {
                     const { error } = await supabaseClient.auth.admin.deleteUser(id);
                     
                     if (error) {
-                        console.error('删除用户失败:', error);
                         hideLoading();
                         showToast('删除用户失败：' + error.message, 'error');
                         return;
@@ -2719,7 +2718,7 @@ if (!updatedData || updatedData.length === 0) {
                         .eq('id', id);
                     
                     if (usersV2Error) {
-                        console.error('删除users_v2表记录失败:', usersV2Error);
+                        // 删除users_v2表记录失败，静默处理
                     }
                     
                     // 重新加载用户数据
@@ -2731,7 +2730,6 @@ if (!updatedData || updatedData.length === 0) {
                     hideLoading();
                     showToast('用户已删除', 'success');
                 } catch (error) {
-                    console.error('删除用户时发生异常:', error);
                     hideLoading();
                     showToast('删除用户失败：' + error.message, 'error');
                 }
@@ -2827,7 +2825,7 @@ if (!updatedData || updatedData.length === 0) {
                                     .eq('id', data.user.id);
                                 
                                 if (updateError) {
-                                    console.error('更新用户权限失败:', updateError);
+                                    // 更新用户权限失败，静默处理
                                 }
                                 
                 // 重新加载用户数据，确保从数据库获取最新数据
@@ -2900,11 +2898,8 @@ if (!updatedData || updatedData.length === 0) {
                 const dataToSave = sanitizeDataForSupabase(latestRecord);
                 
                 if (!dataToSave.id) {
-                     console.error("Missing ID for new record");
                      return;
                 }
-
-                console.log('正在提交清洗后的数据到Supabase:', dataToSave);
                 
                 const { data, error } = await supabaseClient
                     .from('claims_v2')
@@ -2912,15 +2907,12 @@ if (!updatedData || updatedData.length === 0) {
                     .select();
                 
                 if (error) {
-                    console.error('保存数据到Supabase失败：', error);
                     showToast('云端保存失败: ' + error.message, 'error');
                     localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
                 } else {
-                    console.log('数据成功保存到Supabase！');
                     showToast('数据已同步至云端', 'success');
                 }
             } catch (error) {
-                console.error('保存数据异常：', error);
                 localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
             }
         }
@@ -2931,9 +2923,7 @@ if (!updatedData || updatedData.length === 0) {
                 // 【修复点】同样使用白名单清洗数据
                 // sanitizeDataForSupabase 已在 utils.js 中定义
                 const dataToUpdate = sanitizeDataForSupabase(data);
-                delete dataToUpdate.id; 
-                
-                console.log('正在更新清洗后的数据到Supabase:', dataToUpdate);
+                delete dataToUpdate.id;
 
                 const { error } = await supabaseClient
                     .from('claims_v2')
@@ -2949,12 +2939,10 @@ if (!updatedData || updatedData.length === 0) {
                     }
                     return false;
                 } else {
-                    console.log('数据成功更新到Supabase');
                     showToast('云端数据已更新', 'success');
                     return true;
                 }
             } catch (error) {
-                console.error('更新数据异常：', error);
                 const index = database.findIndex(item => item.id === id);
                 if (index !== -1) {
                     database[index] = data;
@@ -2979,12 +2967,10 @@ if (!updatedData || updatedData.length === 0) {
                     database = database.filter(item => item.id !== id);
                     localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
                 } else {
-                    console.log('数据成功从Supabase删除');
                     database = database.filter(item => item.id !== id);
                     localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
                 }
             } catch (error) {
-                console.error('删除数据异常：', error);
                 database = database.filter(item => item.id !== id);
                 localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
             }
@@ -3098,65 +3084,18 @@ if (!updatedData || updatedData.length === 0) {
         }
 
         /**
-         * 【状态筛选按钮样式改造】切换子标签（状态筛选）- 适配新样式
+         * 【P1-2修复】删除重复的 switchSubTab 函数
+         * 统一使用 suopei_assets/js/ui.js 中的版本（已在全局作用域暴露）
+         * 如果 HTML 中的函数覆盖了 ui.js 中的函数，会导致功能不一致
+         * 
+         * 注意：ui.js 中的 switchSubTab 函数已经包含了所有必要的功能：
+         * - 更新状态筛选
+         * - 清空干扰项
+         * - 更新按钮样式
+         * - 清除缓存
+         * - 强制刷新数据
+         * - 立即保存页面状态
          */
-        function switchSubTab(status) {
-            ListState.filters.status = status;
-            
-            // 【修复】当切换到"全部"时，清空所有高级筛选条件，确保显示所有数据
-            if (status === 'all') {
-                ListState.filters.advancedFilters = null;
-                ListState.filters.advancedSearch = null;
-                ListState.filters.search = '';
-                ListState.filters.type = 'all';
-                console.log('[switchSubTab] 切换到"全部"，清空所有筛选条件');
-            }
-            
-            // 【新样式】移除所有按钮的激活状态（蓝色背景）
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('bg-blue-500', 'text-white', 'hover:bg-blue-600');
-                btn.classList.add('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
-            });
-            
-            // 【新样式】为当前点击的按钮添加激活状态
-            const statusMap = {'待审核':'pending','处理中':'processing','等待赔付':'waiting','已赔付':'paid','已驳回':'rejected'};
-            const activeId = `tab-${status === 'all' ? 'all' : statusMap[status]}`;
-            const activeBtn = document.getElementById(activeId);
-            if (activeBtn) {
-                activeBtn.classList.remove('bg-gray-100', 'dark:bg-slate-700', 'text-gray-700', 'dark:text-slate-300', 'hover:bg-gray-200', 'dark:hover:bg-slate-600');
-                activeBtn.classList.add('bg-blue-500', 'text-white', 'hover:bg-blue-600');
-            }
-            
-            // 【高级搜索重构】同步高级筛选面板中的状态按钮
-            const filterStatusBtns = document.querySelectorAll('.filter-status-btn');
-            const processStatusInput = document.getElementById('processStatusInput');
-            if (filterStatusBtns.length > 0 && processStatusInput) {
-                filterStatusBtns.forEach(btn => {
-                    const btnStatus = btn.getAttribute('data-status');
-                    const isActive = (status === 'all' && btnStatus === 'all') || (status === btnStatus);
-                    
-                    if (isActive) {
-                        btn.classList.remove('bg-white', 'dark:bg-slate-700', 'border-slate-200', 'dark:border-slate-600', 'text-slate-600', 'dark:text-slate-300');
-                        btn.classList.add('bg-blue-500', 'dark:bg-blue-600', 'border-blue-500', 'dark:border-blue-600', 'text-white', 'shadow-sm');
-                        processStatusInput.value = status === 'all' ? '全部' : status;
-                    } else {
-                        btn.classList.remove('bg-blue-500', 'dark:bg-blue-600', 'border-blue-500', 'dark:border-blue-600', 'text-white', 'shadow-sm');
-                        btn.classList.add('bg-white', 'dark:bg-slate-700', 'border-slate-200', 'dark:border-slate-600', 'text-slate-600', 'dark:text-slate-300');
-                    }
-                });
-            }
-            
-            ListState.pagination.page = 1; // 切换标签时重置到第一页
-            
-            // 【修复】强制刷新数据，跳过缓存
-            if (typeof window.fetchTableData === 'function') {
-                window.fetchTableData(false, true); // append=false, forceRefresh=true
-            } else if (typeof fetchTableData === 'function') {
-                fetchTableData(false, true); // append=false, forceRefresh=true
-            } else {
-                fetchTableData();
-            }
-        }
         
         /**
          * 【状态筛选按钮样式改造】获取各状态的统计数量
@@ -3200,7 +3139,6 @@ if (!updatedData || updatedData.length === 0) {
                     }
                 }
             } catch (error) {
-                console.error('获取状态统计失败:', error);
                 // 如果获取失败，显示0或保持原值
             }
         }
@@ -3290,87 +3228,9 @@ if (!updatedData || updatedData.length === 0) {
         // virtualScrollManager 变量已在 main.js 中声明为全局变量
         // 这里不再重复声明，直接使用全局变量
         
-        // 渲染数据列表：使用虚拟滚动（注意：renderDatabase 已在 ui.js 中定义，这里保留用于兼容性）
-        // 如果 ui.js 中已有 renderDatabase，则此函数将被覆盖
-        // 【防闪烁优化】使用 requestAnimationFrame 包装渲染逻辑，确保平滑渲染
-        function renderDatabase() {
-            // 使用 requestAnimationFrame 包装渲染逻辑，避免闪烁
-            requestAnimationFrame(() => {
-                // 使用ListState中的数据（已经在服务端完成筛选和排序）
-                const data = ListState.data;
-                currentFilteredData = data;
-            
-            // 更新排序图标
-            document.querySelectorAll('[id^="sort-icon-"]').forEach(el => { el.innerText = '↕'; el.className = 'ml-1 opacity-30 text-[10px]'; });
-            const activeIcon = document.getElementById(`sort-icon-${ListState.sorting.col}`);
-            if(activeIcon) { activeIcon.innerText = ListState.sorting.asc ? '↑' : '↓'; activeIcon.className = 'ml-1 opacity-100 text-blue-600'; }
-
-            const selectAllBox = document.getElementById('selectAll');
-            if(selectAllBox) {
-                selectAllBox.checked = false;
-                selectAllBox.indeterminate = false;
-            }
-
-            const container = document.getElementById('dbContent');
-            
-            if (data.length === 0) {
-                // 如果没有数据，显示空状态
-                container.innerHTML = '';
-                document.getElementById('emptyState').classList.remove('hidden');
-                
-                // 销毁虚拟滚动管理器（使用全局变量）
-                if (typeof window !== 'undefined' && window.virtualScrollManager) {
-                    window.virtualScrollManager.destroy();
-                    window.virtualScrollManager = null;
-                }
-            } else {
-                document.getElementById('emptyState').classList.add('hidden');
-                
-                // 使用全局的 virtualScrollManager（在 main.js 中定义并暴露到 window）
-                // 直接使用 window.virtualScrollManager，因为它已在 main.js 中管理
-                let vManager = null;
-                if (typeof window !== 'undefined' && window.virtualScrollManager) {
-                    vManager = window.virtualScrollManager;
-                }
-                
-                // 如果虚拟滚动管理器不存在，创建它
-                if (!vManager) {
-                    // 设置容器样式，启用滚动
-                    container.style.overflowY = 'auto';
-                    container.style.height = 'calc(100vh - 400px)'; // 设置固定高度以启用滚动
-                    
-                    // 创建虚拟滚动管理器实例（使用 main.js 中定义的 VirtualScrollManager 类）
-                    if (typeof VirtualScrollManager !== 'undefined') {
-                        // 使用配置中的行高值
-                        const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
-                        vManager = new VirtualScrollManager('dbContent', rowHeight);
-                        // 保存到全局作用域（main.js 会同步这个值）
-                        if (typeof window !== 'undefined') {
-                            window.virtualScrollManager = vManager;
-                        }
-                    }
-                }
-                
-                // 更新虚拟滚动管理器的数据
-                if (vManager) {
-                    vManager.updateData(data, ListState.totalCount);
-                }
-            }
-            
-            // 更新统计信息
-            document.getElementById('count_text').innerText = ListState.totalCount;
-            // 【性能优化】使用缓存的统计计算（calculateStats函数在main.js中定义）
-            if (typeof calculateStats === 'function') {
-                const stats = calculateStats(data);
-                document.getElementById('money_text').innerText = `$${stats.totalAmount.toFixed(2)}`;
-            } else {
-                // 降级方案：如果calculateStats函数不可用，使用原始计算方式
-                const totalUSD = data.reduce((sum, item) => sum + parseFloat(item.claim_total||0), 0);
-                document.getElementById('money_text').innerText = `$${totalUSD.toFixed(2)}`;
-            }
-            updatePieChart(data);
-            }); // 结束 requestAnimationFrame 回调
-        }
+        // 【删除】renderDatabase 函数已移至 main.js，这里不再保留
+        // 如果 main.js 中的 renderDatabase 函数已加载，直接使用它
+        // 如果需要调用，使用 window.renderDatabase 或直接调用（如果已暴露到全局）
         
         function toggleRowCheckbox(tr) {
             const checkbox = tr.querySelector('.row-checkbox');
@@ -3494,7 +3354,6 @@ if (!updatedData || updatedData.length === 0) {
                     .order('last_active_at', { ascending: false });
                 
                 if (error) {
-                    console.error('获取在线用户列表失败:', error);
                     // 显示查询错误提示
                     tableBody.innerHTML = `
                         <tr>
@@ -3544,7 +3403,7 @@ if (!updatedData || updatedData.length === 0) {
                         .single();
                     
                     if (loginError) {
-                        console.error(`获取用户${user.username}登录记录失败:`, loginError);
+                        // 获取用户登录记录失败，静默处理
                     }
                     
                     return {
@@ -3586,7 +3445,6 @@ if (!updatedData || updatedData.length === 0) {
                     `).join('');
                 }
             } catch (error) {
-                console.error('更新在线用户列表失败:', error);
                 // 显示通用错误提示
                 tableBody.innerHTML = `
                     <tr>
@@ -3638,7 +3496,6 @@ if (!updatedData || updatedData.length === 0) {
                     .gte('last_active_at', new Date(Date.now() - 5 * 60 * 1000).toISOString());
                 
                 if (onlineError) {
-                    console.error('获取在线用户数失败:', onlineError);
                     onlineCountEl.textContent = 'N/A';
                 } else {
                     // 验证数据有效性
@@ -3654,7 +3511,6 @@ if (!updatedData || updatedData.length === 0) {
                     .gte('login_at', todayStart);
                 
                 if (loginError) {
-                    console.error('获取今日登录次数失败:', loginError);
                     todayLoginEl.textContent = 'N/A';
                 } else {
                     // 验证数据有效性
@@ -3670,7 +3526,6 @@ if (!updatedData || updatedData.length === 0) {
                     .gte('last_active_at', weekAgo);
                 
                 if (activeError) {
-                    console.error('获取活跃用户数失败:', activeError);
                     activeUsersEl.textContent = 'N/A';
                 } else {
                     // 验证数据有效性
@@ -3678,7 +3533,6 @@ if (!updatedData || updatedData.length === 0) {
                     activeUsersEl.textContent = validActiveUsersCount;
                 }
             } catch (error) {
-                console.error('更新在线用户统计失败:', error);
                 // 显示错误状态
                 onlineCountEl.textContent = 'N/A';
                 todayLoginEl.textContent = 'N/A';
@@ -3698,14 +3552,12 @@ if (!updatedData || updatedData.length === 0) {
             // 每30秒更新一次数据
             if (window.monitorInterval) {
                 clearInterval(window.monitorInterval);
-                console.log('已清除旧的监控定时器');
             }
             
             window.monitorInterval = setInterval(() => {
                 try {
                     updateMonitorView();
                 } catch (error) {
-                    console.error('定时更新监控数据失败:', error);
                     // 发生错误时清除定时器，避免无限循环错误
                     if (window.monitorInterval) {
                         clearInterval(window.monitorInterval);
@@ -3713,8 +3565,6 @@ if (!updatedData || updatedData.length === 0) {
                     }
                 }
             }, 30000);
-            
-            console.log('已创建新的监控定时器');
         };
 
         function getFormDataFromInput() {
@@ -3768,7 +3618,25 @@ process_status: document.getElementById('process_status').value, remarks: docume
                     database[index] = record; 
                     await updateDataInSupabase(editingId, record);
                     localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
-                    fetchTableData(); // 重新获取服务端分页数据
+                    
+                    // 【修复】编辑后强制刷新数据（跳过缓存），确保修改后的数据能立即显示
+                    if (typeof window.fetchTableData === 'function') {
+                        await window.fetchTableData(false, true); // forceRefresh=true 跳过缓存
+                    } else if (typeof fetchTableData === 'function') {
+                        await fetchTableData(false, true); // forceRefresh=true 跳过缓存
+                    } else {
+                        // fetchTableData函数未定义，等待模块加载
+                        await new Promise((resolve) => {
+                            setTimeout(async () => {
+                                if (typeof window.fetchTableData === 'function') {
+                                    await window.fetchTableData(false, true);
+                                } else if (typeof fetchTableData === 'function') {
+                                    await fetchTableData(false, true);
+                                }
+                                resolve();
+                            }, 100);
+                        });
+                    }
                     renderKanban(); // 更新看板视图
                     showToast('数据修改已保存', 'success'); 
                     cancelEditMode(); 
@@ -3778,7 +3646,25 @@ process_status: document.getElementById('process_status').value, remarks: docume
                 database.unshift(record); 
                 await saveDataToSupabase();
                 localStorage.setItem('wh_claims_db_pro', JSON.stringify(database)); 
-                fetchTableData(); // 重新获取服务端分页数据
+                
+                // 【修复】提交后强制刷新数据（跳过缓存），确保新数据能立即显示
+                if (typeof window.fetchTableData === 'function') {
+                    await window.fetchTableData(false, true); // forceRefresh=true 跳过缓存
+                } else if (typeof fetchTableData === 'function') {
+                    await fetchTableData(false, true); // forceRefresh=true 跳过缓存
+                } else {
+                    // fetchTableData函数未定义，等待模块加载
+                    await new Promise((resolve) => {
+                        setTimeout(async () => {
+                            if (typeof window.fetchTableData === 'function') {
+                                await window.fetchTableData(false, true);
+                            } else if (typeof fetchTableData === 'function') {
+                                await fetchTableData(false, true);
+                            }
+                            resolve();
+                        }, 100);
+                    });
+                }
                 renderKanban(); // 更新看板视图
                 showToast('提交成功', 'success'); 
                 
@@ -3799,7 +3685,7 @@ process_status: document.getElementById('process_status').value, remarks: docume
                 document.getElementById('currency').value = 'USD'; 
                 document.getElementById('process_status').value = '待审核';
                 
-                // 切换回数据列表视图
+                // 切换回数据列表视图（trySwitchView 中会再次强制刷新，确保数据最新）
                 await switchView('data');
             }
         }
@@ -3990,14 +3876,29 @@ document.getElementById('entry_date').value = dateValue;
                 ListState.pagination.pageSize = parseInt(e.target.value);
                 ListState.pagination.page = 1; // 切换每页条数时重置到第一页
                 localStorage.setItem('wh_claims_pageSize', ListState.pagination.pageSize);
-                fetchTableData();
+                if (typeof window.fetchTableData === 'function') {
+                    window.fetchTableData();
+                } else if (typeof fetchTableData === 'function') {
+                    fetchTableData();
+                } else {
+                    // fetchTableData函数未定义，等待模块加载
+                    setTimeout(() => {
+                        if (typeof window.fetchTableData === 'function') {
+                            window.fetchTableData();
+                        }
+                    }, 100);
+                }
             });
             
             // 为上一页按钮添加事件监听
             document.getElementById('prev-page').addEventListener('click', () => {
                 if (ListState.pagination.page > 1) {
                     ListState.pagination.page--;
-                    fetchTableData();
+                    if (typeof window.fetchTableData === 'function') {
+                        window.fetchTableData();
+                    } else if (typeof fetchTableData === 'function') {
+                        fetchTableData();
+                    }
                 }
             });
             
@@ -4005,7 +3906,11 @@ document.getElementById('entry_date').value = dateValue;
             document.getElementById('next-page').addEventListener('click', () => {
                 if (ListState.pagination.page < totalPages) {
                     ListState.pagination.page++;
-                    fetchTableData();
+                    if (typeof window.fetchTableData === 'function') {
+                        window.fetchTableData();
+                    } else if (typeof fetchTableData === 'function') {
+                        fetchTableData();
+                    }
                 }
             });
         }
@@ -4063,34 +3968,32 @@ document.getElementById('entry_date').value = dateValue;
             // 【修复】快速筛选字段映射到数据库字段
             // 1. 发货仓 -> warehouse（对应明细列表中的"发货仓"字段）
             if (quickFilterWarehouse) {
-                allFilters.warehouse = quickFilterWarehouse;
-                console.log('[handleQuickSearch] 发货仓筛选:', quickFilterWarehouse);
+                // 【修复】确保值完全匹配，去除首尾空格
+                const warehouseValue = quickFilterWarehouse.trim();
+                allFilters.warehouse = warehouseValue;
             }
             
             // 2. 索赔类型 -> claim_type（对应明细列表中的"索赔类型"字段）
             if (quickFilterClaimType) {
-                allFilters.claim_type = quickFilterClaimType;
-                console.log('[handleQuickSearch] 索赔类型筛选:', quickFilterClaimType);
+                // 【修复】确保值完全匹配，去除首尾空格
+                const claimTypeValue = quickFilterClaimType.trim();
+                allFilters.claim_type = claimTypeValue;
             }
             
             // 3. 发货日期 -> ship_date（对应明细列表中的"发货日期"字段）
             if (quickFilterShipDateStart) {
                 allFilters.ship_date_start = quickFilterShipDateStart;
-                console.log('[handleQuickSearch] 发货日期起始:', quickFilterShipDateStart);
             }
             if (quickFilterShipDateEnd) {
                 allFilters.ship_date_end = quickFilterShipDateEnd;
-                console.log('[handleQuickSearch] 发货日期结束:', quickFilterShipDateEnd);
             }
             
             // 4. 申请提交日期 -> entry_date（对应明细列表中的"申请提交日期"字段）
             if (quickFilterEntryDateStart) {
                 allFilters.entry_date_start = quickFilterEntryDateStart;
-                console.log('[handleQuickSearch] 申请提交日期起始:', quickFilterEntryDateStart);
             }
             if (quickFilterEntryDateEnd) {
                 allFilters.entry_date_end = quickFilterEntryDateEnd;
-                console.log('[handleQuickSearch] 申请提交日期结束:', quickFilterEntryDateEnd);
             }
             
             // 设置高级筛选条件
@@ -4104,6 +4007,7 @@ document.getElementById('entry_date').value = dateValue;
             // 如果没有搜索关键词也没有筛选条件，清空所有筛选
             if (!searchValue && !hasQuickFilters) {
                 ListState.filters.advancedFilters = null;
+                // 【清理】advancedSearch 已废弃，但保留清空操作以确保兼容性
                 ListState.filters.advancedSearch = null;
             }
             
@@ -4111,21 +4015,12 @@ document.getElementById('entry_date').value = dateValue;
             ListState.pagination.page = 1;
             
             // 【修复】确保使用全局的fetchTableData函数，并强制刷新
-            console.log('[handleQuickSearch] 开始搜索，筛选条件:', {
-                search: searchValue,
-                searchMode: searchMode,
-                searchField: ListState.filters.searchField,
-                advancedFilters: ListState.filters.advancedFilters,
-                allFilters: allFilters
-            });
-            
             // 使用window.fetchTableData确保调用正确的函数，并强制刷新（跳过缓存）
             if (typeof window.fetchTableData === 'function') {
                 window.fetchTableData(false, true); // append=false, forceRefresh=true
             } else if (typeof fetchTableData === 'function') {
                 fetchTableData(false, true); // append=false, forceRefresh=true
             } else {
-                console.error('[handleQuickSearch] fetchTableData函数未找到！');
                 alert('搜索功能异常：无法找到数据获取函数，请刷新页面重试。');
             }
         }
@@ -4174,6 +4069,7 @@ document.getElementById('entry_date').value = dateValue;
             ListState.filters.search = '';
             ListState.filters.status = 'all';
             ListState.filters.advancedFilters = null;
+            // 【清理】advancedSearch 已废弃，但保留清空操作以确保兼容性
             ListState.filters.advancedSearch = null;
             ListState.filters.searchField = 'order_tracking_sku'; // 重置为默认搜索字段
             
@@ -4195,8 +4091,6 @@ document.getElementById('entry_date').value = dateValue;
                 window.fetchTableData(false, true); // append=false, forceRefresh=true
             } else if (typeof fetchTableData === 'function') {
                 fetchTableData(false, true); // append=false, forceRefresh=true
-            } else {
-                fetchTableData();
             }
         }
         
@@ -4274,7 +4168,18 @@ document.getElementById('entry_date').value = dateValue;
                 ListState.sort = { field: col, order: order };
             }
             ListState.pagination.page = 1; // 排序时重置到第一页
-            fetchTableData();
+            if (typeof window.fetchTableData === 'function') {
+                window.fetchTableData();
+            } else if (typeof fetchTableData === 'function') {
+                fetchTableData();
+            } else {
+                // fetchTableData函数未定义，等待模块加载
+                setTimeout(() => {
+                    if (typeof window.fetchTableData === 'function') {
+                        window.fetchTableData();
+                    }
+                }, 100);
+            }
         }
         
         // 【vxe-table风格】初始化列宽拖拽功能
@@ -4400,45 +4305,6 @@ document.getElementById('entry_date').value = dateValue;
         }
 
         // --- 公告中心逻辑 ---
-        // 测试公告排序逻辑（全局函数）
-        window.testNoticeSorting = function() {
-            // 创建模拟公告数据
-            const mockNotices = [
-                // 有更新时间的公告
-                { id: 1, title: '公告1 - 有更新', content: '内容1', updated_at: '2024-12-10T10:00:00', created_at: '2024-12-01T10:00:00', author: 'Admin' },
-                { id: 2, title: '公告2 - 最新更新', content: '内容2', updated_at: '2024-12-15T14:30:00', created_at: '2024-12-02T10:00:00', author: 'Admin' },
-                // 只有创建时间的公告
-                { id: 3, title: '公告3 - 无更新', content: '内容3', created_at: '2024-12-05T09:00:00', author: 'Admin' },
-                { id: 4, title: '公告4 - 最早创建', content: '内容4', created_at: '2024-11-20T16:00:00', author: 'Admin' },
-                { id: 5, title: '公告5 - 最新创建', content: '内容5', created_at: '2024-12-20T11:00:00', author: 'Admin' }
-            ];
-
-            // 应用排序逻辑
-            const sortedNotices = [...mockNotices].sort((a, b) => {
-                const dateA = new Date(a.updated_at || a.created_at);
-                const dateB = new Date(b.updated_at || b.created_at);
-                return dateB - dateA; // 降序排序 - 最新的公告排在数组前面
-            });
-
-            // 验证排序结果
-            console.log('\n=== 公告排序测试结果 ===');
-            console.log('预期顺序: 公告5(最新创建) -> 公告2(最新更新) -> 公告1 -> 公告3 -> 公告4(最早)');
-            console.log('实际顺序:');
-            sortedNotices.forEach((notice, index) => {
-                const sortDate = notice.updated_at || notice.created_at;
-                const sortField = notice.updated_at ? 'updated_at' : 'created_at';
-                console.log(`${index + 1}. ${notice.title} (${sortField}: ${sortDate})`);
-            });
-
-            // 检查实际排序是否符合预期
-            const expectedOrder = [5, 2, 1, 3, 4];
-            const actualOrder = sortedNotices.map(notice => notice.id);
-            const isOrderCorrect = JSON.stringify(expectedOrder) === JSON.stringify(actualOrder);
-            console.log(`\n排序结果: ${isOrderCorrect ? '✅ 正确' : '❌ 错误'}`);
-
-            return sortedNotices;
-        };
-
         // 格式化UTC时间为本地时区的YYYY-MM-DD HH:mm:ss格式（全局函数）
         window.formatLocalTime = function(utcString) {
             if (!utcString) return '';
@@ -4456,19 +4322,10 @@ document.getElementById('entry_date').value = dateValue;
         
         // 加载公告列表（全局函数）
         window.loadNotices = async function() {
-            console.log('=== loadNotices 函数被调用 ===');
-            
             // 确保使用全局的 supabaseClient
             const client = window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null);
             
-            console.log('Supabase客户端检查:', {
-                windowSupabaseClient: !!window.supabaseClient,
-                supabaseClient: typeof supabaseClient !== 'undefined',
-                client: !!client
-            });
-            
             if (!client) {
-                console.error('Supabase客户端未初始化');
                 const list = document.getElementById('notice-list');
                 if (list) {
                     list.innerHTML = '<div class="text-center py-10"><p class="text-red-500 dark:text-red-400">数据库连接失败，请刷新页面重试</p></div>';
@@ -4478,12 +4335,10 @@ document.getElementById('entry_date').value = dateValue;
             
             const list = document.getElementById('notice-list');
             if (!list) {
-                console.error('公告列表元素未找到，视图可能尚未显示');
                 // 等待一段时间后重试
                 setTimeout(() => {
                     const retryList = document.getElementById('notice-list');
                     if (retryList && typeof window.loadNotices === 'function') {
-                        console.log('重试加载公告列表...');
                         window.loadNotices();
                     }
                 }, 300);
@@ -4497,11 +4352,6 @@ document.getElementById('entry_date').value = dateValue;
             
             try {
                 // 从Supabase获取公告列表
-                console.log('开始从Supabase加载公告列表...', {
-                    clientType: typeof client,
-                    hasFrom: typeof client.from === 'function',
-                    url: client.supabaseUrl || 'N/A'
-                });
                 
                 const { data: notices, error } = await client
                     .from('notices')
@@ -4509,17 +4359,7 @@ document.getElementById('entry_date').value = dateValue;
                     .order('created_at', { ascending: false })
                     .limit(100);
                 
-                console.log('Supabase查询结果:', { 
-                    noticesCount: notices ? notices.length : 0, 
-                    error: error ? {
-                        message: error.message,
-                        code: error.code,
-                        details: error.details
-                    } : null
-                });
-                
                 if (error) {
-                    console.error('获取公告列表失败:', error);
                     list.innerHTML = '<div class="text-center py-10"><p class="text-red-500 dark:text-red-400">加载公告失败，请刷新页面重试</p></div>';
                     return;
                 }
@@ -4597,7 +4437,6 @@ document.getElementById('entry_date').value = dateValue;
                     list.innerHTML = emptyHtml;
                 }
             } catch (error) {
-                console.error('加载公告失败:', error);
                 list.innerHTML = '<div class="text-center py-10"><p class="text-red-500 dark:text-red-400">加载公告失败，请刷新页面重试</p></div>';
             }
         };
@@ -4634,13 +4473,9 @@ document.getElementById('entry_date').value = dateValue;
                             .remove([path]);
                         
                         if (storageError) {
-                            console.error('删除图片失败:', storageError);
                             // 图片删除失败不影响公告删除，继续执行
-                        } else {
-                            console.log('图片删除成功:', path);
                         }
                     } catch (urlError) {
-                        console.error('图片URL解析失败:', urlError);
                         // URL解析失败不影响公告删除，继续执行
                     }
                 }
@@ -4652,7 +4487,6 @@ document.getElementById('entry_date').value = dateValue;
                     .eq('id', id);
                 
                 if (deleteError) {
-                    console.error('删除公告失败:', deleteError);
                     showToast('删除公告失败', 'error');
                     return;
                 }
@@ -4661,7 +4495,6 @@ document.getElementById('entry_date').value = dateValue;
                 await window.loadNotices();
                 showToast('公告已删除', 'success');
             } catch (error) {
-                console.error('删除公告异常:', error);
                 showToast('删除公告失败', 'error');
             }
         };
@@ -4696,7 +4529,6 @@ document.getElementById('entry_date').value = dateValue;
                             .upload(uniqueFileName, file, { contentType: file.type });
                         
                         if (error) {
-                            console.error('图片上传失败:', error);
                             display.innerHTML = `<span class="text-red-600 font-bold flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> 上传失败: ${error.message}</span>`;
                             window.uploadedImageUrl = null;
                             return;
@@ -4717,7 +4549,6 @@ document.getElementById('entry_date').value = dateValue;
                         window.uploadedImageUrl = URL.createObjectURL(file);
                     }
                 } catch (error) {
-                    console.error('图片上传异常:', error);
                     display.innerHTML = `<span class="text-red-600 font-bold flex items-center justify-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> 上传失败</span>`;
                     window.uploadedImageUrl = null;
                 }
@@ -4823,7 +4654,6 @@ document.getElementById('entry_date').value = dateValue;
             window.togglePublisher();
             showToast('公告发布成功！', 'success');
         } catch (error) {
-            console.error('发布公告失败:', error);
             // 清理临时上传的图片
             window.cleanupUploadedImage();
             showToast('公告发布失败: ' + (error.message || '未知错误'), 'error');
@@ -4844,14 +4674,13 @@ document.getElementById('entry_date').value = dateValue;
                             .from('claim-images')
                             .remove([path])
                     .then(() => {
-                        console.log('临时图片清理成功:', path);
                         window.uploadedImageUrl = null;
                     })
                     .catch(error => {
-                        console.error('临时图片清理失败:', error);
+                        // 临时图片清理失败，静默处理
                     });
             } catch (error) {
-                console.error('清理图片URL解析失败:', error);
+                // 清理图片URL解析失败，静默处理
             }
         }
     }
@@ -4907,7 +4736,6 @@ document.getElementById('entry_date').value = dateValue;
                 navigator.clipboard.writeText(clipboardText).then(() => {
                     showToast(`成功复制 ${count} 条数据到剪贴板！`, 'success');
                 }).catch(err => {
-                    console.error("Clipboard API failed, trying fallback...", err);
                     fallbackCopyTextToClipboard(clipboardText, count);
                 });
             } else {
@@ -4936,7 +4764,6 @@ document.getElementById('entry_date').value = dateValue;
                     showToast('复制失败，请手动复制', 'error');
                 }
             } catch (err) {
-                console.error('Fallback: Oops, unable to copy', err);
                 showToast('复制失败，请手动复制', 'error');
             }
 
@@ -5102,13 +4929,12 @@ document.getElementById('entry_date').value = dateValue;
                             await fetchTableData(false, true);
                         }
                     } catch (error) {
-                        console.error('刷新数据失败:', error);
+                        // 刷新数据失败，静默处理
                     }
                 }, 200); // 200ms 延迟，确保数据库更新已传播
                 
                 clearSelection(); // 清空选择
             } catch (error) {
-                console.error('批量更新失败:', error);
                 showToast('批量更新失败: ' + (error.message || '未知错误'), 'error');
             }
         }
@@ -5173,7 +4999,6 @@ document.getElementById('entry_date').value = dateValue;
                 
                 showToast(`成功导出 ${data.length} 条记录`, 'success');
             } catch (error) {
-                console.error('批量导出失败:', error);
                 showToast('批量导出失败: ' + (error.message || '未知错误'), 'error');
             }
         }
@@ -5225,7 +5050,6 @@ document.getElementById('entry_date').value = dateValue;
                 
                 clearSelection(); // 清空选择
             } catch (error) {
-                console.error('批量删除失败:', error);
                 showToast('批量删除失败: ' + (error.message || '未知错误'), 'error');
             }
         }
