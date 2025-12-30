@@ -500,6 +500,13 @@ async function trySwitchView(view) {
                 }
             }, 200);
         }
+    } else if (typeof window !== 'undefined' && window.isMonitorViewActive !== undefined) {
+        // 【优化】离开监控页面时，停止自动刷新
+        if (typeof window.stopMonitorAutoRefresh === 'function') {
+            window.stopMonitorAutoRefresh();
+        }
+        // 标记监控视图未激活
+        window.isMonitorViewActive = false;
     }
     if (view !== 'form') isFormDirty = false;
     

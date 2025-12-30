@@ -1304,8 +1304,26 @@
         <section id="view-login-monitor" class="hidden space-y-6">
             <div class="glass-card overflow-hidden">
                 <div class="p-6 border-b border-slate-100 dark:border-slate-700">
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">用户登录监控系统</h2>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">实时监控系统登录状态和在线用户</p>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800 dark:text-white">用户登录监控系统</h2>
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">实时监控系统登录状态和在线用户</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="last-refresh-time" class="text-xs text-slate-400 dark:text-slate-500">
+                                最后更新：--
+                            </span>
+                            <button 
+                                id="monitor-refresh-btn" 
+                                onclick="window.manualRefreshMonitor()"
+                                class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md">
+                                <svg class="w-4 h-4 refresh-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                </svg>
+                                <span>刷新</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="p-6">
                     <!-- 在线用户统计 -->
@@ -3329,6 +3347,160 @@ if (!updatedData || updatedData.length === 0) {
         let onlineUsersData = [];
         window.monitorInterval = null; // 使用window对象确保全局可访问
         
+        // 【优化】刷新控制状态
+        const MONITOR_REFRESH_INTERVALS = {
+            development: 60000,    // 开发环境：60秒
+            production: 300000,   // 生产环境：5分钟（300秒）
+            manual: null           // 手动模式：不自动刷新
+        };
+        
+        let monitorRefreshState = {
+            interval: null,
+            isRefreshing: false,
+            lastRefreshTime: null,
+            refreshInterval: MONITOR_REFRESH_INTERVALS.production
+        };
+        
+        // 页面可见性状态
+        let isPageVisible = !document.hidden;
+        let isMonitorViewActive = false;
+        
+        // 监听页面可见性变化
+        document.addEventListener('visibilitychange', () => {
+            isPageVisible = !document.hidden;
+            handleMonitorRefreshState();
+        });
+        
+        // 处理监控刷新状态
+        function handleMonitorRefreshState() {
+            // 同步全局状态
+            if (typeof window !== 'undefined') {
+                window.isMonitorViewActive = isMonitorViewActive;
+            }
+            
+            if (isMonitorViewActive && isPageVisible) {
+                // 页面可见且监控视图激活，启动自动刷新
+                startMonitorAutoRefresh();
+            } else {
+                // 页面不可见或监控视图未激活，暂停自动刷新
+                stopMonitorAutoRefresh();
+            }
+        }
+        
+        // 启动自动刷新
+        function startMonitorAutoRefresh() {
+            // 清除现有定时器
+            stopMonitorAutoRefresh();
+            
+            // 如果设置为手动模式，不启动自动刷新
+            if (!monitorRefreshState.refreshInterval) {
+                return;
+            }
+            
+            // 启动定时器
+            monitorRefreshState.interval = setInterval(() => {
+                if (!monitorRefreshState.isRefreshing) {
+                    updateMonitorView();
+                    monitorRefreshState.lastRefreshTime = new Date();
+                    updateLastRefreshTime();
+                }
+            }, monitorRefreshState.refreshInterval);
+        }
+        
+        // 停止自动刷新
+        function stopMonitorAutoRefresh() {
+            if (monitorRefreshState.interval) {
+                clearInterval(monitorRefreshState.interval);
+                monitorRefreshState.interval = null;
+            }
+        }
+        
+        // 暴露到全局，供 ui.js 调用
+        window.stopMonitorAutoRefresh = stopMonitorAutoRefresh;
+        window.isMonitorViewActive = false; // 初始状态为 false
+        
+        // 手动刷新
+        window.manualRefreshMonitor = async function() {
+            if (monitorRefreshState.isRefreshing) {
+                return; // 正在刷新，忽略重复请求
+            }
+            
+            monitorRefreshState.isRefreshing = true;
+            updateRefreshButtonState(true);
+            
+            try {
+                await updateMonitorView();
+                monitorRefreshState.lastRefreshTime = new Date();
+                updateLastRefreshTime();
+                
+                if (typeof showToast === 'function') {
+                    showToast('数据已刷新', 'success');
+                }
+            } catch (error) {
+                console.error('刷新失败:', error);
+                if (typeof showToast === 'function') {
+                    showToast('刷新失败，请稍后重试', 'error');
+                }
+            } finally {
+                monitorRefreshState.isRefreshing = false;
+                updateRefreshButtonState(false);
+            }
+        };
+        
+        // 更新刷新按钮状态
+        function updateRefreshButtonState(isRefreshing) {
+            const refreshBtn = document.getElementById('monitor-refresh-btn');
+            const refreshIcon = refreshBtn?.querySelector('.refresh-icon');
+            
+            if (!refreshBtn) return;
+            
+            if (isRefreshing) {
+                refreshBtn.disabled = true;
+                refreshBtn.classList.add('refreshing');
+                if (refreshIcon) {
+                    refreshIcon.classList.add('animate-spin');
+                }
+                const span = refreshBtn.querySelector('span');
+                if (span) span.textContent = '刷新中...';
+            } else {
+                refreshBtn.disabled = false;
+                refreshBtn.classList.remove('refreshing');
+                if (refreshIcon) {
+                    refreshIcon.classList.remove('animate-spin');
+                }
+                const span = refreshBtn.querySelector('span');
+                if (span) span.textContent = '刷新';
+            }
+        }
+        
+        // 更新最后刷新时间显示
+        function updateLastRefreshTime() {
+            const timeEl = document.getElementById('last-refresh-time');
+            if (!timeEl) return;
+            
+            if (!monitorRefreshState.lastRefreshTime) {
+                timeEl.textContent = '最后更新：--';
+                return;
+            }
+            
+            const now = new Date();
+            const diff = Math.floor((now - monitorRefreshState.lastRefreshTime) / 1000);
+            
+            let timeText = '';
+            if (diff < 60) {
+                timeText = `${diff}秒前`;
+            } else if (diff < 3600) {
+                timeText = `${Math.floor(diff / 60)}分钟前`;
+            } else {
+                timeText = `${Math.floor(diff / 3600)}小时前`;
+            }
+            
+            timeEl.textContent = `最后更新：${timeText}`;
+        }
+        
+        // 定期更新最后刷新时间显示（每30秒）
+        setInterval(updateLastRefreshTime, 30000);
+        
         // 格式化相对时间
         function formatRelativeTime(dateString) {
             const now = new Date();
@@ -3428,16 +3600,19 @@ if (!updatedData || updatedData.length === 0) {
                         };
                     }
                     
-                    const { data: loginRecord, error: loginError } = await supabaseClient
+                    // 【修复】移除 .single()，避免在查询结果为空时返回 406 错误
+                    const { data: loginRecords, error: loginError } = await supabaseClient
                         .from('login_history')
                         .select('ip_address, login_at')
                         .eq('user_id', user.id)
                         .order('login_at', { ascending: false })
-                        .limit(1)
-                        .single();
+                        .limit(1);
+                    
+                    // 获取第一条记录（如果存在）
+                    const loginRecord = loginRecords && loginRecords.length > 0 ? loginRecords[0] : null;
                     
                     if (loginError) {
-                        // 获取用户登录记录失败，静默处理
+                        // 获取用户登录记录失败，静默处理（可能是用户没有登录记录）
                     }
                     
                     return {
@@ -3579,26 +3754,18 @@ if (!updatedData || updatedData.length === 0) {
             await Promise.all([updateOnlineUsersList(), updateOnlineStats()]);
         }
         
-        // 初始化登录监控系统（全局函数，供ui.js调用）
+        // 初始化登录监控系统（全局函数，供ui.js调用）- 优化版
         window.initLoginMonitor = function() {
+            // 标记监控视图已激活
+            isMonitorViewActive = true;
+            
+            // 立即执行一次刷新
             updateMonitorView();
+            monitorRefreshState.lastRefreshTime = new Date();
+            updateLastRefreshTime();
             
-            // 每30秒更新一次数据
-            if (window.monitorInterval) {
-                clearInterval(window.monitorInterval);
-            }
-            
-            window.monitorInterval = setInterval(() => {
-                try {
-                    updateMonitorView();
-                } catch (error) {
-                    // 发生错误时清除定时器，避免无限循环错误
-                    if (window.monitorInterval) {
-                        clearInterval(window.monitorInterval);
-                        window.monitorInterval = null;
-                    }
-                }
-            }, 30000);
+            // 根据页面可见性决定是否启动自动刷新
+            handleMonitorRefreshState();
         };
 
         function getFormDataFromInput() {

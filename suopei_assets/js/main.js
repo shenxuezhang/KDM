@@ -1001,6 +1001,14 @@ function showSkeletonTable(rowCount = null) {
     const container = document.getElementById('dbContent');
     if (!container) return;
     
+    // 【修复】在显示骨架屏之前，先销毁 VirtualScrollManager，避免DOM引用失效
+    // 因为骨架屏会直接替换 container.innerHTML，这会销毁 VirtualScrollManager 创建的 topSpacer 和 bottomSpacer
+    if (virtualScrollManager) {
+        virtualScrollManager.destroy();
+        virtualScrollManager = null;
+        window.virtualScrollManager = null;
+    }
+    
     // 隐藏空状态
     const emptyState = document.getElementById('emptyState');
     if (emptyState) emptyState.classList.add('hidden');
@@ -1193,14 +1201,29 @@ function renderDatabase(resetScroll = false) {
         document.getElementById('emptyState').classList.add('hidden');
         
         // 【核心修复】如果是强制重置 (resetScroll) 或者管理器不存在，则重新创建
+        // 【修复】由于 showSkeletonTable() 会销毁 VirtualScrollManager，所以这里总是需要重新创建
         if (resetScroll || !virtualScrollManager) {
             if (virtualScrollManager) virtualScrollManager.destroy(); // 先销毁旧的
             
-            container.innerHTML = ''; // 清空容器 DOM
+            container.innerHTML = ''; // 清空容器 DOM（包括骨架屏）
             container.style.overflowY = 'auto';
             container.style.height = 'calc(100vh - 400px)';
             
-            // 重新实例化
+            // 重新实例化 VirtualScrollManager
+            const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+            virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
+            window.virtualScrollManager = virtualScrollManager;
+        }
+        
+        // 【修复】确保 virtualScrollManager 存在且有效，再进行数据更新
+        // 额外检查：如果管理器存在但其容器引用已失效，也需要重新创建
+        if (!virtualScrollManager || !virtualScrollManager.container || !virtualScrollManager.container.parentElement) {
+            if (virtualScrollManager) {
+                virtualScrollManager.destroy();
+            }
+            container.innerHTML = '';
+            container.style.overflowY = 'auto';
+            container.style.height = 'calc(100vh - 400px)';
             const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
             virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
             window.virtualScrollManager = virtualScrollManager;
