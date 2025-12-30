@@ -260,6 +260,21 @@ select.form-input {
     appearance: none;
 }
 
+/* 下拉框选项暗色模式样式 */
+select option {
+    background-color: white;
+    color: #1e293b;
+}
+.dark select option {
+    background-color: #334155;
+    color: #ffffff;
+}
+.dark select#page-size-select option {
+    background-color: #334155;
+    color: #ffffff;
+    font-weight: 500;
+}
+
 /* 总赔偿金额输入框的placeholder样式 */
 #claim_total::placeholder {
     color: #ef4444;
@@ -494,5 +509,20 @@ select.form-input {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* 图片上传模块样式 */
+#imageUploadStatus {
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+#imageUploadStatus hr {
+    border-color: #e2e8f0;
+}
+
+.dark #imageUploadStatus hr {
+    border-color: #475569;
 }
 

@@ -404,36 +404,45 @@ class VirtualScrollManager {
             td.style.minWidth = col.minW;
             let content = item[key] || '';
             let style = '';
+            let plainText = ''; // 用于 title 属性的纯文本内容
             
             // 【日期显示优化】发货日期和申请提交日期只显示日期，不显示时间
             if (key === 'entry_date' || key === 'ship_date') {
                 // 使用 formatDateDisplay 只显示日期部分（YYYY-MM-DD）
                 content = (typeof formatDateDisplay !== 'undefined') ? formatDateDisplay(content) : formatDateTimeDisplay(content).split(' ')[0];
+                plainText = content;
             } else if (key === 'created_at') {
                 // created_at 保留完整日期时间显示
                 content = formatDateTimeDisplay(content);
+                plainText = content;
             } else if (key === 'order_no') {
                 style = 'font-bold text-blue-600';
+                plainText = String(content || '');
             } else if (key === 'process_status') {
                 content = getStatusBadge(content);
+                // 提取状态徽章中的纯文本（去除HTML标签）
+                plainText = String(item[key] || '');
             } else if (key === 'val_amount' || key === 'claim_total') {
                 if (hasPermission('can_view_money')) {
-                    content = `<span class="font-mono">${symbol}${parseFloat(content).toFixed(2)}</span>`;
+                    const amount = parseFloat(content).toFixed(2);
+                    content = `<span class="font-mono">${symbol}${amount}</span>`;
+                    plainText = `${symbol}${amount}`;
                     if (key === 'claim_total') style = 'font-bold text-red-600';
                 } else {
                     content = `<span class="font-mono text-slate-400">***.${symbol}</span>`;
+                    plainText = `***.${symbol}`;
                     style = 'font-bold text-slate-400';
                 }
             } else if (key === 'description') {
-                // 【vxe-table风格】使用c--tooltip和twoLines类
-                const safeContent = String(content || '').replace(/"/g, '&quot;');
-                content = `<div class="c--tooltip twoLines" data-tooltip="${safeContent}" style="max-width: 200px;">${content}</div>`;
+                // description 字段使用多行截断
+                plainText = String(content || '');
+                content = `<div class="twoLines" style="max-width: 200px;">${content}</div>`;
             } else {
-                // 【vxe-table风格】为其他文本字段添加工具提示（如果内容较长）
-                if (content && content.length > 20 && typeof content === 'string') {
-                    const safeContent = String(content).replace(/"/g, '&quot;');
-                    const plainText = content.replace(/<[^>]*>/g, ''); // 移除HTML标签用于工具提示
-                    content = `<div class="c--tooltip oneLine" data-tooltip="${safeContent}" title="${plainText}">${content}</div>`;
+                // 其他文本字段
+                plainText = String(content || '');
+                // 如果内容较长，使用单行截断
+                if (content && typeof content === 'string' && content.length > 0) {
+                    content = `<div class="oneLine">${content}</div>`;
                 }
             }
             
@@ -448,6 +457,12 @@ class VirtualScrollManager {
             td.style.width = col.minW;
             td.style.height = rowHeightPx;
             
+            // 【文本截断提示优化】为所有可能被截断的单元格添加 title 属性
+            // 使用浏览器原生的 title 属性，当鼠标悬停时显示完整文本
+            if (plainText && plainText.trim()) {
+                td.title = plainText;
+            }
+            
             // 【行高优化】为单元格内容添加vxe-cell包装，设置max-height限制
             const cellWrapper = document.createElement('div');
             cellWrapper.className = 'vxe-cell';
@@ -456,7 +471,8 @@ class VirtualScrollManager {
             // 根据内容类型添加相应的截断类
             if (key === 'description') {
                 cellWrapper.className += ' twoLines';
-            } else if (content && content.length > 20 && typeof content === 'string' && !content.includes('<span') && !content.includes('<div')) {
+            } else if (plainText && plainText.length > 0 && typeof plainText === 'string') {
+                // 为所有文本字段添加截断类，确保文本被截断时能显示 title 提示
                 cellWrapper.className += ' oneLine col--ellipsis';
             }
             
@@ -1295,8 +1311,8 @@ function renderPaginationControls() {
     let paginationHTML = `
         <div class="flex items-center justify-between p-4 border-t border-slate-100 dark:border-slate-700">
             <div class="flex items-center space-x-2">
-                <span class="text-sm text-slate-600 dark:text-slate-400">显示行数：</span>
-                <select id="page-size-select" class="text-sm border border-slate-300 dark:border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" ${isLoading ? 'disabled' : ''}>
+                <span class="text-sm text-slate-600 dark:text-slate-100 font-medium">显示行数：</span>
+                <select id="page-size-select" class="text-sm border-2 border-slate-300 dark:border-slate-500 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-medium ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" ${isLoading ? 'disabled' : ''}>
     `;
     
     ListState.pagination.pageSizeOptions.forEach(size => {
@@ -1305,18 +1321,18 @@ function renderPaginationControls() {
     
     paginationHTML += `
                 </select>
-                <span class="text-sm text-slate-600 dark:text-slate-400">共 ${totalCount} 条记录，第 ${currentPage} / ${totalPages} 页</span>
+                <span class="text-sm text-slate-600 dark:text-slate-100 font-medium">共 ${totalCount} 条记录，第 ${currentPage} / ${totalPages} 页</span>
             </div>
             <div class="flex items-center space-x-1">
                 <!-- 首页按钮 -->
-                <button id="first-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                <button id="first-page" class="px-3 py-1.5 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 rounded-md text-sm text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
                     ${currentPage === 1 || isLoading ? 'disabled' : ''} title="首页">
                     <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
                     </svg>
                 </button>
                 <!-- 上一页按钮 -->
-                <button id="prev-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                <button id="prev-page" class="px-3 py-1.5 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 rounded-md text-sm text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
                     ${currentPage === 1 || isLoading ? 'disabled' : ''} title="上一页">
                     <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -1340,8 +1356,8 @@ function renderPaginationControls() {
         paginationHTML += `
             <button class="page-number-btn px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''} ${
                 isActive 
-                    ? 'bg-blue-600 text-white border border-blue-600 shadow-sm' 
-                    : 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    ? 'bg-blue-600 text-white border-2 border-blue-600 shadow-sm' 
+                    : 'bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600'
             }" 
                 data-page="${i}" ${isLoading ? 'disabled' : ''} ${isActive ? 'aria-current="page"' : ''}>
                 ${i}
@@ -1354,14 +1370,14 @@ function renderPaginationControls() {
             paginationHTML += `<span class="px-2 text-slate-400">...</span>`;
         }
         paginationHTML += `
-            <button class="page-number-btn px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+            <button class="page-number-btn px-3 py-1.5 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 rounded-md text-sm text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
                 data-page="${totalPages}" ${isLoading ? 'disabled' : ''}>${totalPages}</button>
         `;
     }
     
     paginationHTML += `
                 <!-- 下一页按钮 -->
-                <button id="next-page" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
+                <button id="next-page" class="px-3 py-1.5 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 rounded-md text-sm text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}" 
                     ${currentPage >= totalPages || isLoading ? 'disabled' : ''} title="下一页">
                     <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>

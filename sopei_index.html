@@ -506,7 +506,7 @@
                     <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
                         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                     </div>
-                    <h1 id="system-title-main" class="text-2xl font-black">海外仓索赔管理系统 V2.1.1</h1>
+                    <h1 id="system-title-main" class="text-2xl font-black">海外仓索赔管理系统 V2.2.1</h1>
                     <p class="text-blue-100 mt-2">企业内部版</p>
                 </div>
                 
@@ -794,7 +794,7 @@
         <div class="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <button onclick="toggleDarkMode()" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all dark:text-slate-400 dark:hover:bg-slate-800 group">
                 <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 24.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 <span class="group-hover:text-slate-800 dark:group-hover:text-white transition-colors">切换模式</span>
             </button>
             <button onclick="handleLogout()" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all dark:text-slate-400 dark:hover:bg-slate-800 group">
@@ -882,8 +882,78 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow"><h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">证明资料</h3><label class="input-group-label">附件清单：</label><input type="text" id="attachments" class="form-input bg-slate-50 dark:bg-slate-700 dark:border-slate-600" placeholder="上传图片/视频/物流凭证（用超链接或标注存储路径）"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- 证明资料卡片 -->
+                        <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">证明资料</h3>
+                            <label class="input-group-label">附件清单：</label>
+                            <textarea id="attachments" rows="10" class="form-textarea bg-slate-50 dark:bg-slate-700 dark:border-slate-600" placeholder="上传图片/视频/物流凭证（用超链接或标注存储路径）"></textarea>
+                        </div>
+
+                        <!-- 截图超链接工具模块 -->
+                        <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                截图超链接工具
+                            </h3>
+                            
+                            <!-- 文件选择 -->
+                            <div class="mb-3">
+                                <input type="file" id="imageFileInput" accept="image/*" multiple style="display: none;" onchange="updateImageFileLabel()">
+                                <div class="flex gap-2">
+                                    <div id="imageDropZone" class="flex-1 px-3 py-2 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer flex items-center justify-center gap-2">
+                                        <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                        </svg>
+                                        <span class="text-xs text-slate-600 dark:text-slate-300 font-medium">拖拽或粘贴</span>
+                                    </div>
+                                    <button type="button" onclick="document.getElementById('imageFileInput').click()" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        选择图片
+                                    </button>
+                                </div>
+                                <div id="imageFileInfo" class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">未选择文件</div>
+                            </div>
+
+                            <!-- 操作按钮组 -->
+                            <div class="space-y-2 mb-3">
+                                <div class="flex gap-2">
+                                    <button type="button" id="imageUploadBtn" onclick="uploadImagesToGitHub()" class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                        </svg>
+                                        批量上传
+                                    </button>
+                                    <button type="button" onclick="resetImageUpload(event)" class="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        重置
+                                    </button>
+                                </div>
+                                <button type="button" onclick="fillImageLinksToAttachments()" class="w-full px-3 py-2 border border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    一键填入
+                                </button>
+                            </div>
+
+                            <!-- 结果显示 -->
+                            <div class="mb-3">
+                                <label class="input-group-label text-xs">图片直链结果：</label>
+                                <textarea id="imageResultLink" rows="3" class="form-textarea bg-white dark:bg-slate-700 dark:border-slate-600 font-mono text-xs" placeholder="上传成功后在此显示链接..." readonly></textarea>
+                            </div>
+
+                            <!-- 状态显示 -->
+                            <div id="imageUploadStatus" class="text-xs max-h-32 overflow-y-auto custom-scrollbar p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"></div>
+                        </div>
+
+                        <!-- 处理进度卡片 -->
                         <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
                             <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">处理进度</h3>
                             <div class="space-y-3">
@@ -1108,7 +1178,7 @@
                         </div>
                         
                         <!-- 数据刷新按钮 -->
-                        <button id="refreshBtn" onclick="refreshDatabase()" class="px-3 py-1 bg-white border border-slate-200 dark:border-slate-600 rounded text-sm font-bold shadow-sm hover:border-blue-500 transition-all flex items-center gap-1">
+                        <button id="refreshBtn" onclick="refreshDatabase()" class="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 transition-all flex items-center gap-1">
                             <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
@@ -1180,7 +1250,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold text-slate-800 dark:text-white">进度看板</h2>
                 <div class="flex gap-2">
-                    <button onclick="switchSubTab('all')" class="px-3 py-1 bg-white border border-slate-200 rounded text-sm font-bold shadow-sm">刷新</button>
+                    <button onclick="switchSubTab('all')" class="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">刷新</button>
                 </div>
             </div>
             <div class="flex gap-4 overflow-x-auto h-[calc(100vh-140px)] pb-4 items-start" id="kanban-container"></div>
@@ -1398,6 +1468,7 @@
     <script src="suopei_assets/js/database.js"></script>
     <script src="suopei_assets/js/ui.js"></script>
     <script src="suopei_assets/js/charts.js"></script>
+    <script src="suopei_assets/js/imageUpload.js"></script>
     <script src="suopei_assets/js/main.js"></script>
 
     <script>
@@ -1734,6 +1805,11 @@ if (!updatedData || updatedData.length === 0) {
                 // 主初始化逻辑已在main.js中完成
                 // 此处仅处理HTML中特有的初始化逻辑
                 
+                // 初始化图片上传模块
+                if (typeof initImageUploadModule === 'function') {
+                    initImageUploadModule();
+                }
+                
                 // 加载公告列表
                 if (document.getElementById('notice-list')) {
                     window.loadNotices();
@@ -1846,16 +1922,16 @@ if (!updatedData || updatedData.length === 0) {
                     passwordInput.type = 'password';
                 });
                 
-                // 触摸事件（移动设备支持）
+                // 触摸事件（移动设备支持）- 使用 passive 选项提升性能
                 toggleBtn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     passwordInput.type = 'text';
-                });
+                }, { passive: false }); // passive: false 因为需要 preventDefault
                 
                 toggleBtn.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     passwordInput.type = 'password';
-                });
+                }, { passive: false }); // passive: false 因为需要 preventDefault
             }
             
             // 设置密码显示/隐藏功能
@@ -3244,9 +3320,14 @@ if (!updatedData || updatedData.length === 0) {
                     window.clearAllCache();
                 }
                 
-                // 7. 如果当前筛选的是特定状态，检查更新后的记录是否仍在筛选范围内
+                // 7. 【修复】状态更新后，只在必要时刷新数据，避免数据重新排序导致用户找不到刚刚操作的记录
+                // 保存当前滚动位置和更新的记录ID，用于刷新后定位
+                const container = document.getElementById('dbContent');
+                const savedScrollTop = container ? container.scrollTop : 0;
+                const updatedItemId = id;
+                
                 if (ListState.filters.status !== 'all') {
-                    // 如果记录更新前在筛选范围内，更新后不在，则需要刷新数据
+                    // 如果记录更新前在筛选范围内，更新后不在，则需要刷新数据（记录会从列表中消失）
                     if (oldStatus === ListState.filters.status && newStatus !== ListState.filters.status) {
                         // 【修复】使用强制刷新参数，确保获取最新数据
                         if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
@@ -3254,21 +3335,51 @@ if (!updatedData || updatedData.length === 0) {
                         } else if (typeof fetchTableData === 'function') {
                             await fetchTableData(false, true);
                         }
-                    } else if (success) {
-                        // 如果更新成功且记录仍在筛选范围内，只刷新当前页数据（强制刷新以确保显示最新状态）
-                        if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
-                            await window.fetchTableData(false, true); // append=false, forceRefresh=true
-                        } else if (typeof fetchTableData === 'function') {
-                            await fetchTableData(false, true);
+                        // 恢复滚动位置
+                        if (container) {
+                            container.scrollTop = savedScrollTop;
                         }
+                    } else if (success) {
+                        // 【修复】如果更新成功且记录仍在筛选范围内，不刷新数据，只更新当前行显示
+                        // 这样数据不会重新排序，用户可以看到刚刚更新的记录
+                        // 已经通过上面的代码更新了 ListState.data 和虚拟滚动管理器的数据
+                        // 只需要重新渲染可见区域即可
+                        const vManager = (typeof window !== 'undefined' && window.virtualScrollManager) ? window.virtualScrollManager : null;
+                        if (vManager) {
+                            vManager.renderVisibleItems();
+                        }
+                        // 高亮显示刚刚更新的行
+                        setTimeout(() => {
+                            const updatedRow = container ? container.querySelector(`tr[data-item-id="${updatedItemId}"]`) : null;
+                            if (updatedRow) {
+                                updatedRow.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+                                updatedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                // 3秒后移除高亮
+                                setTimeout(() => {
+                                    updatedRow.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+                                }, 3000);
+                            }
+                        }, 100);
                     }
                 } else {
-                    // 如果筛选的是全部，刷新数据（强制刷新以确保显示最新状态）
-                    if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
-                        await window.fetchTableData(false, true); // append=false, forceRefresh=true
-                    } else if (typeof fetchTableData === 'function') {
-                        await fetchTableData(false, true);
+                    // 【修复】如果没有状态筛选，不刷新数据，只更新当前行显示，避免数据重新排序
+                    // 已经通过上面的代码更新了 ListState.data 和虚拟滚动管理器的数据
+                    const vManager = (typeof window !== 'undefined' && window.virtualScrollManager) ? window.virtualScrollManager : null;
+                    if (vManager) {
+                        vManager.renderVisibleItems();
                     }
+                    // 高亮显示刚刚更新的行
+                    setTimeout(() => {
+                        const updatedRow = container ? container.querySelector(`tr[data-item-id="${updatedItemId}"]`) : null;
+                        if (updatedRow) {
+                            updatedRow.classList.add('bg-blue-50', 'dark:bg-blue-900/20');
+                            updatedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            // 3秒后移除高亮
+                            setTimeout(() => {
+                                updatedRow.classList.remove('bg-blue-50', 'dark:bg-blue-900/20');
+                            }, 3000);
+                        }
+                    }, 100);
                 }
                 
                 showToast(`状态更新为：${newStatus}`, 'info');
@@ -4047,8 +4158,8 @@ document.getElementById('entry_date').value = dateValue;
             let paginationHTML = `
                 <div class="flex items-center justify-between p-4 border-t border-slate-100">
                     <div class="flex items-center space-x-2">
-                        <span class="text-sm text-slate-600">显示行数：</span>
-                        <select id="page-size-select" class="text-sm border border-slate-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="text-sm text-slate-600 dark:text-slate-100 font-medium">显示行数：</span>
+                        <select id="page-size-select" class="text-sm border-2 border-slate-300 dark:border-slate-500 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-800 dark:text-white font-medium">
             `;
             
             ListState.pagination.pageSizeOptions.forEach(size => {
@@ -4059,11 +4170,11 @@ document.getElementById('entry_date').value = dateValue;
                         </select>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-sm text-slate-600">共 ${ListState.totalCount} 条记录，第 ${currentPage} / ${totalPages} 页</span>
-                        <button id="prev-page" class="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage === 1 ? 'disabled' : ''}>
+                        <span class="text-sm text-slate-600 dark:text-slate-100 font-medium">共 ${ListState.totalCount} 条记录，第 ${currentPage} / ${totalPages} 页</span>
+                        <button id="prev-page" class="px-3 py-1.5 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 rounded-md text-sm text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" ${currentPage === 1 ? 'disabled' : ''}>
                             上一页
                         </button>
-                        <button id="next-page" class="px-3 py-1 bg-white border border-slate-300 rounded-md text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage < totalPages ? '' : 'disabled'}>
+                        <button id="next-page" class="px-3 py-1.5 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-500 rounded-md text-sm text-slate-700 dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" ${currentPage < totalPages ? '' : 'disabled'}>
                             下一页
                         </button>
                     </div>

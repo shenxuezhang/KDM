@@ -388,6 +388,21 @@ async function trySwitchView(view) {
         }
     }
 
+    // 【修复】检查目标视图是否与当前视图相同，如果相同则跳过 isFormDirty 检查
+    // 这样可以避免在页面重新获得焦点时（如切换窗口后回来）触发不必要的确认对话框
+    const currentView = localStorage.getItem('wh_claims_currentView') || 'form';
+    const isSameView = currentView === view;
+    
+    // 检查当前视图的 DOM 元素是否可见
+    const currentViewEl = document.getElementById(`view-${currentView}`);
+    const isCurrentViewVisible = currentViewEl && !currentViewEl.classList.contains('hidden');
+    
+    // 如果目标视图与当前视图相同且当前视图可见，则跳过 isFormDirty 检查
+    if (isSameView && isCurrentViewVisible) {
+        // 直接返回，不进行任何检查，也不切换视图
+        return;
+    }
+
     // 处理编辑模式下的视图切换
     if (editingId && isFormDirty) {
         if (confirm("您正在编辑数据，是否保存当前修改？")) {
@@ -500,13 +515,6 @@ async function trySwitchView(view) {
                 }
             }, 200);
         }
-    } else if (typeof window !== 'undefined' && window.isMonitorViewActive !== undefined) {
-        // 【优化】离开监控页面时，停止自动刷新
-        if (typeof window.stopMonitorAutoRefresh === 'function') {
-            window.stopMonitorAutoRefresh();
-        }
-        // 标记监控视图未激活
-        window.isMonitorViewActive = false;
     }
     if (view !== 'form') isFormDirty = false;
     

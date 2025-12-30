@@ -425,13 +425,6 @@ async function loadDataFromSupabase() {
  */
 async function fetchTableData(append = false, forceRefresh = false, page = null, keepScrollPosition = false) {
     if (!supabaseClient) return;
-    
-    // 【修复】检查当前视图，只在数据列表视图执行数据加载，避免在用户管理页面等触发错误
-    const dataView = document.getElementById('view-data');
-    if (!dataView || dataView.classList.contains('hidden')) {
-        // 当前不在数据列表视图，直接返回，避免不必要的数据加载
-        return;
-    }
 
     // 1. 设置页码
     if (page !== null && page > 0) ListState.pagination.page = page;
@@ -569,10 +562,7 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
         }
         console.error("数据加载失败:", error);
         if (error.name !== 'AbortError') {
-            // 【修复】只在数据列表视图显示错误提示，避免在用户管理页面等显示无关错误
-            const dataView = document.getElementById('view-data');
-            const isDataViewVisible = dataView && !dataView.classList.contains('hidden');
-            if (isDataViewVisible && typeof showToast === 'function') {
+            if (typeof showToast === 'function') {
                 showToast("数据加载失败", "error");
             }
         }
