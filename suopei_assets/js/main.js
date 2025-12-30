@@ -189,6 +189,11 @@ class VirtualScrollManager {
     }
 
     updateRenderRange() {
+        // 【修复】检查容器是否存在，避免在非数据视图时操作不存在的DOM
+        if (!this.container || !this.container.parentElement) {
+            return;
+        }
+        
         let newStartIndex = Math.floor(this.scrollTop / this.itemHeight) - this.bufferCount;
         newStartIndex = Math.max(0, newStartIndex);
 
@@ -257,6 +262,12 @@ class VirtualScrollManager {
             fragment.appendChild(tr);
         });
 
+        // 【修复】检查容器和bottomSpacer是否存在，避免在非数据视图时操作不存在的DOM
+        if (!this.container || !this.bottomSpacer || !this.container.contains(this.bottomSpacer)) {
+            console.warn('VirtualScrollManager: 容器或bottomSpacer不存在，跳过DOM操作');
+            return;
+        }
+        
         this.container.insertBefore(fragment, this.bottomSpacer);
     }
     
@@ -310,6 +321,12 @@ class VirtualScrollManager {
         });
 
         if (fragment.hasChildNodes()) {
+            // 【修复】检查容器和bottomSpacer是否存在，避免在非数据视图时操作不存在的DOM
+            if (!this.container || !this.bottomSpacer || !this.container.contains(this.bottomSpacer)) {
+                console.warn('VirtualScrollManager: 容器或bottomSpacer不存在，跳过DOM操作');
+                return;
+            }
+            
             // 找到正确的插入位置
             const insertBefore = Array.from(this.container.children).find(node => {
                 if (node === this.topSpacer || node === this.bottomSpacer) return false;
@@ -615,6 +632,12 @@ class VirtualScrollManager {
     // 【防闪烁优化】保存滚动位置，使用 requestAnimationFrame 确保平滑渲染
     // 【修复】增加 forceRefresh 参数，强制刷新时立即渲染
     updateData(newData, totalItems, forceRefresh = false) {
+        // 【修复】检查容器是否存在，避免在非数据视图时操作不存在的DOM
+        if (!this.container || !this.container.parentElement) {
+            console.warn('VirtualScrollManager: 容器不存在，跳过数据更新');
+            return;
+        }
+        
         // 保存当前滚动位置
         const savedScrollTop = this.container.scrollTop;
         const oldData = this.data;
@@ -1117,6 +1140,13 @@ function calculateStats(data) {
  * @param {boolean} resetScroll - 是否强制重置滚动条和虚拟DOM
  */
 function renderDatabase(resetScroll = false) {
+    // 【修复】检查当前视图，只在数据列表视图执行渲染，避免在用户管理页面等触发错误
+    const dataView = document.getElementById('view-data');
+    if (!dataView || dataView.classList.contains('hidden')) {
+        // 当前不在数据列表视图，直接返回，避免操作不存在的DOM
+        return;
+    }
+    
     // 【骨架屏】在渲染真实数据前，确保骨架屏已隐藏
     if (typeof hideSkeletonTable === 'function') {
         hideSkeletonTable();
