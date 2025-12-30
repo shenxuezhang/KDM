@@ -899,6 +899,195 @@ let cachedStats = null;
 let cachedDataHash = null;
 
 // 【性能优化】计算统计数据（带缓存）
+// ============================================
+// 【骨架屏功能】骨架屏加载器
+// ============================================
+
+/**
+ * 获取随机宽度（用于模拟内容长度变化）
+ * @param {number} min - 最小宽度百分比
+ * @param {number} max - 最大宽度百分比
+ * @returns {number} 随机宽度百分比
+ */
+function getRandomWidth(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * 生成表格骨架屏HTML
+ * @param {number} rowCount - 骨架行数
+ * @param {Array} visibleColumns - 可见列配置
+ * @param {number} rowHeight - 行高（px）
+ * @returns {string} 骨架屏HTML
+ */
+function generateSkeletonRows(rowCount, visibleColumns, rowHeight) {
+    const rows = [];
+    const rowHeightPx = `${rowHeight}px`;
+    
+    for (let i = 0; i < rowCount; i++) {
+        const cells = [];
+        
+        // 1. 复选框占位
+        cells.push(`
+            <td class="erp-td text-center col--checkbox" style="width: 48px; height: ${rowHeightPx};">
+                <div class="vxe-cell flex items-center justify-center">
+                    <div class="skeleton-checkbox w-4 h-4 bg-slate-200 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded"></div>
+                </div>
+            </td>
+        `);
+        
+        // 2. 动态列占位
+        visibleColumns.forEach(colKey => {
+            const col = TABLE_COLUMNS.find(c => c.key === colKey);
+            if (!col) return;
+            
+            const widthPercent = getRandomWidth(60, 90); // 随机宽度，模拟内容变化
+            
+            cells.push(`
+                <td class="erp-td" style="min-width: ${col.minW}; width: ${col.minW}; height: ${rowHeightPx};">
+                    <div class="vxe-cell flex items-center">
+                        <div class="skeleton-bar skeleton-shimmer rounded" 
+                             style="width: ${widthPercent}%; height: ${Math.round(rowHeight * 0.6)}px;"></div>
+                    </div>
+                </td>
+            `);
+        });
+        
+        // 3. 操作列占位
+        cells.push(`
+            <td class="erp-td text-center is--fixed-right" style="width: 120px; height: ${rowHeightPx};">
+                <div class="vxe-cell flex items-center justify-center gap-2">
+                    <div class="skeleton-dot w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+                    <div class="skeleton-dot w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+                    <div class="skeleton-dot w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
+                </div>
+            </td>
+        `);
+        
+        rows.push(`<tr>${cells.join('')}</tr>`);
+    }
+    
+    return rows.join('');
+}
+
+/**
+ * 显示骨架屏
+ * @param {number} rowCount - 显示的行数（可选，默认根据容器高度计算）
+ */
+function showSkeletonTable(rowCount = null) {
+    const container = document.getElementById('dbContent');
+    if (!container) return;
+    
+    // 隐藏空状态
+    const emptyState = document.getElementById('emptyState');
+    if (emptyState) emptyState.classList.add('hidden');
+    
+    // 计算需要显示的行数
+    if (!rowCount) {
+        const containerHeight = container.clientHeight || window.innerHeight - 400;
+        const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+        rowCount = Math.max(3, Math.ceil(containerHeight / rowHeight) + 2); // 至少3行，多显示2行作为缓冲
+    }
+    
+    // 获取可见列配置
+    const visibleCols = (typeof window !== 'undefined' && window.visibleColumns) 
+        ? window.visibleColumns 
+        : TABLE_COLUMNS.map(c => c.key).filter(k => k !== 'remarks');
+    
+    // 生成并渲染骨架屏
+    const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+    const skeletonHTML = generateSkeletonRows(rowCount, visibleCols, rowHeight);
+    container.innerHTML = skeletonHTML;
+    
+    // 添加骨架屏标识类
+    container.classList.add('skeleton-mode');
+}
+
+/**
+ * 隐藏骨架屏（清除骨架屏内容）
+ */
+function hideSkeletonTable() {
+    const container = document.getElementById('dbContent');
+    if (!container) return;
+    
+    // 移除骨架屏标识类
+    container.classList.remove('skeleton-mode');
+    
+    // 内容将由 renderDatabase() 填充，这里不需要清空
+}
+
+/**
+ * 生成用户列表骨架屏HTML
+ * @param {number} rowCount - 骨架行数（默认5行）
+ * @returns {string} 骨架屏HTML
+ */
+function generateUserListSkeletonRows(rowCount = 5) {
+    const rows = [];
+    
+    for (let i = 0; i < rowCount; i++) {
+        const usernameWidth = getRandomWidth(60, 85);
+        const emailWidth = getRandomWidth(70, 95);
+        const dateWidth = getRandomWidth(50, 70);
+        
+        rows.push(`
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="skeleton-bar skeleton-shimmer rounded" style="width: ${usernameWidth}%; height: 16px;"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="skeleton-bar skeleton-shimmer rounded" style="width: ${emailWidth}%; height: 16px;"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="skeleton-bar skeleton-shimmer rounded-full" style="width: 80px; height: 24px;"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="skeleton-bar skeleton-shimmer rounded-full" style="width: 60px; height: 24px;"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="skeleton-bar skeleton-shimmer rounded" style="width: ${dateWidth}%; height: 16px;"></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="flex justify-end gap-4">
+                        <div class="skeleton-bar skeleton-shimmer rounded" style="width: 40px; height: 16px;"></div>
+                        <div class="skeleton-bar skeleton-shimmer rounded" style="width: 40px; height: 16px;"></div>
+                    </div>
+                </td>
+            </tr>
+        `);
+    }
+    
+    return rows.join('');
+}
+
+/**
+ * 显示用户列表骨架屏
+ * @param {number} rowCount - 显示的行数（可选，默认5行）
+ */
+function showSkeletonTableUsers(rowCount = 5) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
+    // 生成并渲染骨架屏
+    const skeletonHTML = generateUserListSkeletonRows(rowCount);
+    tbody.innerHTML = skeletonHTML;
+    
+    // 添加骨架屏标识类
+    tbody.classList.add('skeleton-mode');
+}
+
+/**
+ * 隐藏用户列表骨架屏
+ */
+function hideSkeletonTableUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+    
+    // 移除骨架屏标识类
+    tbody.classList.remove('skeleton-mode');
+    
+    // 内容将由 renderUserManagement() 填充，这里不需要清空
+}
+
 function calculateStats(data) {
     // 计算数据哈希（只基于ID和金额，用于检测数据变化）
     const dataHash = data.map(d => `${d.id}:${d.claim_total || 0}`).join(',');
@@ -928,6 +1117,11 @@ function calculateStats(data) {
  * @param {boolean} resetScroll - 是否强制重置滚动条和虚拟DOM
  */
 function renderDatabase(resetScroll = false) {
+    // 【骨架屏】在渲染真实数据前，确保骨架屏已隐藏
+    if (typeof hideSkeletonTable === 'function') {
+        hideSkeletonTable();
+    }
+    
     const data = ListState.data;
     
     // 【修复】移除此处所有的 currentFilteredData 逻辑和 filter 逻辑
@@ -954,8 +1148,9 @@ function renderDatabase(resetScroll = false) {
 
     const container = document.getElementById('dbContent');
     
-    // 处理空数据
+    // 【骨架屏】处理空数据状态 - 确保骨架屏已清除
     if (data.length === 0) {
+        // 【骨架屏】空数据时确保清除骨架屏（已在函数开头处理，这里再次确保）
         container.innerHTML = '';
         document.getElementById('emptyState').classList.remove('hidden');
         // 如果没有数据，销毁虚拟滚动管理器
@@ -1739,6 +1934,10 @@ document.addEventListener('DOMContentLoaded', () => {
         window.savePageState = savePageState;
         window.renderDatabase = renderDatabase;
         window.renderPaginationControls = renderPaginationControls;
+        window.showSkeletonTable = showSkeletonTable;
+        window.hideSkeletonTable = hideSkeletonTable;
+        window.showSkeletonTableUsers = showSkeletonTableUsers;
+        window.hideSkeletonTableUsers = hideSkeletonTableUsers;
     }
     
     // 【修复】页面加载时初始化批量操作工具栏状态（确保初始隐藏）

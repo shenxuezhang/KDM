@@ -14,6 +14,81 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
 
+/* ============================================
+   骨架屏 Loading 样式
+   ============================================ */
+
+/* 骨架屏基础样式 */
+.skeleton-bar {
+    background: linear-gradient(90deg, 
+        #f1f5f9 0%, 
+        #e2e8f0 50%, 
+        #f1f5f9 100%
+    );
+    background-size: 2000px 100%;
+}
+
+.dark .skeleton-bar {
+    background: linear-gradient(90deg, 
+        #1e293b 0%, 
+        #334155 50%, 
+        #1e293b 100%
+    );
+    background-size: 2000px 100%;
+}
+
+/* 闪烁动画 */
+.skeleton-shimmer {
+    animation: skeleton-shimmer 2s infinite linear;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+/* 复选框占位 */
+.skeleton-checkbox {
+    background-color: #e2e8f0;
+    border: 1px solid #cbd5e1;
+}
+
+.dark .skeleton-checkbox {
+    background-color: #334155;
+    border-color: #475569;
+}
+
+/* 操作列圆点 */
+.skeleton-dot {
+    background-color: #cbd5e1;
+}
+
+.dark .skeleton-dot {
+    background-color: #475569;
+}
+
+/* 骨架模式下的表格样式微调 */
+.skeleton-mode tr {
+    pointer-events: none; /* 禁用交互 */
+}
+
+.skeleton-mode tr:hover {
+    background-color: transparent; /* 禁用悬停效果 */
+}
+
+/* 用户列表骨架屏特定样式 */
+#usersTableBody.skeleton-mode tr {
+    pointer-events: none;
+}
+
+#usersTableBody.skeleton-mode tr:hover {
+    background-color: transparent;
+}
+
 /* 纯 CSS 弹窗逻辑 */
 .modal-backdrop {
     position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
@@ -82,16 +157,13 @@ body {
     display: block; font-size: 0.9375rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem;
 }
 .dark .input-group-label { color: #cbd5e1; }
-.bg-blue-50 .input-group-label, 
-.bg-gradient-to-br.from-blue-50 .input-group-label { color: #1e3a8a; opacity: 0.8; }
-.dark .bg-blue-50 .input-group-label,
-.dark .bg-gradient-to-br.from-blue-50 .input-group-label { color: #93c5fd; }
-.bg-gradient-to-br.from-purple-50 .input-group-label { color: #6b21a8; opacity: 0.8; }
-.dark .bg-gradient-to-br.from-purple-50 .input-group-label { color: #c084fc; }
-.bg-gradient-to-br.from-orange-50 .input-group-label { color: #9a3412; opacity: 0.8; }
-.dark .bg-gradient-to-br.from-orange-50 .input-group-label { color: #fb923c; }
-.bg-gradient-to-br.from-emerald-50 .input-group-label { color: #065f46; opacity: 0.8; }
-.dark .bg-gradient-to-br.from-emerald-50 .input-group-label { color: #6ee7b7; }
+/* 极简风格下标签颜色统一 */
+.form-section .input-group-label {
+    color: #475569;
+}
+.dark .form-section .input-group-label {
+    color: #cbd5e1;
+}
 
 /* 输入框模式适配 */
 .form-input, .form-textarea, select.form-input {
@@ -103,6 +175,14 @@ body {
     font-size: 0.875rem;
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.form-input::placeholder, .form-textarea::placeholder {
+    color: #9ca3af;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+.form-input:focus::placeholder, .form-textarea:focus::placeholder {
+    opacity: 0.3;
 }
 .form-input:hover, .form-textarea:hover, select.form-input:hover {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -143,6 +223,18 @@ select.form-input:invalid:not(:placeholder-shown) {
 .dark select.form-input:invalid:not(:placeholder-shown) {
     border-color: #f87171;
     box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+}
+.form-input:valid:not(:placeholder-shown):not([value=""]),
+.form-textarea:valid:not(:placeholder-shown):not([value=""]),
+select.form-input:valid:not([value=""]) {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+.dark .form-input:valid:not(:placeholder-shown):not([value=""]),
+.dark .form-textarea:valid:not(:placeholder-shown):not([value=""]),
+.dark select.form-input:valid:not([value=""]) {
+    border-color: #34d399;
+    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
 }
 .dark .form-input:disabled, .dark .form-textarea:disabled, .dark select.form-input:disabled {
     background-color: #1e293b;
@@ -279,10 +371,50 @@ select.form-input {
     border-color: #64748b;
 }
 
+/* 极简风格区块样式 */
+.form-section {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.2s ease;
+}
+.form-section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+}
+.dark .form-section {
+    background: #1e293b;
+    border-color: #334155;
+}
+.dark .form-section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border-color: #475569;
+}
+
+/* 区块颜色指示条 */
+.form-section.section-customer {
+    border-left-color: #6366f1;
+}
+.form-section.section-order {
+    border-left-color: #a855f7;
+}
+.form-section.section-claim {
+    border-left-color: #f97316;
+}
+.form-section.section-compensation {
+    border-left-color: #10b981;
+}
+
 /* 区块标题样式优化 */
 .section-title {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     position: relative;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 1rem;
 }
 .dark .section-title {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -296,5 +428,71 @@ select.form-input {
 .section-title:hover .section-title-icon {
     transform: scale(1.1);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+/* 表单验证消息样式 */
+.form-error-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    color: #991b1b;
+    font-size: 0.875rem;
+    animation: fadeInDown 0.3s ease-out;
+}
+.form-error-message::before {
+    content: "⚠";
+    font-size: 1rem;
+    color: #dc2626;
+}
+.dark .form-error-message {
+    background-color: rgba(127, 29, 29, 0.3);
+    border-color: #991b1b;
+    color: #fca5a5;
+}
+.dark .form-error-message::before {
+    color: #f87171;
+}
+
+.form-success-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 0.5rem;
+    color: #166534;
+    font-size: 0.875rem;
+    animation: fadeInDown 0.3s ease-out;
+}
+.form-success-message::before {
+    content: "✓";
+    font-size: 1rem;
+    color: #16a34a;
+}
+.dark .form-success-message {
+    background-color: rgba(6, 78, 59, 0.3);
+    border-color: #047857;
+    color: #6ee7b7;
+}
+.dark .form-success-message::before {
+    color: #34d399;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 

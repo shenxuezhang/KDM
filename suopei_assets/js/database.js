@@ -471,10 +471,27 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
     currentFetchController = new AbortController();
     const requestId = ++fetchRequestId;
 
+    // 【骨架屏】记录加载开始时间，用于快速加载检测
+    const loadingStartTime = Date.now();
+    let skeletonTimeout = null;
+    
     try {
         ListState.isLoading = true;
-        // 显示加载状态（可选）
-        if(typeof showLoading === 'function' && !append) showLoading();
+        // 【骨架屏】非追加模式时显示骨架屏（替代原有的全屏遮罩）
+        // 【优化】添加延迟显示，避免快速加载时的闪烁（> 100ms 才显示）
+        if (!append) {
+            skeletonTimeout = setTimeout(() => {
+                // 检查是否仍在加载中
+                if (ListState.isLoading && requestId === fetchRequestId) {
+                    if (typeof showSkeletonTable === 'function') {
+                        showSkeletonTable();
+                    } else if (typeof showLoading === 'function') {
+                        // 降级方案：如果骨架屏函数不存在，使用原有的加载方式
+                        showLoading();
+                    }
+                }
+            }, 100);
+        }
 
         const start = (targetPage - 1) * ListState.pagination.pageSize;
         const end = start + ListState.pagination.pageSize - 1;
@@ -521,8 +538,15 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
 
         setDbConnectionState('connected');
 
+        // 【骨架屏】如果数据加载很快（< 100ms），清除延迟显示的定时器
+        if (skeletonTimeout) {
+            clearTimeout(skeletonTimeout);
+            skeletonTimeout = null;
+        }
+        
         // 8. 渲染视图
         // 传递 forceRefresh 给 renderDatabase，告诉它这是一次强制刷新，需要重置虚拟滚动位置
+        // 【骨架屏】renderDatabase 会自动清除骨架屏
         if (typeof renderDatabase === 'function') {
             renderDatabase(forceRefresh); 
         }
@@ -531,9 +555,17 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
         if (typeof updateStatusCounts === 'function') updateStatusCounts();
         
     } catch (error) {
+        // 【骨架屏】错误时清除延迟显示的定时器
+        if (skeletonTimeout) {
+            clearTimeout(skeletonTimeout);
+            skeletonTimeout = null;
+        }
         console.error("数据加载失败:", error);
         if (error.name !== 'AbortError') {
-            if (typeof showToast === 'function') {
+            // 【修复】只在数据列表视图显示错误提示，避免在用户管理页面等显示无关错误
+            const dataView = document.getElementById('view-data');
+            const isDataViewVisible = dataView && !dataView.classList.contains('hidden');
+            if (isDataViewVisible && typeof showToast === 'function') {
                 showToast("数据加载失败", "error");
             }
         }
@@ -572,6 +604,10 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
             }
             
             // 【修复】错误处理时立即渲染，确保用户能看到错误状态
+            // 【骨架屏】错误时清除骨架屏
+            if (typeof hideSkeletonTable === 'function') {
+                hideSkeletonTable();
+            }
             if (typeof renderDatabase === 'function') {
                 renderDatabase();
             }
@@ -914,14 +950,32 @@ async function checkSupabaseTableStructure() {
  * 此函数用于"用户管理"模块
  */
 async function loadUsersFromSupabase() {
-    // 显示加载状态
-    if (typeof showLoading === 'function') {
-        showLoading('正在加载用户数据...');
-    }
+    // 【骨架屏】显示用户列表骨架屏（替代原有的全屏遮罩）
+    let skeletonTimeout = null;
+    const loadingStartTime = Date.now();
+    
+    // 延迟显示骨架屏，避免快速加载时的闪烁（> 100ms 才显示）
+    skeletonTimeout = setTimeout(() => {
+        if (Date.now() - loadingStartTime >= 100) {
+            if (typeof showSkeletonTableUsers === 'function') {
+                showSkeletonTableUsers(5); // 默认显示5行
+            } else if (typeof showLoading === 'function') {
+                // 降级方案：如果骨架屏函数不存在，使用原有的加载方式
+                showLoading('正在加载用户数据...');
+            }
+        }
+    }, 100);
     
     try {
         if (!supabaseClient) {
-            if (typeof hideLoading === 'function') {
+            // 【骨架屏】清除延迟显示的定时器
+            if (skeletonTimeout) {
+                clearTimeout(skeletonTimeout);
+                skeletonTimeout = null;
+            }
+            if (typeof hideSkeletonTableUsers === 'function') {
+                hideSkeletonTableUsers();
+            } else if (typeof hideLoading === 'function') {
                 hideLoading();
             }
             if (typeof showToast === 'function') {
@@ -937,8 +991,14 @@ async function loadUsersFromSupabase() {
             .order('created_at', { ascending: false });
         
         if (error) {
-            // 隐藏加载状态
-            if (typeof hideLoading === 'function') {
+            // 【骨架屏】清除延迟显示的定时器并隐藏骨架屏
+            if (skeletonTimeout) {
+                clearTimeout(skeletonTimeout);
+                skeletonTimeout = null;
+            }
+            if (typeof hideSkeletonTableUsers === 'function') {
+                hideSkeletonTableUsers();
+            } else if (typeof hideLoading === 'function') {
                 hideLoading();
             }
             
@@ -986,14 +1046,29 @@ async function loadUsersFromSupabase() {
         // 更新全局用户数组
         window.users = formattedUsers;
         
-        // 隐藏加载状态
-        if (typeof hideLoading === 'function') {
+        // 【骨架屏】如果数据加载很快（< 100ms），清除延迟显示的定时器
+        if (skeletonTimeout) {
+            clearTimeout(skeletonTimeout);
+            skeletonTimeout = null;
+        }
+        
+        // 【骨架屏】隐藏骨架屏（renderUserManagement会处理，这里确保清除）
+        if (typeof hideSkeletonTableUsers === 'function') {
+            hideSkeletonTableUsers();
+        } else if (typeof hideLoading === 'function') {
             hideLoading();
         }
         
         return true;
     } catch (error) {
-        if (typeof hideLoading === 'function') {
+        // 【骨架屏】错误时清除延迟显示的定时器并隐藏骨架屏
+        if (skeletonTimeout) {
+            clearTimeout(skeletonTimeout);
+            skeletonTimeout = null;
+        }
+        if (typeof hideSkeletonTableUsers === 'function') {
+            hideSkeletonTableUsers();
+        } else if (typeof hideLoading === 'function') {
             hideLoading();
         }
         if (typeof showToast === 'function') {

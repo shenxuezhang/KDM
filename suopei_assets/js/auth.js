@@ -204,13 +204,20 @@ async function handleAuthChange(event, session) {
             }
         }
         
-        // 初始化数据
-        database = await loadDataFromSupabase();
-        renderTableHeader();
-        renderColumnModal();
-        renderKanban();
-        initCharts();
-        fetchTableData();
+        // 【修复】检查当前视图，避免在用户管理页面等非数据视图触发数据加载
+        const currentView = localStorage.getItem('wh_claims_currentView') || 'form';
+        const isDataRelatedView = ['form', 'data', 'kanban'].includes(currentView);
+        
+        // 只在数据相关视图初始化数据
+        if (isDataRelatedView) {
+            // 初始化数据
+            database = await loadDataFromSupabase();
+            renderTableHeader();
+            renderColumnModal();
+            renderKanban();
+            initCharts();
+            fetchTableData();
+        }
         
         // 【数据缓存机制增强】缓存预热：提前加载常用查询条件的数据
         if (typeof window.warmupCache === 'function') {

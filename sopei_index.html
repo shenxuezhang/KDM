@@ -816,12 +816,11 @@
                 <form id="claimForm" class="p-4 md:p-6 space-y-5" oninput="markFormDirty()">
                     
                     <!-- 1. 客户信息 -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-blue-800 dark:text-blue-400 pb-3 mb-4 border-b border-blue-200/50 dark:border-slate-600">
+                    <div class="form-section section-customer">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
                             <svg class="section-title-icon w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                             </svg>
-                            <span class="w-2 h-6 bg-indigo-500 rounded-md"></span>
                             <span>客户信息</span>
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -832,12 +831,11 @@
                     </div>
 
                     <!-- 2. 订单信息 -->
-                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-purple-800 dark:text-purple-400 pb-3 mb-4 border-b border-purple-200/50 dark:border-slate-600">
+                    <div class="form-section section-order">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
                             <svg class="section-title-icon w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
-                            <span class="w-2 h-6 bg-purple-500 rounded-md"></span>
                             <span>订单信息</span>
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -850,12 +848,11 @@
                     </div>
 
                     <!-- 3. 索赔详情 -->
-                    <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-orange-800 dark:text-orange-400 pb-3 mb-4 border-b border-orange-200/50 dark:border-slate-600">
+                    <div class="form-section section-claim">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
                             <svg class="section-title-icon w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                             </svg>
-                            <span class="w-2 h-6 bg-orange-500 rounded-md"></span>
                             <span>索赔详情</span>
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -869,20 +866,19 @@
                     </div>
 
                     <!-- 4. 赔偿计算 -->
-                    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 shadow-inner dark:from-slate-800 dark:to-slate-700 dark:border-slate-700">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-emerald-800 dark:text-emerald-400 pb-3 mb-4 border-b border-emerald-200/50 dark:border-slate-600">
+                    <div class="form-section section-compensation">
+                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
                             <svg class="section-title-icon w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                             </svg>
-                            <span class="w-2 h-6 bg-emerald-500 rounded-md"></span>
                             <span>赔偿计算</span>
                         </h3>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300">赔偿币种：</label><select id="currency" class="form-input dark:bg-slate-700 dark:border-slate-600 cursor-pointer bg-white"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="CNY">CNY (¥)</option></select></div>
-                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300"><span class="text-red-600 font-extrabold mr-1">*</span>货物声明价值：</label><input type="number" id="val_amount" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="商品采购价或投保价值"></div>
-                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300"><span class="text-red-600 font-extrabold mr-1">*</span>索赔数量：</label><input type="number" id="claim_qty" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="需赔付的商品数量"></div>
-                            <div><label class="input-group-label text-emerald-900/60 dark:text-emerald-300">赔偿比例 (%)：</label><input type="number" id="claim_ratio" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="100" required></div>
-                            <div><label class="input-group-label text-emerald-700 dark:text-emerald-400"><span class="text-red-600 font-extrabold mr-1">*</span>总赔偿金额：</label><input type="number" id="claim_total" class="form-input text-emerald-700 font-black text-lg bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="最高赔偿100USD"></div>
+                            <div><label class="input-group-label">赔偿币种：</label><select id="currency" class="form-input dark:bg-slate-700 dark:border-slate-600 cursor-pointer bg-white"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="CNY">CNY (¥)</option></select></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>货物声明价值：</label><input type="number" id="val_amount" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="商品采购价或投保价值"></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>索赔数量：</label><input type="number" id="claim_qty" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="需赔付的商品数量"></div>
+                            <div><label class="input-group-label">赔偿比例 (%)：</label><input type="number" id="claim_ratio" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="100" required></div>
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>总赔偿金额：</label><input type="number" id="claim_total" class="form-input text-emerald-700 font-black text-lg bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="最高赔偿100USD"></div>
                         </div>
                     </div>
 
@@ -2485,9 +2481,15 @@ if (!updatedData || updatedData.length === 0) {
         
         // 渲染用户列表 (动态渲染真实数据)（全局函数，供ui.js调用）
         window.renderUserManagement = function() {
+            // 【骨架屏】在渲染真实数据前，确保骨架屏已隐藏
+            if (typeof hideSkeletonTableUsers === 'function') {
+                hideSkeletonTableUsers();
+            }
+            
             const tbody = document.getElementById('usersTableBody');
             
             if (!window.users || window.users.length === 0) {
+                // 【骨架屏】空数据时确保清除骨架屏
                 tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-slate-500">暂无用户数据</td></tr>';
                 return;
             }
@@ -2790,6 +2792,13 @@ if (!updatedData || updatedData.length === 0) {
                         }
                         
                         try {
+                            // 【修复】保存当前管理员会话，防止创建用户后自动切换账号
+                            const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+                            if (!currentSession) {
+                                showToast('无法获取当前会话，请重新登录', 'error');
+                                return;
+                            }
+                            
                             // 收集权限数据
                             const permissions = {};
                             if (role === 'user') {
@@ -2815,6 +2824,24 @@ if (!updatedData || updatedData.length === 0) {
                             if (error) {
                                 handleError(error, '添加用户');
                             } else if (data && data.user) {
+                                // 【修复】保存当前视图状态，防止恢复会话时触发不必要的数据加载
+                                const currentView = localStorage.getItem('wh_claims_currentView') || 'form';
+                                const isUsersView = currentView === 'users';
+                                
+                                // 【修复】立即恢复管理员会话，防止自动切换到新用户
+                                await supabaseClient.auth.setSession({
+                                    access_token: currentSession.access_token,
+                                    refresh_token: currentSession.refresh_token
+                                });
+                                
+                                // 等待一段时间，确保会话恢复完成
+                                await new Promise(resolve => setTimeout(resolve, 300));
+                                
+                                // 恢复视图状态（如果当前在用户管理页面）
+                                if (isUsersView) {
+                                    localStorage.setItem('wh_claims_currentView', 'users');
+                                }
+                                
                                 // 等待一段时间，确保数据库触发器执行完毕
                                 await new Promise(resolve => setTimeout(resolve, 500));
                                 
@@ -2828,12 +2855,12 @@ if (!updatedData || updatedData.length === 0) {
                                     // 更新用户权限失败，静默处理
                                 }
                                 
-                // 重新加载用户数据，确保从数据库获取最新数据
-                const reloadSuccess = await window.loadUsersFromSupabase();
-                if (reloadSuccess) {
-                    // 更新用户列表
-                    window.renderUserManagement();
-                }
+                                // 重新加载用户数据，确保从数据库获取最新数据
+                                const reloadSuccess = await window.loadUsersFromSupabase();
+                                if (reloadSuccess) {
+                                    // 更新用户列表
+                                    window.renderUserManagement();
+                                }
                                 
                                 // 关闭模态框
                                 window.closeAddUserModal();
