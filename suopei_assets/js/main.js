@@ -22,7 +22,8 @@ const ListState = {
     },
     sorting: {
         col: 'entry_date',
-        asc: false
+        asc: false,
+        isUserDefined: false  // 标记是否为用户主动设置的排序
     },
     isLoading: false,
     isLargeDataset: false,
@@ -47,6 +48,16 @@ function generateUUID() {
         const v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
+}
+
+/**
+ * 重置排序为默认值（申请提交日期降序）
+ * 标记为系统默认排序，不持久化
+ */
+function resetSortingToDefault() {
+    ListState.sorting.col = 'entry_date';
+    ListState.sorting.asc = false;
+    ListState.sorting.isUserDefined = false;
 }
 
 // 虚拟滚动管理器类（性能优化版）
@@ -512,7 +523,7 @@ class VirtualScrollManager {
             case 'edit':
                 btn.className = 'action-btn hover:bg-blue-100 text-slate-400 hover:text-blue-600';
                 btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>';
-                btn.onclick = () => editRowById(itemId);
+                btn.onclick = () => openEditModal(itemId);
                 break;
             case 'status':
                 btn.className = 'action-btn hover:bg-purple-100 text-slate-400 hover:text-purple-600';
@@ -1519,7 +1530,18 @@ function getFormDataFromInput() {
         claim_ratio: document.getElementById('claim_ratio').value,
         attachments: document.getElementById('attachments').value,
         remarks: document.getElementById('remarks').value,
-        entry_date: document.getElementById('entry_date').value || new Date().toISOString().split('T')[0],
+        // entry_date 现在是 timestamp 类型，如果用户选择了日期，转换为当天的开始时间（00:00:00）
+        // 如果没有选择，使用当前时间戳
+        entry_date: (() => {
+            const dateValue = document.getElementById('entry_date').value;
+            if (dateValue) {
+                // 将日期字符串转换为当天的开始时间戳
+                return new Date(dateValue + 'T00:00:00').toISOString();
+            } else {
+                // 使用当前时间戳
+                return new Date().toISOString();
+            }
+        })(),
         process_status: document.getElementById('process_status').value
     };
 }
@@ -1550,6 +1572,10 @@ async function processEntry() {
             database[index] = record;
             await updateDataInSupabase(editingId, record);
             localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+            
+            // 编辑成功后，重置排序为默认值
+            resetSortingToDefault();
+            
             fetchTableData();
             renderKanban();
             showToast('数据修改已保存', 'success');
@@ -1560,6 +1586,10 @@ async function processEntry() {
         database.unshift(record);
         await saveDataToSupabase();
         localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+        
+        // 新建成功后，重置排序为默认值
+        resetSortingToDefault();
+        
         fetchTableData();
         renderKanban();
         showToast('提交成功', 'success');
@@ -1580,6 +1610,332 @@ async function processEntry() {
         document.getElementById('process_status').value = '待审核';
         
         await switchView('data');
+    }
+}
+
+// ============================================
+// 编辑弹窗组件封装函数
+// ============================================
+
+/**
+ * 创建表单输入组件
+ * @param {Object} config - 组件配置
+ */
+function createFormInput(config) {
+    const container = document.createElement('div');
+    
+    // 创建标签
+    const label = document.createElement('label');
+    label.className = 'input-group-label';
+    if (config.required) {
+        label.innerHTML = `<span class="text-red-600 font-extrabold mr-1">*</span>${config.label}：`;
+    } else {
+        label.textContent = `${config.label}：`;
+    }
+    
+    // 根据类型创建输入元素
+    let input;
+    if (config.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.rows = config.rows || 2;
+        input.className = 'form-textarea bg-white dark:bg-slate-700 dark:border-slate-600';
+    } else if (config.type === 'select') {
+        input = document.createElement('select');
+        input.className = 'form-input bg-white dark:bg-slate-700 dark:border-slate-600 cursor-pointer';
+        if (config.options) {
+            config.options.forEach(option => {
+                const opt = document.createElement('option');
+                if (typeof option === 'string') {
+                    opt.value = option;
+                    opt.textContent = option;
+                } else {
+                    opt.value = option.value;
+                    opt.textContent = option.label;
+                }
+                input.appendChild(opt);
+            });
+        }
+    } else {
+        input = document.createElement('input');
+        input.type = config.type || 'text';
+        input.className = 'form-input bg-white dark:bg-slate-700 dark:border-slate-600';
+        if (config.step) input.step = config.step;
+        if (config.placeholder) input.placeholder = config.placeholder;
+    }
+    
+    input.id = config.id;
+    input.required = config.required || false;
+    if (config.value !== undefined) input.value = config.value;
+    if (config.readonly) input.readOnly = true;
+    
+    container.appendChild(label);
+    container.appendChild(input);
+    
+    return container;
+}
+
+/**
+ * 创建信息分组卡片
+ * @param {Object} config - 分组配置
+ */
+function createFormSection(config) {
+    const section = document.createElement('div');
+    section.className = 'edit-form-section';
+    
+    // 分组标题
+    const title = document.createElement('h3');
+    title.className = 'edit-form-section-title';
+    title.innerHTML = `
+        <svg class="edit-form-section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${config.icon || '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>'}
+        </svg>
+        <span>${config.title}</span>
+    `;
+    
+    // 字段网格
+    const grid = document.createElement('div');
+    grid.className = 'edit-form-grid';
+    
+    // 添加字段
+    config.fields.forEach(fieldConfig => {
+        const field = createFormInput(fieldConfig);
+        grid.appendChild(field);
+    });
+    
+    section.appendChild(title);
+    section.appendChild(grid);
+    
+    return section;
+}
+
+// ============================================
+// 编辑弹窗管理模块
+// ============================================
+
+// 当前编辑的ID（用于弹窗编辑）
+let editingModalId = null;
+
+/**
+ * 打开编辑弹窗
+ * @param {string} id - 记录ID
+ */
+async function openEditModal(id) {
+    const item = database.find(i => i.id === id);
+    if (!item) {
+        showToast('未找到记录', 'error');
+        return;
+    }
+    
+    // 填充表单数据
+    fillEditForm(item);
+    
+    // 显示弹窗
+    const backdrop = document.getElementById('editModalBackdrop');
+    backdrop.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        backdrop.classList.add('active');
+    });
+    
+    // 保存当前编辑ID
+    editingModalId = id;
+}
+
+/**
+ * 关闭编辑弹窗
+ */
+function closeEditModal() {
+    const backdrop = document.getElementById('editModalBackdrop');
+    backdrop.classList.remove('active');
+    setTimeout(() => {
+        backdrop.classList.add('hidden');
+        // 清空表单
+        document.getElementById('editClaimForm').reset();
+        editingModalId = null;
+    }, 300);
+}
+
+/**
+ * 打开提交表格弹窗
+ */
+function openSubmitFormModal() {
+    const backdrop = document.getElementById('submitFormModalBackdrop');
+    if (!backdrop) {
+        showToast('弹窗元素未找到', 'error');
+        return;
+    }
+    
+    backdrop.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        backdrop.classList.add('active');
+    });
+}
+
+/**
+ * 关闭提交表格弹窗
+ */
+function closeSubmitFormModal() {
+    const backdrop = document.getElementById('submitFormModalBackdrop');
+    if (!backdrop) {
+        return;
+    }
+    
+    backdrop.classList.remove('active');
+    setTimeout(() => {
+        backdrop.classList.add('hidden');
+    }, 300);
+}
+
+/**
+ * 提交表格自动化操作（占位功能）
+ */
+function submitFormAutoAction() {
+    showToast('功能在开发中...', 'info');
+}
+
+/**
+ * 填充编辑表单
+ * @param {Object} item - 数据项
+ */
+function fillEditForm(item) {
+    const formSections = document.getElementById('editFormSections');
+    formSections.innerHTML = '';
+    
+    // 分组1：客户信息
+    const section1 = createFormSection({
+        title: '客户信息',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>',
+        fields: [
+            { id: 'edit_cust_name', label: '客户名称 (公司全称)', type: 'text', required: true, value: item.cust_name },
+            { id: 'edit_contact_name', label: '联系人', type: 'text', required: true, value: item.contact_name },
+            { id: 'edit_contact_info', label: '联系方式', type: 'text', required: true, value: item.contact_info }
+        ]
+    });
+    
+    // 分组2：订单信息
+    const section2 = createFormSection({
+        title: '订单信息',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
+        fields: [
+            { id: 'edit_order_no', label: '海外仓单号（OBS出库号）', type: 'text', required: true, value: item.order_no, placeholder: '系统生成的唯一单号' },
+            { id: 'edit_tracking_no', label: '物流运单号', type: 'text', required: true, value: item.tracking_no, placeholder: '头程/尾程物流单号' },
+            { id: 'edit_ship_date', label: '发货日期', type: 'date', required: true, value: item.ship_date ? item.ship_date.substring(0, 10) : '' },
+            { id: 'edit_sku', label: '订单 SKU', type: 'text', required: true, value: item.sku, placeholder: '货物发货SKU' },
+            { id: 'edit_warehouse', label: '发货仓', type: 'select', required: true, value: item.warehouse, options: ['美西-4仓', '美西-2仓', '美东-4仓', '美西-1仓'] }
+        ]
+    });
+    
+    // 分组3：索赔信息
+    const section3 = createFormSection({
+        title: '索赔信息',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>',
+        fields: [
+            { id: 'edit_claim_type', label: '索赔类型', type: 'select', required: true, value: item.claim_type, options: ['货物损坏', '丢失', '延误', '库存不符', '错发', '发货数量不符'] },
+            { id: 'edit_liable_party', label: '责任方判定', type: 'select', value: item.liable_party || '待核实', options: ['待核实', '海外仓责任', '物流商责任', '客户责任'] },
+            { id: 'edit_description', label: '问题描述', type: 'textarea', required: true, value: item.description, rows: 3, placeholder: '详细说明异常情况（如损坏程度、延误天数等）' }
+        ]
+    });
+    
+    // 分组4：金额信息
+    const section4 = createFormSection({
+        title: '金额信息',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
+        fields: [
+            { id: 'edit_currency', label: '赔偿币种', type: 'select', value: item.currency || 'USD', options: [{ value: 'USD', label: 'USD ($)' }, { value: 'EUR', label: 'EUR (€)' }, { value: 'GBP', label: 'GBP (£)' }, { value: 'CNY', label: 'CNY (¥)' }] },
+            { id: 'edit_val_amount', label: '货物声明价值', type: 'number', required: true, value: item.val_amount, step: '0.01', placeholder: '商品采购价或投保价值' },
+            { id: 'edit_claim_qty', label: '索赔数量', type: 'number', required: true, value: item.claim_qty, placeholder: '需赔付的商品数量' },
+            { id: 'edit_claim_ratio', label: '赔偿比例 (%)', type: 'number', required: true, value: item.claim_ratio || '100' },
+            { id: 'edit_claim_total', label: '总赔偿金额', type: 'number', required: true, value: item.claim_total, step: '0.01', placeholder: '最高赔偿100USD' }
+        ]
+    });
+    
+    // 分组5：附件信息
+    const section5 = createFormSection({
+        title: '附件信息',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>',
+        fields: [
+            { id: 'edit_attachments', label: '附件上传', type: 'textarea', value: item.attachments || '', rows: 4, placeholder: '上传图片/视频/物流凭证（用超链接或标注存储路径）' }
+        ]
+    });
+    
+    formSections.appendChild(section1);
+    formSections.appendChild(section2);
+    formSections.appendChild(section3);
+    formSections.appendChild(section4);
+    formSections.appendChild(section5);
+}
+
+/**
+ * 获取编辑表单数据
+ */
+function getEditFormData() {
+    return {
+        id: editingModalId,
+        cust_name: document.getElementById('edit_cust_name').value,
+        contact_name: document.getElementById('edit_contact_name').value,
+        contact_info: document.getElementById('edit_contact_info').value,
+        order_no: document.getElementById('edit_order_no').value.trim(),
+        tracking_no: document.getElementById('edit_tracking_no').value,
+        ship_date: document.getElementById('edit_ship_date').value,
+        sku: document.getElementById('edit_sku').value,
+        warehouse: document.getElementById('edit_warehouse').value,
+        claim_type: document.getElementById('edit_claim_type').value,
+        description: document.getElementById('edit_description').value,
+        currency: document.getElementById('edit_currency').value,
+        val_amount: document.getElementById('edit_val_amount').value,
+        claim_qty: document.getElementById('edit_claim_qty').value,
+        claim_total: document.getElementById('edit_claim_total').value,
+        liable_party: document.getElementById('edit_liable_party').value,
+        claim_ratio: document.getElementById('edit_claim_ratio').value,
+        attachments: document.getElementById('edit_attachments').value
+    };
+}
+
+/**
+ * 提交编辑表单
+ */
+async function submitEditForm() {
+    const form = document.getElementById('editClaimForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const inputOrderNo = document.getElementById('edit_order_no').value.trim();
+    
+    // 检查重复（排除当前编辑项）
+    const isDuplicate = database.some(item => {
+        if (editingModalId && item.id === editingModalId) return false;
+        return item.order_no === inputOrderNo;
+    });
+    
+    if (isDuplicate) {
+        showToast('错误：该海外仓单号已存在，请勿重复添加！', 'error');
+        return;
+    }
+    
+    const record = getEditFormData();
+    const index = database.findIndex(i => i.id === editingModalId);
+    
+    if (index !== -1) {
+        // 保留原始记录中的状态信息字段（这些字段在编辑表单中已移除，但需要保留原始值）
+        const originalItem = database[index];
+        record.entry_date = originalItem.entry_date;
+        record.process_status = originalItem.process_status;
+        record.remarks = originalItem.remarks;
+        
+        database[index] = record;
+        await updateDataInSupabase(editingModalId, record);
+        localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+        
+        // 编辑成功后，重置排序为默认值
+        resetSortingToDefault();
+        
+        // 刷新数据列表
+        await fetchTableData(false, true);
+        renderKanban();
+        
+        showToast('数据修改已保存', 'success');
+        closeEditModal();
     }
 }
 
@@ -1726,6 +2082,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     initLoginForms();
     initTitleSync();
+    
+    // 确保使用默认排序
+    resetSortingToDefault();
 
     const today = new Date();
     const year = today.getFullYear();
@@ -1825,11 +2184,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     search: ListState.filters.search,
                     advancedFilters: ListState.filters.advancedFilters
                 },
-                // 排序状态
-                sorting: {
+                // 排序状态（只保存用户主动设置的排序）
+                sorting: ListState.sorting.isUserDefined ? {
                     col: ListState.sorting.col,
-                    asc: ListState.sorting.asc
-                },
+                    asc: ListState.sorting.asc,
+                    isUserDefined: true
+                } : null,
                 // 滚动位置
                 scrollTop: window.virtualScrollManager ? window.virtualScrollManager.container.scrollTop : 0,
                 // 时间戳
@@ -1868,9 +2228,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 Object.assign(ListState.filters, state.filters);
             }
             
-            // 恢复排序状态
-            if (state.sorting) {
-                Object.assign(ListState.sorting, state.sorting);
+            // 恢复排序状态（只恢复用户主动设置的排序）
+            if (state.sorting && state.sorting.isUserDefined) {
+                ListState.sorting.col = state.sorting.col;
+                ListState.sorting.asc = state.sorting.asc;
+                ListState.sorting.isUserDefined = true;
+            } else {
+                // 如果没有保存的用户排序，使用默认排序
+                resetSortingToDefault();
             }
             
             // 【P0修复】如果恢复了状态筛选，同步更新按钮样式
@@ -2007,11 +2372,79 @@ document.addEventListener('DOMContentLoaded', () => {
         window.hideSkeletonTable = hideSkeletonTable;
         window.showSkeletonTableUsers = showSkeletonTableUsers;
         window.hideSkeletonTableUsers = hideSkeletonTableUsers;
+        window.resetSortingToDefault = resetSortingToDefault;
     }
     
     // 【修复】页面加载时初始化批量操作工具栏状态（确保初始隐藏）
     if (typeof window.updateBatchActionBar === 'function') {
         window.updateBatchActionBar();
+    }
+    
+    // ============================================
+    // 编辑弹窗事件绑定
+    // ============================================
+    
+    // 关闭按钮
+    const editModalCloseBtn = document.getElementById('editModalCloseBtn');
+    if (editModalCloseBtn) {
+        editModalCloseBtn.addEventListener('click', closeEditModal);
+    }
+    
+    // 取消按钮
+    const editModalCancelBtn = document.getElementById('editModalCancelBtn');
+    if (editModalCancelBtn) {
+        editModalCancelBtn.addEventListener('click', closeEditModal);
+    }
+    
+    // 提交按钮
+    const editModalSubmitBtn = document.getElementById('editModalSubmitBtn');
+    if (editModalSubmitBtn) {
+        editModalSubmitBtn.addEventListener('click', submitEditForm);
+    }
+    
+    // 点击背景关闭弹窗
+    const editModalBackdrop = document.getElementById('editModalBackdrop');
+    if (editModalBackdrop) {
+        editModalBackdrop.addEventListener('click', (e) => {
+            if (e.target.id === 'editModalBackdrop') {
+                closeEditModal();
+            }
+        });
+    }
+    
+    // ESC 键关闭弹窗
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const backdrop = document.getElementById('editModalBackdrop');
+            if (backdrop && backdrop.classList.contains('active')) {
+                closeEditModal();
+            }
+            const submitFormBackdrop = document.getElementById('submitFormModalBackdrop');
+            if (submitFormBackdrop && submitFormBackdrop.classList.contains('active')) {
+                closeSubmitFormModal();
+            }
+        }
+    });
+    
+    // 提交表格弹窗事件绑定
+    const submitFormModalCloseBtn = document.getElementById('submitFormModalCloseBtn');
+    if (submitFormModalCloseBtn) {
+        submitFormModalCloseBtn.addEventListener('click', closeSubmitFormModal);
+    }
+    
+    const submitFormAutoBtn = document.getElementById('submitFormAutoBtn');
+    if (submitFormAutoBtn) {
+        submitFormAutoBtn.addEventListener('click', submitFormAutoAction);
+    }
+    
+    // 点击背景关闭提交表格弹窗
+    const submitFormModalBackdrop = document.getElementById('submitFormModalBackdrop');
+    if (submitFormModalBackdrop) {
+        submitFormModalBackdrop.addEventListener('click', (e) => {
+            if (e.target.id === 'submitFormModalBackdrop') {
+                closeSubmitFormModal();
+            }
+        });
     }
 });
 

@@ -287,6 +287,11 @@ async function updateStatus(newStatus) {
         
         const success = await updateDataInSupabase(id, database[index]);
         
+        // 更新状态成功后，重置排序为默认值
+        if (typeof resetSortingToDefault === 'function') {
+            resetSortingToDefault();
+        }
+        
         if (ListState.filters.status !== 'all') {
             if (oldStatus === ListState.filters.status && newStatus !== ListState.filters.status) {
                 fetchTableData();
@@ -716,6 +721,7 @@ function getSearchHistory() {
 
 /**
  * 排序列
+ * 用户点击表头排序时，标记为用户主动设置的排序
  */
 function sortColumn(col) {
     if (ListState.sorting.col === col) {
@@ -724,6 +730,8 @@ function sortColumn(col) {
         ListState.sorting.col = col;
         ListState.sorting.asc = true;
     }
+    // 标记为用户主动设置的排序
+    ListState.sorting.isUserDefined = true;
     ListState.pagination.page = 1;
     fetchTableData();
 }

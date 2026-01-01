@@ -499,8 +499,10 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
         // 3. 构建 Supabase 查询
         let query = supabaseClient
             .from('claims_v2')
-            .select('*', { count: 'exact' })
-            .order(ListState.sorting.col, { ascending: ListState.sorting.asc });
+            .select('*', { count: 'exact' });
+        
+        // 应用排序：entry_date 现在是 timestamp 类型，支持精确排序，不需要复合排序
+        query = query.order(ListState.sorting.col, { ascending: ListState.sorting.asc });
 
         // 4. 【核心修复】应用状态筛选
         // 只要状态不是 'all'，就严格让数据库只返回该状态的数据
@@ -797,15 +799,16 @@ function applyAdvancedFilters(query, filters) {
     }
     
     // 【修复】申请提交日期范围（对应明细列表中的entry_date字段）
+    // entry_date 现在是 timestamp 类型，需要转换为日期范围
     if (filters.entry_date_start) {
-        // 确保日期格式正确（YYYY-MM-DD）
+        // 确保日期格式正确（YYYY-MM-DD），转换为当天的开始时间（00:00:00）
         const startDate = filters.entry_date_start.trim();
-        query = query.gte('entry_date', startDate);
+        query = query.gte('entry_date', startDate + 'T00:00:00');
     }
     if (filters.entry_date_end) {
-        // 确保日期格式正确（YYYY-MM-DD）
+        // 确保日期格式正确（YYYY-MM-DD），转换为当天的结束时间（23:59:59）
         const endDate = filters.entry_date_end.trim();
-        query = query.lte('entry_date', endDate);
+        query = query.lte('entry_date', endDate + 'T23:59:59');
     }
     
     // 【修复】索赔类型 - 精确匹配（对应明细列表中的claim_type字段）
