@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>海外仓索赔管理系统 - 内部版</title>
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -18,18 +17,12 @@
             }
         };
     </script>
-    <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- 核心库：处理 Excel 生成 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <!-- 引入 Supabase 客户端库 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- 引入外部样式文件 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="suopei_assets/css/styles.css">
-    <!-- 外部样式文件已引入，此处保留内联样式作为备用 -->
     <style>
-        /* 样式已移至 suopei_assets/css/styles.css */
-        /* 保留此部分作为兼容性备用 */
         body { 
             font-family: 'Plus Jakarta Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif; 
             background-color: #f8fafc; 
@@ -507,108 +500,365 @@
             white-space: nowrap;
             max-height: var(--table-row-height);
         }
+        
+        /* 新登录界面样式 */
+        .login-container .form-input:focus {
+            outline: none;
+            border-color: #588bff;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+        
+        .login-container .form-input:focus ~ .input-icon {
+            color: #588bff;
+        }
+        
+        .login-container .btn-primary:hover {
+            background: linear-gradient(135deg, #0057b7 0%, #0057b7 100%);
+            box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .login-container .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .login-container .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .login-container .btn-loading {
+            position: relative;
+            color: transparent;
+        }
+        
+        .login-container .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin-left: -10px;
+            margin-top: -10px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spinner 0.8s linear infinite;
+        }
+        
+        @keyframes spinner {
+            to { transform: rotate(360deg); }
+        }
+        
+        .login-container .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            color: #333;
+        }
+        
+        .dark .login-container .checkbox-wrapper {
+            color: #f8fafc;
+        }
+        
+        .dark .login-container .checkbox-wrapper span:not(.checkmark) {
+            color: #f8fafc;
+        }
+        
+        .login-container .checkbox-wrapper input[type="checkbox"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            z-index: 2;
+        }
+        
+        .login-container .checkmark {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #e5e5ea;
+            border-radius: 4px;
+            margin-right: 8px;
+            position: relative;
+            transition: all 0.3s;
+            background: #fff;
+            display: inline-block;
+            z-index: 1;
+        }
+        
+        .login-container .checkbox-wrapper input:checked ~ .checkmark {
+            background: #007aff;
+            border-color: #007aff;
+        }
+        
+        .login-container .checkmark::after {
+            content: '';
+            position: absolute;
+            display: none;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        
+        .login-container .checkbox-wrapper input:checked ~ .checkmark::after {
+            display: block;
+        }
+        
+        .login-container .forgot-password:hover {
+            text-decoration: underline;
+        }
+        
+        .dark .login-container .form-section {
+            background: #1e293b !important;
+        }
+        
+        .dark .login-container .form-label {
+            color: #f8fafc !important;
+        }
+        
+        .dark .login-container .form-options {
+            color: #f8fafc;
+        }
+        
+        .dark .login-container .checkbox-wrapper span:not(.checkmark) {
+            color: #f8fafc !important;
+        }
+        
+        .dark .login-container .checkmark {
+            border-color: #475569 !important;
+            background: #334155 !important;
+        }
+        
+        .dark .login-container .checkbox-wrapper input:checked ~ .checkmark {
+            background: #007aff !important;
+            border-color: #007aff !important;
+        }
+        
+        .dark .login-container {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        
+        .dark .login-container .form-title {
+            color: #f8fafc !important;
+        }
+        
+        .dark .login-container .form-subtitle {
+            color: #cbd5e1 !important;
+        }
+        
+        .dark .login-container .register-link {
+            color: #cbd5e1 !important;
+        }
+        
+        .login-container .register-link a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .login-container {
+                flex-direction: column !important;
+                height: auto !important;
+                max-width: 400px !important;
+            }
+            
+            .login-container .brand-section {
+                padding: 40px 30px !important;
+                text-align: center;
+            }
+            
+            .login-container .brand-title {
+                font-size: 32px !important;
+            }
+            
+            .login-container .brand-subtitle {
+                font-size: 16px !important;
+            }
+            
+            .login-container .form-section {
+                padding: 40px 30px !important;
+            }
+        }
     </style>
 </head>
 <body class="antialiased relative min-h-screen flex transition-colors duration-300">
 
-    <!-- Toast 容器 (顶部居中) -->
     <div id="toast-container" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-3 pointer-events-none px-4 md:px-0 w-full max-w-md items-center"></div>
     
-    <!-- 登录界面 -->
-    <div id="login-container" class="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center z-50 hidden">
-        <div class="w-full max-w-md mx-4">
-            <div class="glass-card rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700">
-                <!-- 登录头部 -->
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white text-center">
-                    <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    <div id="login-container" class="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center z-50 hidden" style="background: #f2f2f7; padding: 20px;">
+        <div class="login-container" style="width: 100%; max-width: 1200px; height: 700px; display: flex; background: #fff; border-radius: 20px; border: 1px solid #e5e5ea; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); overflow: hidden; position: relative;">
+            <div class="brand-section" style="flex: 1; background: linear-gradient(135deg, #007aff 0%, #0057b7 100%); color: white; padding: 60px; display: flex; flex-direction: column; justify-content: center; position: relative;">
+                <div class="brand-content" style="position: relative; z-index: 1;">
+                    <div class="logo" style="display: flex; align-items: center; margin-bottom: 40px; font-size: 28px; font-weight: 700;">
+                        <div class="logo-icon" style="width: 50px; height: 50px; background: rgba(255, 255, 255, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 24px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <span>TechCorp</span>
                     </div>
-                    <h1 id="system-title-main" class="text-2xl font-black">海外仓索赔管理系统 V2.3.1</h1>
-                    <p class="text-blue-100 mt-2">企业内部版</p>
+                    <h1 id="system-title-main" class="brand-title" style="font-size: 48px; font-weight: 800; margin-bottom: 20px; background: linear-gradient(to right, #fff, #588bff); -webkit-background-clip: text; background-clip: text; color: transparent;">海外仓索赔管理系统 <span style="font-size: 24px; color: rgba(255, 255, 255, 0.9); -webkit-background-clip: unset; background-clip: unset; background: none;">v2.5.1</span></h1>
+                    <p class="brand-subtitle" style="font-size: 20px; opacity: 0.85; margin-bottom: 40px; line-height: 1.6;">安全、高效、智能的应用解决方案，助力提升人效</p>
+                    
+                    <ul class="feature-list" style="list-style: none;">
+                        <li class="feature-item" style="display: flex; align-items: center; margin-bottom: 20px; font-size: 16px; opacity: 0.9;">
+                            <div class="feature-icon" style="width: 36px; height: 36px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <span>自主开发护航</span>
+                        </li>
+                        <li class="feature-item" style="display: flex; align-items: center; margin-bottom: 20px; font-size: 16px; opacity: 0.9;">
+                            <div class="feature-icon" style="width: 36px; height: 36px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <span>碎片数据集成</span>
+                        </li>
+                        <li class="feature-item" style="display: flex; align-items: center; margin-bottom: 20px; font-size: 16px; opacity: 0.9;">
+                            <div class="feature-icon" style="width: 36px; height: 36px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <span>团队协作管理</span>
+                        </li>
+                        <li class="feature-item" style="display: flex; align-items: center; margin-bottom: 20px; font-size: 16px; opacity: 0.9;">
+                            <div class="feature-icon" style="width: 36px; height: 36px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                            <span>云端同步存储</span>
+                        </li>
+                    </ul>
                 </div>
-                
-                <!-- 登录表单 -->
-                <div class="p-8">
-                    <!-- 切换表单的标签 -->
-                    <div class="flex mb-6 border-b border-slate-200 dark:border-slate-700">
-                        <button id="login-tab" class="flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600">登录</button>
-                        <button id="register-tab" class="flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">注册</button>
+            </div>
+
+            <div class="form-section" style="flex: 1; padding: 60px; display: flex; flex-direction: column; justify-content: center; background: #fff;">
+                <div class="form-container" style="max-width: 400px; width: 100%; margin: 0 auto;">
+                    <div class="error-message" id="errorMessage" style="background: rgba(255, 59, 48, 0.15); border: 1px solid rgba(255, 59, 48, 0.3); color: #ff3b30; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; display: none; align-items: center; backdrop-filter: blur(5px);">
+                        <i class="fas fa-exclamation-circle" style="margin-right: 8px; font-size: 16px;"></i>
+                        <span id="errorText"></span>
                     </div>
-                    
-                    <!-- 登录表单 -->
-                    <form id="login-form" class="space-y-6">
-                        <div>
-                            <label class="input-group-label">邮箱</label>
-                            <input type="email" id="login-email" class="form-input w-full bg-white dark:bg-slate-700" placeholder="请输入您的邮箱" required>
+
+                    <div class="success-message" id="successMessage" style="background: rgba(76, 217, 100, 0.15); border: 1px solid rgba(76, 217, 100, 0.3); color: #4cd964; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; display: none; align-items: center; backdrop-filter: blur(5px);">
+                        <i class="fas fa-check-circle" style="margin-right: 8px; font-size: 16px;"></i>
+                        <span id="successText"></span>
+                    </div>
+
+                    <div id="loginForm" class="form-content">
+                        <div class="form-header" style="text-align: center; margin-bottom: 40px;">
+                            <h2 class="form-title" style="font-size: 32px; font-weight: 700; color: #000; margin-bottom: 10px;">欢迎回来</h2>
+                            <p class="form-subtitle" style="color: #999; font-size: 16px;">请输入您的登录凭据</p>
                         </div>
-                        <div>
-                            <div class="flex justify-between">
-                                <label class="input-group-label">密码</label>
-                                <a href="#" id="forgot-password" class="text-xs font-bold text-blue-600 hover:underline">忘记密码？</a>
+
+                        <form id="login-form">
+                            <div class="form-group" style="margin-bottom: 24px; position: relative;">
+                                <label class="form-label" style="display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px;">账号</label>
+                                <div class="input-wrapper" style="position: relative;">
+                                    <i class="fas fa-user input-icon" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px;"></i>
+                                    <input type="email" id="login-email" class="form-input" style="width: 100%; padding: 16px 20px 16px 50px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #fff; color: #000;" placeholder="请输入您的邮箱" autocomplete="username" required>
+                                </div>
                             </div>
-                            <div class="relative">
-                                <input type="password" id="login-password" class="form-input w-full bg-white dark:bg-slate-700 pr-10" placeholder="请输入您的密码" required>
-                                <button type="button" id="toggle-login-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                    </svg>
-                                </button>
+
+                            <div class="form-group" style="margin-bottom: 24px; position: relative;">
+                                <label class="form-label" style="display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px;">密码</label>
+                                <div class="input-wrapper" style="position: relative;">
+                                    <i class="fas fa-lock input-icon" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px;"></i>
+                                    <input type="password" id="login-password" class="form-input" style="width: 100%; padding: 16px 50px 16px 50px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #fff; color: #000;" placeholder="请输入密码" autocomplete="current-password" required>
+                                    <i class="fas fa-eye password-toggle" id="toggle-login-password" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; font-size: 18px; transition: all 0.3s;"></i>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-md">
-                                登录
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <!-- 注册表单 -->
-                    <form id="register-form" class="space-y-6 hidden">
-                        <div>
-                            <label class="input-group-label">用户名</label>
-                            <input type="text" id="register-username" class="form-input w-full bg-white dark:bg-slate-700" placeholder="请输入用户名" required>
-                        </div>
-                        <div>
-                            <label class="input-group-label">邮箱</label>
-                            <input type="email" id="register-email" class="form-input w-full bg-white dark:bg-slate-700" placeholder="请输入您的邮箱" required>
-                        </div>
-                        <div>
-                            <label class="input-group-label">密码</label>
-                            <div class="relative">
-                                <input type="password" id="register-password" class="form-input w-full bg-white dark:bg-slate-700 pr-10" placeholder="请输入密码（至少6位）" minlength="6" required>
-                                <button type="button" id="toggle-register-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                    </svg>
-                                </button>
+
+                            <div class="form-options" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 14px;">
+                                <label class="checkbox-wrapper remember-me">
+                                    <input type="checkbox" id="rememberMe">
+                                    <span class="checkmark"></span>
+                                    <span>记住我</span>
+                                </label>
+                                <a href="#" id="forgot-password" class="forgot-password" style="color: #007aff; text-decoration: none; font-weight: 500; transition: all 0.3s;">忘记密码？</a>
                             </div>
-                        </div>
-                        <div>
-                            <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-md">
-                                注册
+
+                            <button type="submit" class="btn btn-primary" id="loginButton" style="width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; background: linear-gradient(135deg, #007aff 0%, #0057b7 100%); color: white; box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);">
+                                <span>登录</span>
                             </button>
+                        </form>
+
+                        <div class="register-link" style="text-align: center; margin-top: 32px; color: #999;">
+                            还没有账号？<a href="#" id="showRegister" style="color: #007aff; text-decoration: none; font-weight: 600; transition: all 0.3s;">立即注册</a>
                         </div>
-                    </form>
-                    
-                    <!-- 密码重置表单 -->
-                    <form id="reset-form" class="space-y-6 hidden">
-                        <div>
-                            <label class="input-group-label">邮箱</label>
-                            <input type="email" id="reset-email" class="form-input w-full bg-white dark:bg-slate-700" placeholder="请输入您的注册邮箱" required>
+                    </div>
+
+                    <div id="registerForm" class="form-content" style="display: none;">
+                        <div class="form-header" style="text-align: center; margin-bottom: 40px;">
+                            <h2 class="form-title" style="font-size: 32px; font-weight: 700; color: #000; margin-bottom: 10px;">创建账号</h2>
+                            <p class="form-subtitle" style="color: #999; font-size: 16px;">开始使用我们的应用服务</p>
                         </div>
-                        <div>
-                            <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-md">
-                                发送重置链接
+
+                        <form id="register-form">
+                            <div class="form-group" style="margin-bottom: 24px; position: relative;">
+                                <label class="form-label" style="display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px;">用户名</label>
+                                <div class="input-wrapper" style="position: relative;">
+                                    <i class="fas fa-user input-icon" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px;"></i>
+                                    <input type="text" id="register-username" class="form-input" style="width: 100%; padding: 16px 20px 16px 50px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #fff; color: #000;" placeholder="请输入用户名" autocomplete="username" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 24px; position: relative;">
+                                <label class="form-label" style="display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px;">邮箱</label>
+                                <div class="input-wrapper" style="position: relative;">
+                                    <i class="fas fa-envelope input-icon" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px;"></i>
+                                    <input type="email" id="register-email" class="form-input" style="width: 100%; padding: 16px 20px 16px 50px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #fff; color: #000;" placeholder="请输入您的邮箱" autocomplete="email" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 24px; position: relative;">
+                                <label class="form-label" style="display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px;">密码</label>
+                                <div class="input-wrapper" style="position: relative;">
+                                    <i class="fas fa-lock input-icon" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px;"></i>
+                                    <input type="password" id="register-password" class="form-input" style="width: 100%; padding: 16px 50px 16px 50px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #fff; color: #000;" placeholder="请设置密码（至少6位）" autocomplete="new-password" minlength="6" required>
+                                    <i class="fas fa-eye password-toggle" id="toggle-register-password" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; font-size: 18px; transition: all 0.3s;"></i>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="registerButton" style="width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; background: linear-gradient(135deg, #007aff 0%, #0057b7 100%); color: white; box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);">
+                                <span>注册</span>
                             </button>
+                        </form>
+
+                        <div class="register-link" style="text-align: center; margin-top: 32px; color: #999;">
+                            已有账号？<a href="#" id="showLogin" style="color: #007aff; text-decoration: none; font-weight: 600; transition: all 0.3s;">立即登录</a>
                         </div>
-                        <div>
-                            <button type="button" id="back-to-login" class="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">
-                                返回登录
+                    </div>
+
+                    <div id="forgotForm" class="form-content" style="display: none;">
+                        <div class="form-header" style="text-align: center; margin-bottom: 40px;">
+                            <h2 class="form-title" style="font-size: 32px; font-weight: 700; color: #000; margin-bottom: 10px;">重置密码</h2>
+                            <p class="form-subtitle" style="color: #999; font-size: 16px;">请输入您的注册邮箱</p>
+                        </div>
+
+                        <form id="reset-form">
+                            <div class="form-group" style="margin-bottom: 24px; position: relative;">
+                                <label class="form-label" style="display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px;">邮箱</label>
+                                <div class="input-wrapper" style="position: relative;">
+                                    <i class="fas fa-envelope input-icon" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #999; font-size: 18px;"></i>
+                                    <input type="email" id="reset-email" class="form-input" style="width: 100%; padding: 16px 20px 16px 50px; border: 1px solid #e5e5ea; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #fff; color: #000;" placeholder="请输入您的注册邮箱" autocomplete="email" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="resetPasswordButton" style="width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; background: linear-gradient(135deg, #007aff 0%, #0057b7 100%); color: white; box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);">
+                                <span>发送重置链接</span>
                             </button>
+                        </form>
+
+                        <div class="register-link" style="text-align: center; margin-top: 32px; color: #999;">
+                            想起密码了？<a href="#" id="back-to-login" style="color: #007aff; text-decoration: none; font-weight: 600; transition: all 0.3s;">返回登录</a>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -767,7 +1017,7 @@
             <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-blue-200 dark:shadow-none">
                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
             </div>
-            <span id="system-title-secondary" class="text-lg font-black text-slate-800 dark:text-white tracking-tight">海外仓索赔管理系统 V2.0</span>
+            <span id="system-title-secondary" class="text-lg font-black text-slate-800 dark:text-white tracking-tight">海外仓索赔管理系统 <span class="text-sm font-normal opacity-75">v2.5.1</span></span>
         </div>
         <!-- 用户信息 (已修改：支持角色标签和真实数据) -->
         <div id="user-info" class="hidden p-4 border-b border-slate-100 dark:border-slate-800">
@@ -867,6 +1117,7 @@
                             <span>订单信息</span>
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>所属店铺：</label><select id="store_by" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required><option value="">请选择</option><option value="XKY">XKY</option><option value="SZ POWCHO【SHEIN】">SZ POWCHO【SHEIN】</option><option value="CRQ">CRQ</option><option value="TEMU Love pin local【XKY】">TEMU Love pin local【XKY】</option><option value="Your love local">Your love local</option><option value="TEMU（Domiciliary local）KDM">TEMU（Domiciliary local）KDM</option><option value="TEMU（Electronically local）KDM">TEMU（Electronically local）KDM</option><option value="CRRQ">CRRQ</option><option value="美半包2店">美半包2店</option><option value="美半包1店">美半包1店</option></select></div>
                             <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>海外仓单号（OBS出库号）：</label><input type="text" id="order_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="系统生成的唯一单号(领星ERP-运单号)"></div>
                             <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>物流运单号：</label><input type="text" id="tracking_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="头程/尾程物流单号"></div>
                             <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货日期：</label><input type="date" id="ship_date" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required></div>
@@ -1026,9 +1277,7 @@
                 </div>
             </div>
 
-            <!-- 搜索栏 -->
             <header id="top-bar" class="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <!-- 【UI改造】操作按钮组 - 放回原卡片，左对齐 -->
                 <div class="flex gap-2">
                     <button onclick="copyToWeChat()" class="h-10 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-bold flex-shrink-0 flex items-center gap-2 shadow-lg shadow-emerald-200 dark:shadow-none group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M8.5,13.5A1.5,1.5 0 1,1 10,12A1.5,1.5 0 0,1 8.5,13.5M15.5,13.5A1.5,1.5 0 1,1 17,12A1.5,1.5 0 0,1 15.5,13.5M12,2C6.48,2 2,5.58 2,10C2,12.63 3.65,14.95 6.18,16.29C6.03,17.29 5.67,19.34 5.67,19.34C5.67,19.34 7.67,19.12 9.77,17.65C10.5,17.88 11.24,18 12,18C17.52,18 22,14.42 22,10C22,5.58 17.52,2 12,2Z"/></svg>
@@ -1047,8 +1296,20 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                         导出结果
                     </button>
+                    <button onclick="downloadImportTemplate()" class="h-10 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-bold flex-shrink-0 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        下载格式范本
+                    </button>
+                    <label for="importFileInput" class="h-10 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-bold flex-shrink-0 flex items-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        导入数据
+                    </label>
+                    <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleImportFile(event)">
                 </div>
-                <!-- 【UI改造】海外物流官网按钮组 - 放在最右边 -->
                 <div class="flex items-center gap-2">
                     <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">海外物流查询官网：</span>
                     <button onclick="openLogisticsModal('GOFO')" class="h-10 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-bold flex-shrink-0">
@@ -1063,13 +1324,9 @@
                 </div>
             </header>
 
-            <!-- 【高级搜索重构】新的高级搜索面板 - 集成到搜索栏下方、明细列表上方 -->
             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mt-4 transition-all">
-                
-                <!-- 快速搜索层 (Header) - 优化布局：搜索框靠近标题 -->
-                <div class="p-2 md:p-3 flex flex-col md:flex-row items-center gap-3 md:gap-4 border-b border-slate-100 dark:border-slate-700">
-                    <div class="flex items-center gap-3 flex-1">
-                        <!-- 【UI改造】状态筛选按钮组 - 移到搜索输入框左边 -->
+                <div class="p-2 md:p-3 flex flex-col gap-3 md:gap-4 border-b border-slate-100 dark:border-slate-700">
+                    <div class="flex items-center gap-2 md:gap-3 flex-wrap">
                         <div class="flex flex-wrap gap-2 shrink-0">
                             <button 
                                 onclick="switchSubTab('all')" 
@@ -1121,76 +1378,33 @@
                             </button>
                         </div>
                         
-                        <div class="bg-blue-500 dark:bg-blue-600 p-1.5 rounded-lg shadow-md">
+                        <div class="bg-blue-500 dark:bg-blue-600 p-1.5 rounded-lg shadow-md shrink-0">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
                         
-                        <!-- 搜索输入框和按钮 - 移到标题右边 -->
-                        <div class="flex items-center gap-2 flex-1 max-w-7xl">
-                            <div class="relative flex-1 group" style="min-width: 320px;">
-                                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                                <input 
-                                    id="quickSearch"
-                                    type="text"
-                                    placeholder="搜索：海外仓单号、物流运单号、订单SKU"
-                                    class="w-full pl-9 pr-20 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                                    style="min-width: 320px;"
-                                >
-                                <!-- 搜索模式选择下拉框 -->
-                                <select id="searchModeSelect" class="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                    <option value="fuzzy">模糊</option>
-                                    <option value="exact">精准</option>
-                                </select>
-                            </div>
-                            
-                            <!-- 【新增】发货仓、索赔类型、发货日期、申请提交日期 - 移到搜索框和搜索按钮之间 -->
-                            <div class="flex items-center gap-2">
-                                <!-- 发货仓 -->
-                                <select id="quickFilterWarehouse" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[100px]">
-                                    <option value="">全部仓库</option>
-                                    <option value="美西-4仓">美西-4仓</option>
-                                    <option value="美西-2仓">美西-2仓</option>
-                                    <option value="美东-4仓">美东-4仓</option>
-                                    <option value="美西-1仓">美西-1仓</option>
-                                </select>
-                                
-                                <!-- 索赔类型 -->
-                                <select id="quickFilterClaimType" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[120px]">
-                                    <option value="">全部类型</option>
-                                    <option value="货物损坏">货物损坏</option>
-                                    <option value="丢失">丢失</option>
-                                    <option value="延误">延误</option>
-                                    <option value="库存不符">库存不符</option>
-                                    <option value="错发">错发</option>
-                                    <option value="发货数量不符">发货数量不符</option>
-                                </select>
-                                
-                                <!-- 发货日期 -->
-                                <div class="flex items-center gap-1">
-                                    <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">发货日期：</span>
-                                    <input id="quickFilterShipDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
-                                    <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
-                                    <input id="quickFilterShipDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
-                                </div>
-                                
-                                <!-- 申请提交日期 -->
-                                <div class="flex items-center gap-1">
-                                    <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">申请日期：</span>
-                                    <input id="quickFilterEntryDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
-                                    <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
-                                    <input id="quickFilterEntryDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-32">
-                                </div>
-                            </div>
-                            
+                        <div class="relative flex-1 group min-w-0" style="min-width: 200px; max-width: 400px;">
+                            <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input 
+                                id="quickSearch"
+                                type="text"
+                                placeholder="搜索：海外仓单号、物流运单号、订单SKU"
+                                class="w-full pl-9 pr-20 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-700 outline-none transition-all text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                            >
+                            <select id="searchModeSelect" class="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-white dark:bg-slate-600 border border-slate-200 dark:border-slate-500 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                <option value="fuzzy">模糊</option>
+                                <option value="exact">精准</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 shrink-0">
                             <button onclick="handleQuickSearch()" class="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap">
                                 搜索
                             </button>
                             
-                            <!-- 【优化】重置按钮 - 常显示，放在搜索按钮右边 -->
                             <button type="button" onclick="handleResetFilters()" class="flex items-center justify-center gap-1.5 px-4 py-1.5 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all whitespace-nowrap">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -1199,15 +1413,61 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <div class="flex flex-wrap items-center gap-2 lg:gap-2">
+                        <select id="quickFilterStoreBy" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[140px]">
+                            <option value="">全部店铺</option>
+                            <option value="XKY">XKY</option>
+                            <option value="SZ POWCHO【SHEIN】">SZ POWCHO【SHEIN】</option>
+                            <option value="CRQ">CRQ</option>
+                            <option value="TEMU Love pin local【XKY】">TEMU Love pin local【XKY】</option>
+                            <option value="Your love local">Your love local</option>
+                            <option value="TEMU（Domiciliary local）KDM">TEMU（Domiciliary local）KDM</option>
+                            <option value="TEMU（Electronically local）KDM">TEMU（Electronically local）KDM</option>
+                            <option value="CRRQ">CRRQ</option>
+                            <option value="美半包2店">美半包2店</option>
+                            <option value="美半包1店">美半包1店</option>
+                        </select>
+                        
+                        <select id="quickFilterWarehouse" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[100px]">
+                            <option value="">全部仓库</option>
+                            <option value="美西-4仓">美西-4仓</option>
+                            <option value="美西-2仓">美西-2仓</option>
+                            <option value="美东-4仓">美东-4仓</option>
+                            <option value="美西-1仓">美西-1仓</option>
+                        </select>
+                        
+                        <select id="quickFilterClaimType" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[120px]">
+                            <option value="">全部类型</option>
+                            <option value="货物损坏">货物损坏</option>
+                            <option value="丢失">丢失</option>
+                            <option value="延误">延误</option>
+                            <option value="库存不符">库存不符</option>
+                            <option value="错发">错发</option>
+                            <option value="发货数量不符">发货数量不符</option>
+                        </select>
+                        
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">发货日期：</span>
+                            <input id="quickFilterShipDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
+                            <input id="quickFilterShipDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                        </div>
+                        
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">申请日期：</span>
+                            <input id="quickFilterEntryDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
+                            <input id="quickFilterEntryDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 明细列表 -->
             <div class="glass-card flex-1 flex flex-col overflow-hidden min-h-[500px]">
                 <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                     <h3 class="font-bold text-slate-700 dark:text-slate-200">明细列表</h3>
                     <div class="flex items-center gap-3">
-                        <!-- 数据库连接状态指示灯 -->
                         <div class="flex items-center gap-1">
                             <div id="dbStatusIndicator" class="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping relative">
                                 <div class="absolute top-0 left-0 w-full h-full rounded-full bg-green-500 opacity-75"></div>
@@ -1215,7 +1475,6 @@
                             <span class="text-xs text-slate-400">数据库连接状态</span>
                         </div>
                         
-                        <!-- 数据刷新按钮 -->
                         <button id="refreshBtn" onclick="refreshDatabase()" class="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 transition-all flex items-center gap-1">
                             <svg id="refreshIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -1223,7 +1482,6 @@
                             刷新
                         </button>
                         
-                        <!-- 自定义列按钮 -->
                         <button onclick="toggleColumnModal()" class="text-sm text-blue-600 font-bold hover:underline">自定义列</button>
                     </div>
                 </div>
@@ -1312,6 +1570,7 @@
             </div>
 
             <!-- 提交表格弹窗模态框 -->
+            <!-- 注意：此弹窗内嵌腾讯文档iframe，iframe内部会输出Aegis监控日志到控制台，这是正常现象，不影响功能 -->
             <div id="submitFormModalBackdrop" class="submit-form-modal-backdrop hidden">
                 <div class="edit-modal-content">
                     <!-- 卡片头部 -->
@@ -1335,6 +1594,8 @@
                             frameborder="0"
                             class="submit-form-iframe"
                             allow="clipboard-read; clipboard-write"
+                            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+                            title="提交表格表单"
                         ></iframe>
                     </div>
                 </div>
@@ -1569,37 +1830,10 @@
     <script src="suopei_assets/js/logistics.js"></script>
 
     <script>
-        // ============================================
-        // 剩余功能代码（保留在原HTML中，待进一步模块化）
-        // 包含：公告中心、用户管理、登录监控等功能
-        // ============================================
-        
-        // 注意：以下代码中的部分函数已在模块中定义，此处不再重复定义
-        // 已移动到模块的函数：
-        // - $ (DOM缓存工具) → utils.js
-        // - handleError (错误处理) → utils.js
-        // - debounce (防抖) → utils.js
-        // - getCurrentUser → auth.js
-        // - hasPermission → auth.js
-        // - visibleColumns → ui.js (第9行)
-        
-        // ============================================
-        // 剩余功能代码（公告中心、用户管理、登录监控等）
-        // 这些功能暂时保留在HTML中，后续可进一步模块化
-        // ============================================
-
-        // Supabase配置和初始化已在config.js中完成（supabaseClient变量）
-        // getCurrentUser函数已在auth.js中定义
-        // 确保supabaseClient已在config.js中初始化（兼容性检查）
         if (typeof supabaseClient === 'undefined' && typeof SUPABASE_CONFIG !== 'undefined' && typeof supabase !== 'undefined') {
             supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
         }
         
-        // ============================================
-        // 公告中心相关函数（立即定义，确保HTML中的onclick能访问）
-        // ============================================
-        
-        // 切换发布器显示/隐藏（全局函数，供onclick调用）- 立即定义在最前面
         window.togglePublisher = function() {
             const pub = document.getElementById('publisher');
             if (!pub) return;
@@ -1614,31 +1848,21 @@
             }
         };
         
-        // 关闭编辑公告弹窗（全局函数，供onclick调用）
         window.closeEditNoticeModal = function() {
             const modal = document.getElementById('editNoticeModal');
             const form = document.getElementById('editNoticeForm');
             
-            // 关闭弹窗
             modal.classList.remove('active');
-            
-            // 重置表单
             form.reset();
-            
-            // 清空文件输入
             document.getElementById('edit-notice-file').value = '';
-            
-            // 重置文件显示区域
             document.getElementById('edit-file-name-display').textContent = '支持 JPG, PNG, GIF 格式';
         };
         
-        // 编辑公告（全局函数，供onclick调用）
         window.editNotice = async function(id) {
             const client = window.supabaseClient || supabaseClient;
             if (!client) return;
             
             try {
-                // 获取公告数据
                 const { data: notice, error } = await client
                     .from('notices')
                     .select('*')
@@ -1650,12 +1874,10 @@
                     return;
                 }
                 
-                // 填充表单数据
                 document.getElementById('edit-notice-id').value = notice.id;
                 document.getElementById('edit-notice-title').value = notice.title;
                 document.getElementById('edit-notice-content').value = notice.content;
                 
-                // 显示编辑弹窗
                 const modal = document.getElementById('editNoticeModal');
                 modal.classList.add('active');
             } catch (error) {
@@ -1663,55 +1885,46 @@
             }
         };
         
-        // 编辑时的文件选择处理（全局函数，供onchange调用）
         window.handleEditFileSelect = async function(input) {
             if (!input.files || input.files.length === 0) return;
             
             const file = input.files[0];
             
-            // 检查文件类型
             if (!file.type.startsWith('image/')) {
                 showToast('请上传图片文件', 'error');
                 input.value = '';
                 return;
             }
             
-            // 检查文件大小 (5MB)
             if (file.size > 5 * 1024 * 1024) {
                 showToast('图片大小不能超过5MB', 'error');
                 input.value = '';
                 return;
             }
             
-            // 更新文件显示区域
             document.getElementById('edit-file-name-display').textContent = file.name;
         };
         
-        // 保存公告修改（全局函数，供onclick调用）
         window.saveNoticeChanges = async function() {
             const client = window.supabaseClient || supabaseClient;
             if (!client) return;
             
             try {
-                // 1. 获取表单数据
                 const id = document.getElementById('edit-notice-id').value;
                 const title = document.getElementById('edit-notice-title').value;
                 const content = document.getElementById('edit-notice-content').value;
                 const fileInput = document.getElementById('edit-notice-file');
                 
-                // 2. 权限校验 (示例：检查当前用户是否为管理员)
                 const currentUser = getCurrentUser();
                 if (!currentUser || currentUser.role !== 'admin') {
                     showToast('您没有权限修改公告', 'error');
                     return;
                 }
                 
-                // 3. 确认提示
                 if (!confirm('确定要保存修改吗？')) {
                     return;
                 }
                 
-                // 4. 获取原公告数据，用于记录修改历史
                 const { data: originalNotice, error: fetchError } = await client
                     .from('notices')
                     .select('*')
@@ -1720,10 +1933,8 @@
                 
                 if (fetchError) throw fetchError;
                 
-                // 5. 处理图片上传（如果有新图片）
                 let newImageUrl = originalNotice.image_url;
                 if (fileInput.files && fileInput.files.length > 0) {
-                    // 删除旧图片（如果存在）
                     if (originalNotice.image_url) {
                         try {
                             const url = new URL(originalNotice.image_url);
@@ -1738,7 +1949,6 @@
                         }
                     }
                     
-                    // 上传新图片
                     const file = fileInput.files[0];
                     const fileName = `notice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${file.name.split('.').pop()}`;
                     
@@ -1752,7 +1962,6 @@
                         return;
                     }
                     
-                    // 获取图片URL
                     const { data: urlData } = client
                         .storage
                         .from('claim-images')
@@ -1761,26 +1970,24 @@
                     newImageUrl = urlData.publicUrl;
                 }
                 
-                // 6. 更新公告逻辑
-const { data: updatedData, error: updateError } = await client
-    .from('notices')
-    .update({
-        title,
-        content,
-        image_url: newImageUrl,
-        updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select();
+                const { data: updatedData, error: updateError } = await client
+                    .from('notices')
+                    .update({
+                        title,
+                        content,
+                        image_url: newImageUrl,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', id)
+                    .select();
 
-if (updateError) throw updateError;
+                if (updateError) throw updateError;
 
-if (!updatedData || updatedData.length === 0) {
-    showToast('保存失败：数据库权限不足 (RLS拒绝更新)', 'error');
-    return;
-}
+                if (!updatedData || updatedData.length === 0) {
+                    showToast('保存失败：数据库权限不足 (RLS拒绝更新)', 'error');
+                    return;
+                }
                 
-                // 7. 记录修改历史
                 const { error: historyError } = await client
                     .from('notice_history')
                     .insert([{
@@ -1799,27 +2006,15 @@ if (!updatedData || updatedData.length === 0) {
                     // 历史记录失败不影响公告修改，继续执行
                 }
                 
-                // 8. 关闭弹窗
                 window.closeEditNoticeModal();
-                
-                // 9. 重新加载公告列表
                 await window.loadNotices();
-                
-                // 10. 显示成功提示
                 showToast('公告修改成功', 'success');
             } catch (error) {
                 showToast('保存公告修改失败', 'error');
             }
         };
-        
-        // 权限配置已在config.js中定义（PERMISSION_DEFINITIONS）
-        // 此处不再重复声明，直接使用模块中定义的版本
-        
-        // hasPermission 函数已在 auth.js 中定义
-        
-        // 表格列配置已在 config.js 中定义（TABLE_COLUMNS）
-        // 为保持兼容性，创建别名（如果TABLE_COLUMNS未定义，使用默认值）
         const tableColumns = (typeof TABLE_COLUMNS !== 'undefined') ? TABLE_COLUMNS : [
+            { key: 'store_by', label: '所属店铺', minW: '140px', sort: true },
             { key: 'order_no', label: '海外仓单号', minW: '140px', sort: true },
             { key: 'tracking_no', label: '物流运单号', minW: '140px', sort: true },
             { key: 'warehouse', label: '发货仓', minW: '100px', sort: true },
@@ -1859,8 +2054,8 @@ if (!updatedData || updatedData.length === 0) {
                     search: '', // 搜索关键词（快速搜索）
                     searchMode: 'fuzzy', // 搜索模式：fuzzy（模糊）或 exact（精确）
                     searchField: 'all', // 搜索字段：'all'（全部字段）或指定字段名
-                    advancedSearch: null, // 【清理】已废弃，旧的高级搜索面板已删除，现在使用快速筛选系统（advancedFilters）
-                    advancedFilters: null // 【高级搜索重构】高级筛选条件对象
+                    advancedSearch: null,
+                    advancedFilters: null
                 },
                 sorting: {
                     col: 'entry_date', // 排序字段
@@ -1891,56 +2086,34 @@ if (!updatedData || updatedData.length === 0) {
             // 这样可以清除所有缓存和状态，确保数据完全刷新
             location.reload();
         }
-        // isFormDirty 已在 ui.js 中定义，此处不重复声明
-        // lineChartInstance 和 pieChartInstance 已在 charts.js 中定义，此处不重复声明
-        // currentFilteredData 已在 ui.js 中定义，此处不重复声明
-
-        // DOMContentLoaded事件监听已在main.js中定义
-        // 为保持兼容性，检查是否已注册，如果未注册则在此处注册
         if (!document._domContentLoadedRegistered) {
             document.addEventListener('DOMContentLoaded', () => {
-                // 主初始化逻辑已在main.js中完成
-                // 此处仅处理HTML中特有的初始化逻辑
-                
-                // 初始化图片上传模块
                 if (typeof initImageUploadModule === 'function') {
                     initImageUploadModule();
                 }
                 
-                // 加载公告列表
                 if (document.getElementById('notice-list')) {
                     window.loadNotices();
                 }
                 
-                // 【行高优化】从配置中读取行高值并设置CSS变量
                 const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
                 document.documentElement.style.setProperty('--table-row-height', `${rowHeight}px`);
                 
-                // 【高级搜索重构】初始化新的搜索功能
                 initNewSearchFunctions();
                 
-                // 【状态筛选按钮样式改造】初始化状态统计
-                // 延迟加载，确保数据库连接已建立
                 setTimeout(() => {
                     updateStatusCounts();
-                    // 定期更新统计（每30秒）
                     setInterval(updateStatusCounts, 30000);
                 }, 1000);
             });
             document._domContentLoadedRegistered = true;
         }
         
-        /**
-         * 【高级搜索重构】初始化新的搜索功能
-         */
         function initNewSearchFunctions() {
-            // 初始化状态按钮交互
             initFilterStatusButtons();
             
-            // 【优化】移除自动搜索功能，只有点击"搜索"按钮或按回车键时才触发查询，节省流量资源
             const quickSearchInput = document.getElementById('quickSearch');
             if (quickSearchInput) {
-                // 仅保留回车键触发搜索
                 quickSearchInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -1950,11 +2123,9 @@ if (!updatedData || updatedData.length === 0) {
             }
         }
         
-        // 检查Supabase表结构
         async function checkSupabaseTableStructure() {
             if (!supabaseClient) return;
             try {
-                // 获取表信息
                 const { data: tableInfo, error: tableError } = await supabaseClient
                     .from('claims_v2')
                     .select('*')
@@ -1968,77 +2139,168 @@ if (!updatedData || updatedData.length === 0) {
             }
         }
         
-        // 初始化登录表单切换
         function initLoginForms() {
-            document.getElementById('login-tab').addEventListener('click', () => showForm('login'));
-            document.getElementById('register-tab').addEventListener('click', () => showForm('register'));
-            document.getElementById('forgot-password').addEventListener('click', (e) => {
-                e.preventDefault();
-                showForm('reset');
-            });
-            document.getElementById('back-to-login').addEventListener('click', () => showForm('login'));
-            document.getElementById('login-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await handleLogin();
-            });
-            document.getElementById('register-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await handleRegister();
-            });
-            document.getElementById('reset-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await handlePasswordReset();
-            });
+            const showRegister = document.getElementById('showRegister');
+            const showLogin = document.getElementById('showLogin');
+            const forgotPassword = document.getElementById('forgot-password');
+            const backToLogin = document.getElementById('back-to-login');
             
-            // 密码显示/隐藏功能
+            if (showRegister) {
+                showRegister.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof showError === 'function') {
+                        showError('此功能暂停使用');
+                    } else if (typeof showToast === 'function') {
+                        showToast('此功能暂停使用', 'info');
+                    } else {
+                        alert('此功能暂停使用');
+                    }
+                });
+            }
+            
+            if (showLogin) {
+                showLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showForm('login');
+                });
+            }
+            
+            if (forgotPassword) {
+                forgotPassword.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof showError === 'function') {
+                        showError('此功能暂停使用');
+                    } else if (typeof showToast === 'function') {
+                        showToast('此功能暂停使用', 'info');
+                    } else {
+                        alert('此功能暂停使用');
+                    }
+                });
+            }
+            
+            if (backToLogin) {
+                backToLogin.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showForm('login');
+                });
+            }
+            
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const resetForm = document.getElementById('reset-form');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await handleLogin();
+                });
+            }
+            
+            if (registerForm) {
+                registerForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await handleRegister();
+                });
+            }
+            
+            if (resetForm) {
+                resetForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await handlePasswordReset();
+                });
+            }
+            
             initPasswordToggle();
+            loadRememberedCredentials();
+            initRememberMeHandler();
         }
         
-        // 初始化密码显示/隐藏功能
+        function initRememberMeHandler() {
+            const rememberMeCheckbox = document.getElementById('rememberMe');
+            if (rememberMeCheckbox) {
+                rememberMeCheckbox.addEventListener('change', function() {
+                    if (!this.checked) {
+                        localStorage.removeItem('rememberedEmail');
+                        localStorage.removeItem('rememberedPassword');
+                        localStorage.removeItem('rememberMe');
+                    }
+                });
+            }
+        }
+        
+        function loadRememberedCredentials() {
+            const rememberedEmail = localStorage.getItem('rememberedEmail');
+            const rememberedPassword = localStorage.getItem('rememberedPassword');
+            const rememberMe = localStorage.getItem('rememberMe');
+            const rememberMeCheckbox = document.getElementById('rememberMe');
+            
+            if (rememberMe === 'true' && rememberedEmail && rememberedPassword) {
+                const emailInput = document.getElementById('login-email');
+                const passwordInput = document.getElementById('login-password');
+                
+                if (emailInput) {
+                    emailInput.value = rememberedEmail;
+                }
+                if (passwordInput) {
+                    passwordInput.value = rememberedPassword;
+                }
+                if (rememberMeCheckbox) {
+                    rememberMeCheckbox.checked = true;
+                }
+            } else {
+                if (rememberMeCheckbox) {
+                    rememberMeCheckbox.checked = false;
+                }
+            }
+        }
+        
         function initPasswordToggle() {
-            // 登录密码
             const loginPasswordInput = document.getElementById('login-password');
             const loginToggleBtn = document.getElementById('toggle-login-password');
             
-            // 注册密码
             const registerPasswordInput = document.getElementById('register-password');
             const registerToggleBtn = document.getElementById('toggle-register-password');
             
-            // 实现长按显示密码功能的通用函数
             function setupPasswordToggle(passwordInput, toggleBtn) {
-                // 鼠标事件
-                toggleBtn.addEventListener('mousedown', () => {
-                    passwordInput.type = 'text';
-                });
+                if (!passwordInput || !toggleBtn) return;
                 
-                toggleBtn.addEventListener('mouseup', () => {
-                    passwordInput.type = 'password';
-                });
-                
-                toggleBtn.addEventListener('mouseleave', () => {
-                    passwordInput.type = 'password';
-                });
-                
-                // 触摸事件（移动设备支持）- 使用 passive 选项提升性能
-                toggleBtn.addEventListener('touchstart', (e) => {
+                toggleBtn.addEventListener('mousedown', function(e) {
                     e.preventDefault();
                     passwordInput.type = 'text';
-                }, { passive: false }); // passive: false 因为需要 preventDefault
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                });
                 
-                toggleBtn.addEventListener('touchend', (e) => {
+                toggleBtn.addEventListener('mouseup', function(e) {
                     e.preventDefault();
                     passwordInput.type = 'password';
-                }, { passive: false }); // passive: false 因为需要 preventDefault
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                });
+                
+                toggleBtn.addEventListener('mouseleave', function(e) {
+                    passwordInput.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                });
+                
+                toggleBtn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    passwordInput.type = 'text';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                }, { passive: false });
+                
+                toggleBtn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    passwordInput.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                }, { passive: false });
             }
             
-            // 设置密码显示/隐藏功能
-            if (loginPasswordInput && loginToggleBtn) {
-                setupPasswordToggle(loginPasswordInput, loginToggleBtn);
-            }
-            
-            if (registerPasswordInput && registerToggleBtn) {
-                setupPasswordToggle(registerPasswordInput, registerToggleBtn);
-            }
+            setupPasswordToggle(loginPasswordInput, loginToggleBtn);
+            setupPasswordToggle(registerPasswordInput, registerToggleBtn);
         }
         
         // 初始化系统标题同步功能
@@ -2077,15 +2339,58 @@ if (!updatedData || updatedData.length === 0) {
             });
         }
         
-        // 显示特定表单
         function showForm(formType) {
-            document.getElementById('login-form').classList.add('hidden');
-            document.getElementById('register-form').classList.add('hidden');
-            document.getElementById('reset-form').classList.add('hidden');
-            document.getElementById(`${formType}-form`).classList.remove('hidden');
-            if (formType === 'login' || formType === 'register') {
-                document.getElementById('login-tab').className = formType === 'login' ? 'flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300';
-                document.getElementById('register-tab').className = formType === 'register' ? 'flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600' : 'flex-1 py-3 font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300';
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const forgotForm = document.getElementById('forgotForm');
+            
+            if (loginForm) loginForm.style.display = 'none';
+            if (registerForm) registerForm.style.display = 'none';
+            if (forgotForm) forgotForm.style.display = 'none';
+            
+            if (formType === 'login' && loginForm) {
+                loginForm.style.display = 'block';
+            } else if (formType === 'register' && registerForm) {
+                registerForm.style.display = 'block';
+            } else if (formType === 'reset' && forgotForm) {
+                forgotForm.style.display = 'block';
+            }
+            
+            clearMessages();
+        }
+        
+        function clearMessages() {
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+            if (errorMsg) errorMsg.style.display = 'none';
+            if (successMsg) successMsg.style.display = 'none';
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            if (errorElement && errorText) {
+                errorText.textContent = message;
+                errorElement.style.display = 'flex';
+                setTimeout(() => {
+                    if (errorElement) errorElement.style.display = 'none';
+                }, 5000);
+            } else if (typeof showToast === 'function') {
+                showToast(message, 'error');
+            }
+        }
+        
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            const successText = document.getElementById('successText');
+            if (successElement && successText) {
+                successText.textContent = message;
+                successElement.style.display = 'flex';
+                setTimeout(() => {
+                    if (successElement) successElement.style.display = 'none';
+                }, 5000);
+            } else if (typeof showToast === 'function') {
+                showToast(message, 'success');
             }
         }
         
@@ -2255,20 +2560,33 @@ if (!updatedData || updatedData.length === 0) {
             }
         }
         
-        // 处理登录
         async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            const rememberMeCheckbox = document.getElementById('rememberMe');
+            
+            if (!emailInput || !passwordInput) return;
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showError('请填写完整的登录信息');
+                return;
+            }
+            
+            const loginButton = document.getElementById('loginButton');
+            if (loginButton) {
+                loginButton.disabled = true;
+                loginButton.classList.add('btn-loading');
+            }
+            
             try {
                 const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) {
-                    handleError(error, '登录');
+                    showError(error.message || '登录失败，请检查您的凭据');
                 } else {
-                    // [插入点] 登录成功，记录日志
-                    // 需要构建一个临时的 user 对象或等待 authChange 获取
-                    // 这里我们可以等待一下，或者直接用 data.user
                     if (data.user) {
-                        // 获取用户详细信息用于记录角色等
                         const { data: userDetails } = await supabaseClient
                             .from('users_v2')
                             .select('*')
@@ -2281,12 +2599,26 @@ if (!updatedData || updatedData.length === 0) {
                             role: userDetails?.role || 'user'
                         };
                         
-                        // 异步记录，不阻塞跳转
+                        if (rememberMeCheckbox && rememberMeCheckbox.checked) {
+                            localStorage.setItem('rememberedEmail', email);
+                            localStorage.setItem('rememberedPassword', password);
+                            localStorage.setItem('rememberMe', 'true');
+                        } else {
+                            localStorage.removeItem('rememberedEmail');
+                            localStorage.removeItem('rememberedPassword');
+                            localStorage.removeItem('rememberMe');
+                        }
+                        
                         logUserLogin(userInfo);
                     }
                 }
             } catch (error) {
-                handleError(error, '登录');
+                showError(error.message || '登录失败，请稍后重试');
+            } finally {
+                if (loginButton) {
+                    loginButton.disabled = false;
+                    loginButton.classList.remove('btn-loading');
+                }
             }
         }
         
@@ -2350,49 +2682,26 @@ if (!updatedData || updatedData.length === 0) {
             }, 300000);
         }
         
-        // 处理注册
         async function handleRegister() {
-            // 添加断点，阻止注册数据提交到服务器
-            showToast('注册功能已关闭，请联系管理员获取账号', 'info');
-            return;
-            
-            // 以下代码不会执行
-            const username = document.getElementById('register-username').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            
-            const { error } = await supabaseClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { username, role: 'user' }
-                }
-            });
-            
-            if (error) {
-                showToast('注册失败：' + error.message, 'error');
+            if (typeof showError === 'function') {
+                showError('此功能暂停使用');
+            } else if (typeof showToast === 'function') {
+                showToast('此功能暂停使用', 'info');
             } else {
-                showToast('注册成功！请检查邮箱验证账号', 'success');
-                showForm('login');
+                alert('此功能暂停使用');
             }
+            return;
         }
         
-        // 处理密码重置
         async function handlePasswordReset() {
-            // 添加断点，阻止忘记密码数据提交到服务器
-            showToast('密码重置功能已关闭，请联系管理员重置密码', 'info');
-            return;
-            
-            // 以下代码不会执行
-            const email = document.getElementById('reset-email').value;
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.href
-            });
-            if (error) {
-                showToast('发送失败：' + error.message, 'error');
+            if (typeof showError === 'function') {
+                showError('此功能暂停使用');
+            } else if (typeof showToast === 'function') {
+                showToast('此功能暂停使用', 'info');
             } else {
-                showToast('重置链接已发送，请检查邮箱', 'success');
+                alert('此功能暂停使用');
             }
+            return;
         }
         
         // 登出功能
@@ -3283,12 +3592,26 @@ if (!updatedData || updatedData.length === 0) {
                     `;
                 }
                 
+                // 复制按钮（仅对海外仓单号和物流运单号列显示）
+                let copyBtnHtml = '';
+                if (key === 'order_no' || key === 'tracking_no') {
+                    copyBtnHtml = `
+                        <button id="copyBtn_${key}" onclick="event.stopPropagation(); copyColumnData('${key}')" 
+                                class="ml-1 p-0.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors copy-column-btn" 
+                                title="复制已选数据" style="display: none;">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                    `;
+                }
+                
                 // 列宽拖拽句柄
                 const resizableHandle = col.sort || true ? '<div class="vxe-resizable--handle"></div>' : '';
                 
                 return `<th ${col.sort ? `onclick="sortColumn('${key}')"` : ''} class="erp-th vxe-resizable ${col.sort ? 'erp-th-sortable' : ''} ${col.center ? 'text-center' : ''}" style="min-width: ${col.minW}; width: ${col.minW};">
                     <div class="ak-justify-between ak-align-center" style="position: relative;">
-                        <span>${col.label}${sortHtml}</span>
+                        <span>${col.label}${sortHtml}${copyBtnHtml}</span>
                         ${resizableHandle}
                     </div>
                 </th>`;
@@ -3303,6 +3626,11 @@ if (!updatedData || updatedData.length === 0) {
             </th>`;
             
             document.getElementById('tableHeaderRow').innerHTML = checkboxTh + html + actionTh;
+            
+            // 初始化复制按钮的显示状态
+            if (typeof updateCopyButtonsVisibility === 'function') {
+                updateCopyButtonsVisibility();
+            }
             
             // 初始化列宽拖拽功能
             initColumnResize();
@@ -3988,6 +4316,7 @@ if (!updatedData || updatedData.length === 0) {
         cust_name: document.getElementById('cust_name').value, 
         contact_name: document.getElementById('contact_name').value, 
         contact_info: document.getElementById('contact_info').value,
+        store_by: document.getElementById('store_by').value,
         order_no: document.getElementById('order_no').value.trim(), 
         tracking_no: document.getElementById('tracking_no').value, 
         ship_date: document.getElementById('ship_date').value, 
@@ -4130,6 +4459,7 @@ process_status: document.getElementById('process_status').value, remarks: docume
     document.getElementById('cust_name').value = item.cust_name || ''; 
     document.getElementById('contact_name').value = item.contact_name || ''; 
     document.getElementById('contact_info').value = item.contact_info || '';
+    document.getElementById('store_by').value = item.store_by || '';
     document.getElementById('order_no').value = item.order_no || ''; 
     document.getElementById('tracking_no').value = item.tracking_no || ''; 
     document.getElementById('ship_date').value = item.ship_date || '';
@@ -4363,7 +4693,8 @@ document.getElementById('entry_date').value = dateValue;
             const searchModeSelect = document.getElementById('searchModeSelect');
             const searchMode = searchModeSelect ? searchModeSelect.value : 'fuzzy';
             
-            // 【修复】获取快速筛选字段（发货仓、索赔类型、发货日期、申请提交日期）
+            // 【修复】获取快速筛选字段（所属店铺、发货仓、索赔类型、发货日期、申请提交日期）
+            const quickFilterStoreBy = document.getElementById('quickFilterStoreBy')?.value?.trim() || '';
             const quickFilterWarehouse = document.getElementById('quickFilterWarehouse')?.value?.trim() || '';
             const quickFilterClaimType = document.getElementById('quickFilterClaimType')?.value?.trim() || '';
             const quickFilterShipDateStart = document.getElementById('quickFilterShipDateStart')?.value?.trim() || '';
@@ -4372,7 +4703,7 @@ document.getElementById('entry_date').value = dateValue;
             const quickFilterEntryDateEnd = document.getElementById('quickFilterEntryDateEnd')?.value?.trim() || '';
             
             // 检查是否有快速筛选条件
-            const hasQuickFilters = !!(quickFilterWarehouse || quickFilterClaimType || 
+            const hasQuickFilters = !!(quickFilterStoreBy || quickFilterWarehouse || quickFilterClaimType || 
                                      quickFilterShipDateStart || quickFilterShipDateEnd || 
                                      quickFilterEntryDateStart || quickFilterEntryDateEnd);
             
@@ -4392,21 +4723,28 @@ document.getElementById('entry_date').value = dateValue;
             const allFilters = {};
             
             // 【修复】快速筛选字段映射到数据库字段
-            // 1. 发货仓 -> warehouse（对应明细列表中的"发货仓"字段）
+            // 1. 所属店铺 -> store_by（对应明细列表中的"所属店铺"字段）
+            if (quickFilterStoreBy) {
+                // 【修复】确保值完全匹配，去除首尾空格
+                const storeByValue = quickFilterStoreBy.trim();
+                allFilters.store_by = storeByValue;
+            }
+            
+            // 2. 发货仓 -> warehouse（对应明细列表中的"发货仓"字段）
             if (quickFilterWarehouse) {
                 // 【修复】确保值完全匹配，去除首尾空格
                 const warehouseValue = quickFilterWarehouse.trim();
                 allFilters.warehouse = warehouseValue;
             }
             
-            // 2. 索赔类型 -> claim_type（对应明细列表中的"索赔类型"字段）
+            // 3. 索赔类型 -> claim_type（对应明细列表中的"索赔类型"字段）
             if (quickFilterClaimType) {
                 // 【修复】确保值完全匹配，去除首尾空格
                 const claimTypeValue = quickFilterClaimType.trim();
                 allFilters.claim_type = claimTypeValue;
             }
             
-            // 3. 发货日期 -> ship_date（对应明细列表中的"发货日期"字段）
+            // 4. 发货日期 -> ship_date（对应明细列表中的"发货日期"字段）
             if (quickFilterShipDateStart) {
                 allFilters.ship_date_start = quickFilterShipDateStart;
             }
@@ -4414,7 +4752,7 @@ document.getElementById('entry_date').value = dateValue;
                 allFilters.ship_date_end = quickFilterShipDateEnd;
             }
             
-            // 4. 申请提交日期 -> entry_date（对应明细列表中的"申请提交日期"字段）
+            // 5. 申请提交日期 -> entry_date（对应明细列表中的"申请提交日期"字段）
             if (quickFilterEntryDateStart) {
                 allFilters.entry_date_start = quickFilterEntryDateStart;
             }
@@ -4461,7 +4799,10 @@ document.getElementById('entry_date').value = dateValue;
                 quickSearchInput.value = '';
             }
             
-            // 【新增】重置快速筛选字段（发货仓、索赔类型、发货日期、申请提交日期）
+            // 【新增】重置快速筛选字段（所属店铺、发货仓、索赔类型、发货日期、申请提交日期）
+            const quickFilterStoreBy = document.getElementById('quickFilterStoreBy');
+            if (quickFilterStoreBy) quickFilterStoreBy.value = '';
+            
             const quickFilterWarehouse = document.getElementById('quickFilterWarehouse');
             if (quickFilterWarehouse) quickFilterWarehouse.value = '';
             
@@ -4668,12 +5009,561 @@ document.getElementById('entry_date').value = dateValue;
             toast.innerHTML = `<span>${message}</span>`; container.appendChild(toast); setTimeout(() => { toast.classList.remove('toast-enter'); toast.classList.add('toast-exit'); toast.addEventListener('animationend', () => toast.remove()); }, 3000);
         }
         
+        /**
+         * 导出筛选后的数据
+         * 优化：排除 id 列，按照 TABLE_COLUMNS 顺序排列，使用中文表头
+         */
+        /**
+         * 下载导入格式范本
+         * 生成一个包含表头和示例数据的Excel文件，供用户下载作为导入模板
+         * 示例数据中币种统一为"USD"，处理状态统一为"待审核"
+         */
+        function downloadImportTemplate() {
+            // 获取表格列配置（排除隐藏列和 id 列）
+            const exportColumns = (typeof TABLE_COLUMNS !== 'undefined' ? TABLE_COLUMNS : tableColumns).filter(col => 
+                col.key !== 'id' && !col.hidden
+            );
+            
+            // 构建表头（中文）
+            const headers = exportColumns.map(col => col.label);
+            
+            // 构建示例数据行：币种为"USD"，处理状态为"待审核"，其他字段为空
+            const exampleRow = exportColumns.map(col => {
+                if (col.key === 'currency') {
+                    return 'USD';
+                } else if (col.key === 'process_status') {
+                    return '待审核';
+                } else {
+                    return ''; // 其他字段为空，供用户填写
+                }
+            });
+            
+            // 构建工作表数据：表头 + 示例数据行
+            const wsData = [headers, exampleRow];
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // 设置列宽
+            const colWidths = exportColumns.map(col => {
+                const width = parseInt(col.minW) || 15;
+                return { wch: Math.max(width / 8, 10) };
+            });
+            ws['!cols'] = colWidths;
+            
+            // 创建工作簿并添加工作表
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "导入模板");
+            
+            // 导出文件
+            XLSX.writeFile(wb, `索赔数据导入格式范本_${new Date().toLocaleDateString()}.xlsx`);
+            
+            showToast('格式范本下载成功，请按照范本格式填写数据', 'success');
+        }
+
+        // 将 Excel 日期序列号转换为日期字符串
+        function excelSerialToDate(serial) {
+            // Excel 日期序列号从 1900-01-01 开始（但 Excel 错误地认为 1900 是闰年）
+            // 实际应该从 1899-12-30 开始计算
+            const excelEpoch = new Date(1899, 11, 30); // 1899-12-30
+            const millisecondsPerDay = 24 * 60 * 60 * 1000;
+            const date = new Date(excelEpoch.getTime() + (serial - 1) * millisecondsPerDay);
+            return date;
+        }
+        
+        // 转换日期值为标准格式
+        function convertDateValue(value, fieldName) {
+            if (!value && value !== 0) return null;
+            
+            // 如果是数字，可能是 Excel 日期序列号
+            if (typeof value === 'number') {
+                // 检查是否可能是 Excel 日期序列号（通常在 1 到 100000 之间）
+                if (value > 0 && value < 100000) {
+                    try {
+                        const date = excelSerialToDate(value);
+                        if (!isNaN(date.getTime())) {
+                            if (fieldName === 'ship_date') {
+                                return date.toISOString().split('T')[0]; // YYYY-MM-DD
+                            } else if (fieldName === 'entry_date') {
+                                return date.toISOString(); // ISO 格式
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Excel 日期序列号转换失败:', value, e);
+                    }
+                }
+                // 如果不是日期序列号，返回 null
+                return null;
+            }
+            
+            // 如果是 Date 对象
+            if (value instanceof Date) {
+                if (fieldName === 'ship_date') {
+                    return value.toISOString().split('T')[0];
+                } else if (fieldName === 'entry_date') {
+                    return value.toISOString();
+                }
+            }
+            
+            // 如果是字符串
+            if (typeof value === 'string') {
+                // 检查是否是 YYYY-MM-DD 格式
+                const dateMatch = value.match(/^\d{4}-\d{2}-\d{2}/);
+                if (dateMatch) {
+                    if (fieldName === 'ship_date') {
+                        return dateMatch[0];
+                    } else if (fieldName === 'entry_date') {
+                        return new Date(dateMatch[0] + 'T00:00:00').toISOString();
+                    }
+                }
+                
+                // 尝试解析其他日期格式
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                    if (fieldName === 'ship_date') {
+                        return date.toISOString().split('T')[0];
+                    } else if (fieldName === 'entry_date') {
+                        return date.toISOString();
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        /**
+         * 处理导入文件
+         * @param {Event} event - 文件选择事件
+         */
+        async function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 验证文件类型
+            const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+            const validExtensions = ['.xlsx', '.xls'];
+            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+                showToast('请选择Excel文件（.xlsx 或 .xls）', 'error');
+                event.target.value = ''; // 清空文件选择
+                return;
+            }
+            
+            showToast('正在解析文件...', 'info');
+            
+            try {
+                // 读取文件，设置 cellDates 选项以正确解析日期
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { 
+                    type: 'array',
+                    cellDates: true,  // 尝试将日期单元格解析为 Date 对象
+                    cellNF: false,
+                    cellText: false
+                });
+                
+                // 获取第一个工作表
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // 转换为JSON格式，使用 raw: false 以获取格式化后的文本
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                    header: 1,
+                    raw: false,  // 获取格式化后的文本值
+                    defval: ''   // 空单元格的默认值
+                });
+                
+                if (jsonData.length < 2) {
+                    showToast('文件格式错误：至少需要包含表头和数据行', 'error');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // 第一行是表头（中文），需要映射到字段名
+                const headers = jsonData[0];
+                const dataRows = jsonData.slice(1);
+                
+                // 获取表格列配置（用于映射中文表头到字段名）
+                const exportColumns = (typeof TABLE_COLUMNS !== 'undefined' ? TABLE_COLUMNS : tableColumns).filter(col => 
+                    col.key !== 'id' && !col.hidden
+                );
+                
+                // 创建表头映射：中文 -> 字段名
+                const headerMap = {};
+                exportColumns.forEach(col => {
+                    headerMap[col.label] = col.key;
+                });
+                
+                // 验证表头是否匹配
+                const missingHeaders = [];
+                headers.forEach((header, index) => {
+                    if (header && !headerMap[header]) {
+                        missingHeaders.push(`第${index + 1}列: "${header}"`);
+                    }
+                });
+                
+                if (missingHeaders.length > 0) {
+                    showToast(`表头不匹配：${missingHeaders.join(', ')}。请使用格式范本。`, 'error');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // 转换数据：将中文表头映射为字段名
+                const importedData = dataRows
+                    .filter(row => row.some(cell => cell !== undefined && cell !== null && cell !== '')) // 过滤空行
+                    .map((row, rowIndex) => {
+                        const record = {};
+                        headers.forEach((header, colIndex) => {
+                            if (header && headerMap[header]) {
+                                const value = row[colIndex];
+                                const fieldName = headerMap[header];
+                                
+                                // 处理日期字段
+                                if (fieldName === 'ship_date' || fieldName === 'entry_date') {
+                                    const convertedDate = convertDateValue(value, fieldName);
+                                    if (convertedDate) {
+                                        record[fieldName] = convertedDate;
+                                    } else if (value) {
+                                        // 如果转换失败但有值，尝试直接使用（可能是其他格式）
+                                        console.warn(`日期字段 ${fieldName} 转换失败，原值:`, value);
+                                        // 对于日期字段，如果无法转换，设置为 null 而不是无效值
+                                        record[fieldName] = null;
+                                    } else {
+                                        record[fieldName] = null;
+                                    }
+                                } else if (['val_amount', 'claim_qty', 'claim_total', 'claim_ratio'].includes(fieldName)) {
+                                    // 数字字段：空字符串转换为 null，否则转换为数字
+                                    if (value === '' || value === null || value === undefined) {
+                                        record[fieldName] = null;
+                                    } else {
+                                        const numValue = parseFloat(value);
+                                        record[fieldName] = isNaN(numValue) ? null : numValue;
+                                    }
+                                } else {
+                                    // 其他文本字段：保留原值，但空值转为空字符串
+                                    record[fieldName] = value !== undefined && value !== null ? value : '';
+                                }
+                            }
+                        });
+                        
+                        // 生成ID（如果不存在）
+                        if (!record.id) {
+                            record.id = generateUUID();
+                        }
+                        
+                        // 设置默认值
+                        if (!record.process_status) {
+                            record.process_status = '待审核';
+                        }
+                        if (!record.currency) {
+                            record.currency = 'USD';
+                        }
+                        if (!record.claim_ratio) {
+                            record.claim_ratio = '100';
+                        }
+                        if (!record.liable_party) {
+                            record.liable_party = '待核实';
+                        }
+                        if (!record.entry_date) {
+                            record.entry_date = new Date().toISOString();
+                        }
+                        // 客户信息默认值
+                        if (!record.cust_name || String(record.cust_name).trim() === '') {
+                            record.cust_name = '深圳市信凯源科技有限公司';
+                        }
+                        if (!record.contact_name || String(record.contact_name).trim() === '') {
+                            record.contact_name = '沈学章';
+                        }
+                        if (!record.contact_info || String(record.contact_info).trim() === '') {
+                            record.contact_info = 'shenxz1989@foxmail.com';
+                        }
+                        
+                        return record;
+                    });
+                
+                if (importedData.length === 0) {
+                    showToast('文件中没有有效数据', 'error');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // 验证必填字段（只验证 order_no 和 store_by，客户信息已自动填充默认值）
+                const requiredFields = ['order_no', 'store_by'];
+                const invalidRecords = [];
+                
+                importedData.forEach((record, index) => {
+                    const missingFields = requiredFields.filter(field => !record[field] || String(record[field]).trim() === '');
+                    if (missingFields.length > 0) {
+                        invalidRecords.push({
+                            row: index + 2, // +2 因为表头占一行，且从1开始计数
+                            missingFields: missingFields.map(f => {
+                                const col = exportColumns.find(c => c.key === f);
+                                return col ? col.label : f;
+                            })
+                        });
+                    }
+                });
+                
+                if (invalidRecords.length > 0) {
+                    const errorMsg = `以下行缺少必填字段：\n${invalidRecords.map(r => `第${r.row}行：${r.missingFields.join('、')}`).join('\n')}\n\n请补充完整后重新导入，或导入后使用编辑功能补充。`;
+                    if (confirm(errorMsg + '\n\n是否继续导入其他有效数据？')) {
+                        // 过滤掉无效记录
+                        const validData = importedData.filter((record, index) => {
+                            const rowIndex = index + 2;
+                            return !invalidRecords.some(r => r.row === rowIndex);
+                        });
+                        
+                        if (validData.length > 0) {
+                            await importDataToDatabase(validData);
+                        } else {
+                            showToast('没有有效数据可以导入', 'error');
+                        }
+                    }
+                    event.target.value = '';
+                    return;
+                }
+                
+                // 导入数据
+                await importDataToDatabase(importedData);
+                
+                // 清空文件选择
+                event.target.value = '';
+                
+            } catch (error) {
+                console.error('导入文件错误：', error);
+                showToast('导入失败：' + (error.message || '文件格式错误'), 'error');
+                event.target.value = '';
+            }
+        }
+
+        /**
+         * 批量导入数据到数据库
+         * @param {Array} data - 要导入的数据数组
+         */
+        async function importDataToDatabase(data) {
+            if (!data || data.length === 0) {
+                showToast('没有数据需要导入', 'error');
+                return;
+            }
+            
+            showToast(`正在导入 ${data.length} 条数据...`, 'info');
+            
+            try {
+                // 清洗数据：只保留数据库允许的字段，并确保所有必需字段都有值
+                const cleanedData = data.map(record => {
+                    const cleaned = sanitizeDataForSupabase(record);
+                    // 确保每条记录都有 id
+                    if (!cleaned.id) {
+                        cleaned.id = generateUUID();
+                    }
+                    // 确保所有必需字段都存在（即使为空字符串也要保留）
+                    const requiredFields = ['cust_name', 'contact_name', 'contact_info', 'store_by', 'order_no'];
+                    requiredFields.forEach(field => {
+                        if (!cleaned.hasOwnProperty(field)) {
+                            // 如果字段不存在，设置默认值
+                            if (field === 'cust_name') cleaned.cust_name = '深圳市信凯源科技有限公司';
+                            else if (field === 'contact_name') cleaned.contact_name = '沈学章';
+                            else if (field === 'contact_info') cleaned.contact_info = 'shenxz1989@foxmail.com';
+                            else cleaned[field] = '';
+                        }
+                    });
+                    return cleaned;
+                });
+                
+                // 调试：打印第一条数据用于检查
+                if (cleanedData.length > 0) {
+                    console.log('准备导入的数据示例（第一条）：', cleanedData[0]);
+                    console.log('数据字段列表：', Object.keys(cleanedData[0]));
+                    console.log('数据字段数量：', Object.keys(cleanedData[0]).length);
+                }
+                
+                // 检查是否有重复的海外仓单号
+                const orderNos = cleanedData.map(r => r.order_no).filter(Boolean);
+                const duplicateOrderNos = orderNos.filter((no, index) => orderNos.indexOf(no) !== index);
+                
+                if (duplicateOrderNos.length > 0) {
+                    const uniqueDuplicates = [...new Set(duplicateOrderNos)];
+                    if (!confirm(`检测到重复的海外仓单号：${uniqueDuplicates.join('、')}\n\n是否继续导入？`)) {
+                        return;
+                    }
+                }
+                
+                // 检查数据库中是否已存在相同的海外仓单号（批量查询优化）
+                const orderNosToCheck = cleanedData.map(r => r.order_no).filter(Boolean);
+                if (orderNosToCheck.length > 0) {
+                    const { data: existingRecords } = await supabaseClient
+                        .from('claims_v2')
+                        .select('order_no')
+                        .in('order_no', orderNosToCheck);
+                    
+                    const existingOrderNos = existingRecords ? existingRecords.map(r => r.order_no) : [];
+                    
+                    if (existingOrderNos.length > 0) {
+                        const uniqueExisting = [...new Set(existingOrderNos)];
+                        if (!confirm(`以下海外仓单号已存在：${uniqueExisting.join('、')}\n\n是否跳过这些记录继续导入？`)) {
+                            return;
+                        }
+                        // 过滤掉已存在的记录
+                        const filteredData = cleanedData.filter(record => 
+                            !record.order_no || !uniqueExisting.includes(record.order_no)
+                        );
+                        cleanedData.length = 0;
+                        cleanedData.push(...filteredData);
+                    }
+                }
+                
+                if (cleanedData.length === 0) {
+                    showToast('没有新数据需要导入', 'info');
+                    return;
+                }
+                
+                // 批量插入数据（Supabase支持批量插入，但建议分批处理以避免超时）
+                const batchSize = 50; // 每批50条
+                let totalInserted = 0;
+                let allInsertedData = [];
+                let hasError = false;
+                let lastError = null;
+                
+                for (let i = 0; i < cleanedData.length; i += batchSize) {
+                    const batch = cleanedData.slice(i, i + batchSize);
+                    
+                    // 验证批次数据：确保每条记录都有必需的字段
+                    const validBatch = batch.filter(record => {
+                        // 验证必需字段
+                        if (!record.id) {
+                            console.warn('记录缺少 id 字段，已自动生成');
+                            record.id = generateUUID();
+                        }
+                        if (!record.order_no || String(record.order_no).trim() === '') {
+                            console.warn('记录缺少 order_no 字段，跳过：', record);
+                            return false;
+                        }
+                        return true;
+                    });
+                    
+                    if (validBatch.length === 0) {
+                        console.warn(`第${Math.floor(i / batchSize) + 1}批没有有效数据，跳过`);
+                        continue;
+                    }
+                    
+                    // 调试：打印批次数据
+                    console.log(`准备插入第${Math.floor(i / batchSize) + 1}批数据，共${validBatch.length}条（原始${batch.length}条）`);
+                    if (validBatch.length > 0) {
+                        console.log('批次第一条数据示例：', validBatch[0]);
+                    }
+                    
+                    const { data: insertedData, error } = await supabaseClient
+                        .from('claims_v2')
+                        .insert(validBatch)
+                        .select();
+                    
+                    if (error) {
+                        console.error(`批量导入错误（第${Math.floor(i / batchSize) + 1}批）：`, error);
+                        console.error('错误详情：', JSON.stringify(error, null, 2));
+                        console.error('失败的数据批次（前3条）：', validBatch.slice(0, 3));
+                        hasError = true;
+                        lastError = error;
+                        showToast(`导入部分失败：第${Math.floor(i / batchSize) + 1}批数据导入失败 - ${error.message}`, 'error');
+                        continue;
+                    }
+                    
+                    if (insertedData && insertedData.length > 0) {
+                        console.log(`第${Math.floor(i / batchSize) + 1}批成功插入 ${insertedData.length} 条数据`);
+                        allInsertedData.push(...insertedData);
+                        totalInserted += insertedData.length;
+                    } else {
+                        console.warn(`第${Math.floor(i / batchSize) + 1}批插入完成，但没有返回数据。可能原因：1. 数据已存在 2. 数据格式错误`);
+                    }
+                }
+                
+                const insertedData = allInsertedData;
+                
+                // 检查是否有错误
+                if (hasError && lastError) {
+                    console.error('导入过程中发生错误：', lastError);
+                    if (insertedData && insertedData.length > 0) {
+                        showToast(`部分导入成功：${insertedData.length} 条数据已导入，但有部分失败`, 'error');
+                    } else {
+                        showToast(`导入失败：${lastError.message}`, 'error');
+                        return;
+                    }
+                }
+                
+                // 更新本地数据库
+                if (insertedData && insertedData.length > 0) {
+                    console.log(`总共成功导入 ${insertedData.length} 条数据到数据库`);
+                    insertedData.forEach(record => {
+                        database.unshift(record);
+                    });
+                    localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+                    
+                    // 刷新数据列表
+                    if (typeof window.fetchTableData === 'function') {
+                        await window.fetchTableData(false, true); // 强制刷新
+                    }
+                    
+                    // 更新看板视图
+                    if (typeof renderKanban === 'function') {
+                        renderKanban();
+                    }
+                    
+                    showToast(`成功导入 ${insertedData.length} 条数据！`, 'success');
+                } else {
+                    console.warn('导入完成，但没有数据被插入。可能的原因：1. 所有数据都已存在 2. 数据格式错误 3. 数据库插入失败');
+                    showToast('导入完成，但没有数据被插入。请检查控制台日志查看详情', 'error');
+                }
+                
+            } catch (error) {
+                console.error('导入数据错误：', error);
+                showToast('导入失败：' + (error.message || '未知错误'), 'error');
+            }
+        }
+
         function exportFilteredData() { 
             const dataToExport = currentFilteredData.length > 0 ? currentFilteredData : [];
             if(dataToExport.length === 0) return showToast('当前没有可导出的数据', 'error');
-            const ws = XLSX.utils.json_to_sheet(dataToExport); const wb = XLSX.utils.book_new();
+            
+            // 获取表格列配置（排除隐藏列和 id 列）
+            const exportColumns = (typeof TABLE_COLUMNS !== 'undefined' ? TABLE_COLUMNS : tableColumns).filter(col => 
+                col.key !== 'id' && !col.hidden
+            );
+            
+            // 构建表头（中文）
+            const headers = exportColumns.map(col => col.label);
+            
+            // 构建数据行，按照 TABLE_COLUMNS 的顺序
+            const rows = dataToExport.map(item => {
+                return exportColumns.map(col => {
+                    const value = item[col.key];
+                    // 日期字段格式化：只显示日期部分
+                    if ((col.key === 'ship_date' || col.key === 'entry_date') && value) {
+                        const dateStr = String(value);
+                        return dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr;
+                    }
+                    return value || '';
+                });
+            });
+            
+            // 构建工作表数据：表头 + 数据行
+            const wsData = [headers, ...rows];
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // 设置列宽（可选，根据 minW 设置）
+            const colWidths = exportColumns.map(col => {
+                // 将 minW 转换为数字（去掉 px）
+                const width = parseInt(col.minW) || 15;
+                return { wch: Math.max(width / 8, 10) }; // 转换为 Excel 列宽单位
+            });
+            ws['!cols'] = colWidths;
+            
+            // 创建工作簿并添加工作表
+            const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "索赔清单"); 
             XLSX.writeFile(wb, `索赔清单_导出_${new Date().toLocaleDateString()}.xlsx`);
+            
+            showToast(`成功导出 ${dataToExport.length} 条数据`, 'success');
         }
         
         function exportSingleExcel(data) { 
@@ -4684,7 +5574,8 @@ document.getElementById('entry_date').value = dateValue;
                 [null, "客户信息", "客户名称 (公司全称)", data.cust_name, "客户", "必填项", null, null, null],
                 [null, null, "联系人", data.contact_name, "客户", "必填项", null, null, null],
                 [null, null, "联系方式", data.contact_info, "客户", "必填项", null, null, null],
-                [null, "订单信息", "海外仓单号", data.order_no, "客户", "必填项", null, null, null],
+                [null, "订单信息", "所属店铺", data.store_by, "客户", "必填项", null, null, null],
+                [null, null, "海外仓单号", data.order_no, "客户", "必填项", null, null, null],
                 [null, null, "物流运单号", data.tracking_no, "客户", "必填项", null, null, null],
                 [null, null, "发货日期", data.ship_date, "客户", "必填项", null, null, null],
                 [null, null, "订单SKU", data.sku, "客户", "必填项", null, null, null],
@@ -4705,7 +5596,7 @@ document.getElementById('entry_date').value = dateValue;
             ws['!merges'] = [
                 { s: {r: 0, c: 1}, e: {r: 0, c: 4} }, 
                 { s: {r: 2, c: 1}, e: {r: 4, c: 1} }, 
-                { s: {r: 5, c: 1}, e: {r: 9, c: 1} }, 
+                { s: {r: 5, c: 1}, e: {r: 10, c: 1} }, 
                 { s: {r: 10, c: 1}, e: {r: 12, c: 1} }, 
                 { s: {r: 13, c: 1}, e: {r: 16, c: 1} }, 
                 { s: {r: 17, c: 1}, e: {r: 20, c: 1} }
@@ -4727,7 +5618,7 @@ document.getElementById('entry_date').value = dateValue;
     };
 }
             XLSX.utils.book_append_sheet(wb, ws, "申请表");
-            XLSX.writeFile(wb, `索赔单_${data.order_no}.xlsx`); 
+            XLSX.writeFile(wb, `索赔单_${data.order_no}_${data.claim_total}.xlsx`); 
         }
 
         // --- 公告中心逻辑 ---
@@ -5196,6 +6087,133 @@ document.getElementById('entry_date').value = dateValue;
             document.body.removeChild(textArea);
         }
 
+        /**
+         * 复制列数据
+         * 获取当前显示的所有行的指定列数据，用换行符分隔后复制到剪贴板
+         * @param {string} columnKey - 列字段名（如 'order_no' 或 'tracking_no'）
+         */
+        function copyColumnData(columnKey) {
+            // 获取当前显示的数据
+            const currentData = (typeof ListState !== 'undefined' && ListState.data) ? ListState.data : [];
+            
+            if (currentData.length === 0) {
+                showToast('当前没有可复制的数据', 'error');
+                return;
+            }
+            
+            // 检查是否全选
+            const selectAllBox = document.getElementById('selectAll');
+            const rowBoxes = document.querySelectorAll('.row-checkbox');
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const isAllSelected = selectAllBox && selectAllBox.checked && checkedBoxes.length === rowBoxes.length;
+            
+            let dataToCopy = [];
+            let dataCount = 0;
+            
+            if (isAllSelected) {
+                // 全选状态：复制整列数据
+                dataToCopy = currentData;
+                dataCount = currentData.length;
+            } else {
+                // 部分选择：只复制已选数据
+                if (checkedBoxes.length === 0) {
+                    showToast('请先勾选需要复制的数据行', 'error');
+                    return;
+                }
+                
+                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value).filter(id => id);
+                dataToCopy = currentData.filter(item => selectedIds.includes(item.id));
+                dataCount = dataToCopy.length;
+            }
+            
+            // 提取指定列的值
+            const columnValues = dataToCopy.map(item => {
+                const value = item[columnKey];
+                // 如果值是日期类型，格式化显示
+                if (columnKey === 'ship_date' || columnKey === 'entry_date') {
+                    if (value) {
+                        // 如果是ISO格式日期，只取日期部分
+                        const dateStr = String(value);
+                        return dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr;
+                    }
+                    return '';
+                }
+                return value || '';
+            });
+            
+            // 用换行符连接所有值
+            const clipboardText = columnValues.join('\n');
+            
+            // 获取列名用于提示
+            const colConfig = (typeof TABLE_COLUMNS !== 'undefined') ? 
+                TABLE_COLUMNS.find(c => c.key === columnKey) : null;
+            const columnLabel = colConfig ? colConfig.label : columnKey;
+            
+            // 复制到剪贴板
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(clipboardText).then(() => {
+                    const message = isAllSelected ? 
+                        `成功复制 ${dataCount} 条${columnLabel}数据到剪贴板！` : 
+                        `成功复制 ${dataCount} 条已选${columnLabel}数据到剪贴板！`;
+                    showToast(message, 'success');
+                }).catch(err => {
+                    fallbackCopyColumnData(clipboardText, dataCount, columnLabel);
+                });
+            } else {
+                fallbackCopyColumnData(clipboardText, dataCount, columnLabel);
+            }
+        }
+        
+        /**
+         * 更新复制按钮的显示/隐藏状态
+         */
+        function updateCopyButtonsVisibility() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const hasSelection = checkedBoxes.length > 0;
+            
+            // 更新所有复制按钮的显示状态
+            const copyButtons = document.querySelectorAll('.copy-column-btn');
+            copyButtons.forEach(btn => {
+                if (hasSelection) {
+                    btn.style.display = 'inline-block';
+                } else {
+                    btn.style.display = 'none';
+                }
+            });
+        }
+
+        /**
+         * 兼容性复制列数据函数
+         * @param {string} text - 要复制的文本
+         * @param {number} count - 数据条数
+         * @param {string} columnLabel - 列名
+         */
+        function fallbackCopyColumnData(text, count, columnLabel) {
+            var textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                var successful = document.execCommand('copy');
+                if(successful) {
+                    showToast(`成功复制 ${count} 条${columnLabel}数据到剪贴板！`, 'success');
+                } else {
+                    showToast('复制失败，请手动复制', 'error');
+                }
+            } catch (err) {
+                showToast('复制失败，请手动复制', 'error');
+            }
+
+            document.body.removeChild(textArea);
+        }
+
         // --- 全选/反选逻辑 ---
         function toggleSelectAll() {
             const selectAllBox = document.getElementById('selectAll');
@@ -5205,6 +6223,8 @@ document.getElementById('entry_date').value = dateValue;
             if (typeof updateBatchActionBar === 'function') {
                 updateBatchActionBar();
             }
+            // 更新复制按钮的显示/隐藏状态
+            updateCopyButtonsVisibility();
         }
 
         // --- 单个勾选更新全选框状态 ---
@@ -5229,6 +6249,8 @@ document.getElementById('entry_date').value = dateValue;
             if (typeof updateBatchActionBar === 'function') {
                 updateBatchActionBar();
             }
+            // 更新复制按钮的显示/隐藏状态
+            updateCopyButtonsVisibility();
         }
 
         // ============================================
@@ -5265,6 +6287,9 @@ document.getElementById('entry_date').value = dateValue;
             if (typeof updateBatchActionBar === 'function') {
                 updateBatchActionBar();
             }
+            
+            // 更新复制按钮的显示/隐藏状态
+            updateCopyButtonsVisibility();
         }
 
         /**
@@ -5492,8 +6517,8 @@ document.getElementById('entry_date').value = dateValue;
             if (!data || data.length === 0) return '';
             
             // 定义列头（中文）
-            const headers = ['海外仓单号', '物流运单号', '发货仓', '发货日期', '订单SKU', '索赔类型', '问题描述', '货物声明价值', '索赔数量', '总赔偿金额', '币种', '处理状态', '申请提交日期'];
-            const keys = ['order_no', 'tracking_no', 'warehouse', 'ship_date', 'sku', 'claim_type', 'description', 'val_amount', 'claim_qty', 'claim_total', 'currency', 'process_status', 'entry_date'];
+            const headers = ['所属店铺', '海外仓单号', '物流运单号', '发货仓', '发货日期', '订单SKU', '索赔类型', '问题描述', '货物声明价值', '索赔数量', '总赔偿金额', '币种', '处理状态', '申请提交日期'];
+            const keys = ['store_by', 'order_no', 'tracking_no', 'warehouse', 'ship_date', 'sku', 'claim_type', 'description', 'val_amount', 'claim_qty', 'claim_total', 'currency', 'process_status', 'entry_date'];
             
             // 构建CSV内容
             let csv = headers.join(',') + '\n';

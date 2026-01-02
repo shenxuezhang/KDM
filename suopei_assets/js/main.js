@@ -17,8 +17,8 @@ const ListState = {
         type: 'all',
         search: '',              // 搜索关键词
         searchMode: 'fuzzy',     // 搜索模式：fuzzy（模糊）或 exact（精确）
-        searchField: 'order_tracking_sku', // 【优化】默认只搜索：海外仓单号(order_no)、物流运单号(tracking_no)、订单SKU(sku)
-        advancedSearch: null     // 【清理】已废弃，旧的高级搜索面板已删除，现在使用快速筛选系统（advancedFilters）
+        searchField: 'order_tracking_sku',
+        advancedSearch: null
     },
     sorting: {
         col: 'entry_date',
@@ -86,13 +86,10 @@ class VirtualScrollManager {
         this.eventListeners = new Map();
         this.delegationHandler = null;
         
-        // 【性能优化】节流和防抖相关
         this.scrollThrottleTimer = null;
         this.renderAnimationFrame = null;
         this.lastRenderTime = 0;
-        this.renderInterval = 16; // 约60fps的渲染间隔
-        
-        // 【增量数据加载优化】滚动速度监测和动态触发距离
+        this.renderInterval = 16;
         this.lastScrollTop = 0;
         this.lastScrollTime = Date.now();
         this.scrollVelocity = 0; // 滚动速度（px/ms）
@@ -125,12 +122,10 @@ class VirtualScrollManager {
     }
     
     bindEvents() {
-        // 【性能优化】使用节流优化滚动事件处理
         this.boundHandleScroll = (e) => {
             const now = Date.now();
             const currentScrollTop = e.target.scrollTop;
             
-            // 【增量数据加载优化】计算滚动速度
             const timeDelta = now - this.lastScrollTime;
             if (timeDelta > 0) {
                 const scrollDelta = Math.abs(currentScrollTop - this.lastScrollTop);
@@ -140,7 +135,6 @@ class VirtualScrollManager {
             this.lastScrollTime = now;
             this.scrollTop = currentScrollTop;
             
-            // 节流：限制更新频率
             if (now - this.lastRenderTime < this.renderInterval) {
                 if (this.scrollThrottleTimer) {
                     cancelAnimationFrame(this.scrollThrottleTimer);
@@ -200,7 +194,6 @@ class VirtualScrollManager {
     }
 
     updateRenderRange() {
-        // 【修复】检查容器是否存在，避免在非数据视图时操作不存在的DOM
         if (!this.container || !this.container.parentElement) {
             return;
         }
@@ -223,7 +216,6 @@ class VirtualScrollManager {
             this.startIndex = newStartIndex;
             this.endIndex = newEndIndex;
             
-            // 小范围滚动时使用增量更新，避免全量重渲染造成闪烁
             if (oldStartIndex !== -1 && 
                 Math.abs(newStartIndex - oldStartIndex) < this.visibleCount * 2 &&
                 Math.abs(newEndIndex - oldEndIndex) < this.visibleCount * 2) {
@@ -235,12 +227,8 @@ class VirtualScrollManager {
     }
     
     renderVisibleItems() {
-        // 【删除】删除了此处原本用于过滤 ListState.filters.status 的一大段 if 逻辑
-        // 直接使用 this.data，因为 this.data 已经是来自 database.js 的正确数据
-        
         const visibleData = this.data.slice(this.startIndex, this.endIndex);
         
-        // 使用实际数据长度计算 spacer，totalItems 仅用于分页计算
         const actualDataLength = this.data ? this.data.length : 0;
         const topHeight = this.startIndex * this.itemHeight;
         const bottomHeight = (actualDataLength - this.endIndex) * this.itemHeight;
@@ -252,7 +240,6 @@ class VirtualScrollManager {
         this.topSpacer.innerHTML = `<td colspan="${actualColspan}" style="padding:0; border:none;"></td>`;
         this.bottomSpacer.innerHTML = `<td colspan="${actualColspan}" style="padding:0; border:none;"></td>`;
 
-        // 【性能优化】批量移除DOM节点
         const rows = Array.from(this.container.children);
         const fragmentForPool = document.createDocumentFragment();
         rows.forEach(node => {
@@ -264,7 +251,6 @@ class VirtualScrollManager {
             }
         });
 
-        // 【性能优化】使用 DocumentFragment 批量插入
         const fragment = document.createDocumentFragment();
         
         visibleData.forEach((item, index) => {
@@ -273,9 +259,7 @@ class VirtualScrollManager {
             fragment.appendChild(tr);
         });
 
-        // 【修复】检查容器和bottomSpacer是否存在，避免在非数据视图时操作不存在的DOM
         if (!this.container || !this.bottomSpacer || !this.container.contains(this.bottomSpacer)) {
-            console.warn('VirtualScrollManager: 容器或bottomSpacer不存在，跳过DOM操作');
             return;
         }
         
@@ -288,7 +272,6 @@ class VirtualScrollManager {
      * @param {number} oldEndIndex - 旧的结束索引
      */
     renderVisibleItemsIncremental(oldStartIndex, oldEndIndex) {
-        // 使用实际数据长度计算 spacer，totalItems 仅用于分页计算
         const actualDataLength = this.data ? this.data.length : 0;
         const topHeight = this.startIndex * this.itemHeight;
         const bottomHeight = (actualDataLength - this.endIndex) * this.itemHeight;
@@ -332,9 +315,7 @@ class VirtualScrollManager {
         });
 
         if (fragment.hasChildNodes()) {
-            // 【修复】检查容器和bottomSpacer是否存在，避免在非数据视图时操作不存在的DOM
             if (!this.container || !this.bottomSpacer || !this.container.contains(this.bottomSpacer)) {
-                console.warn('VirtualScrollManager: 容器或bottomSpacer不存在，跳过DOM操作');
                 return;
             }
             
@@ -373,10 +354,6 @@ class VirtualScrollManager {
     }
     
     renderRowContent(tr, item) {
-        // 【删除】删除了此处检查 item.process_status 是否匹配的逻辑
-        // 如果数据源是对的，不需要在这里隐藏行
-        
-        // 从配置中获取行高值
         const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
         const rowHeightPx = `${rowHeight}px`;
         
@@ -385,11 +362,8 @@ class VirtualScrollManager {
         TABLE_COLUMNS.forEach(col => colConfigs[col.key] = col);
         const cells = [];
         
-        // 【搜索功能增强】获取搜索关键词用于高亮
         const searchTerm = ListState.filters.search || '';
         const shouldHighlight = searchTerm.trim() && ListState.filters.searchMode !== 'exact';
-        
-        // 【vxe-table风格】复选框列（固定左侧）- 行高优化
         const checkboxTd = document.createElement('td');
         checkboxTd.className = 'erp-td text-center col--checkbox is--fixed-left';
         checkboxTd.style.width = '48px';
@@ -415,23 +389,26 @@ class VirtualScrollManager {
             td.style.minWidth = col.minW;
             let content = item[key] || '';
             let style = '';
-            let plainText = ''; // 用于 title 属性的纯文本内容
+            let plainText = '';
             
-            // 【日期显示优化】发货日期和申请提交日期只显示日期，不显示时间
             if (key === 'entry_date' || key === 'ship_date') {
-                // 使用 formatDateDisplay 只显示日期部分（YYYY-MM-DD）
                 content = (typeof formatDateDisplay !== 'undefined') ? formatDateDisplay(content) : formatDateTimeDisplay(content).split(' ')[0];
                 plainText = content;
             } else if (key === 'created_at') {
-                // created_at 保留完整日期时间显示
                 content = formatDateTimeDisplay(content);
                 plainText = content;
+            } else if (key === 'store_by') {
+                plainText = String(content || '');
+                if (content && content.trim()) {
+                    content = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 text-emerald-700 dark:text-emerald-200 border border-emerald-200/60 dark:border-emerald-700/40 shadow-sm hover:shadow transition-shadow">${content}</span>`;
+                } else {
+                    content = '<span class="text-slate-400 dark:text-slate-500 text-xs">-</span>';
+                }
             } else if (key === 'order_no') {
                 style = 'font-bold text-blue-600';
                 plainText = String(content || '');
             } else if (key === 'process_status') {
                 content = getStatusBadge(content);
-                // 提取状态徽章中的纯文本（去除HTML标签）
                 plainText = String(item[key] || '');
             } else if (key === 'val_amount' || key === 'claim_total') {
                 if (hasPermission('can_view_money')) {
@@ -445,19 +422,15 @@ class VirtualScrollManager {
                     style = 'font-bold text-slate-400';
                 }
             } else if (key === 'description') {
-                // description 字段使用多行截断
                 plainText = String(content || '');
                 content = `<div class="twoLines" style="max-width: 200px;">${content}</div>`;
             } else {
-                // 其他文本字段
                 plainText = String(content || '');
-                // 如果内容较长，使用单行截断
                 if (content && typeof content === 'string' && content.length > 0) {
                     content = `<div class="oneLine">${content}</div>`;
                 }
             }
             
-            // 【搜索功能增强】搜索结果高亮显示（仅在模糊搜索模式下）
             if (shouldHighlight && content && typeof content === 'string' && !content.includes('<')) {
                 content = highlightSearchTerm(content, searchTerm);
             }
@@ -468,22 +441,17 @@ class VirtualScrollManager {
             td.style.width = col.minW;
             td.style.height = rowHeightPx;
             
-            // 【文本截断提示优化】为所有可能被截断的单元格添加 title 属性
-            // 使用浏览器原生的 title 属性，当鼠标悬停时显示完整文本
             if (plainText && plainText.trim()) {
                 td.title = plainText;
             }
             
-            // 【行高优化】为单元格内容添加vxe-cell包装，设置max-height限制
             const cellWrapper = document.createElement('div');
             cellWrapper.className = 'vxe-cell';
             cellWrapper.style.maxHeight = rowHeightPx;
             
-            // 根据内容类型添加相应的截断类
             if (key === 'description') {
                 cellWrapper.className += ' twoLines';
             } else if (plainText && plainText.length > 0 && typeof plainText === 'string') {
-                // 为所有文本字段添加截断类，确保文本被截断时能显示 title 提示
                 cellWrapper.className += ' oneLine col--ellipsis';
             }
             
@@ -491,8 +459,6 @@ class VirtualScrollManager {
             td.appendChild(cellWrapper);
             cells.push(td);
         });
-        
-        // 【vxe-table风格】操作列（固定右侧）- 行高优化
         const actionTd = document.createElement('td');
         actionTd.className = 'erp-td pr-6 text-center is--fixed-right';
         actionTd.style.width = '120px';
@@ -659,9 +625,7 @@ class VirtualScrollManager {
     // 【防闪烁优化】保存滚动位置，使用 requestAnimationFrame 确保平滑渲染
     // 【修复】增加 forceRefresh 参数，强制刷新时立即渲染
     updateData(newData, totalItems, forceRefresh = false) {
-        // 【修复】检查容器是否存在，避免在非数据视图时操作不存在的DOM
         if (!this.container || !this.container.parentElement) {
-            console.warn('VirtualScrollManager: 容器不存在，跳过数据更新');
             return;
         }
         
@@ -1169,31 +1133,23 @@ function calculateStats(data) {
     return stats;
 }
 
-// 修改 main.js 中的 renderDatabase 函数签名，增加 resetScroll 参数
 /**
- * 渲染数据库列表 - 修复版
+ * 渲染数据列表
  * @param {boolean} resetScroll - 是否强制重置滚动条和虚拟DOM
  */
 function renderDatabase(resetScroll = false) {
-    // 【修复】检查当前视图，只在数据列表视图执行渲染，避免在用户管理页面等触发错误
     const dataView = document.getElementById('view-data');
     if (!dataView || dataView.classList.contains('hidden')) {
-        // 当前不在数据列表视图，直接返回，避免操作不存在的DOM
         return;
     }
     
-    // 【骨架屏】在渲染真实数据前，确保骨架屏已隐藏
     if (typeof hideSkeletonTable === 'function') {
         hideSkeletonTable();
     }
     
     const data = ListState.data;
-    
-    // 【修复】移除此处所有的 currentFilteredData 逻辑和 filter 逻辑
-    // 我们完全信任 database.js 传过来的 ListState.data
     currentFilteredData = data; 
 
-    // 更新排序图标 (保持原样)
     document.querySelectorAll('[id^="sort-icon-"]').forEach(el => {
         el.innerText = '↕';
         el.className = 'ml-1 opacity-30 text-[10px]';
@@ -1204,7 +1160,6 @@ function renderDatabase(resetScroll = false) {
         activeIcon.className = 'ml-1 opacity-100 text-blue-600';
     }
 
-    // 重置全选框
     const selectAllBox = document.getElementById('selectAll');
     if (selectAllBox) {
         selectAllBox.checked = false;
@@ -1213,12 +1168,9 @@ function renderDatabase(resetScroll = false) {
 
     const container = document.getElementById('dbContent');
     
-    // 【骨架屏】处理空数据状态 - 确保骨架屏已清除
     if (data.length === 0) {
-        // 【骨架屏】空数据时确保清除骨架屏（已在函数开头处理，这里再次确保）
         container.innerHTML = '';
         document.getElementById('emptyState').classList.remove('hidden');
-        // 如果没有数据，销毁虚拟滚动管理器
         if (virtualScrollManager) {
             virtualScrollManager.destroy();
             virtualScrollManager = null;
@@ -1227,23 +1179,18 @@ function renderDatabase(resetScroll = false) {
     } else {
         document.getElementById('emptyState').classList.add('hidden');
         
-        // 【核心修复】如果是强制重置 (resetScroll) 或者管理器不存在，则重新创建
-        // 【修复】由于 showSkeletonTable() 会销毁 VirtualScrollManager，所以这里总是需要重新创建
         if (resetScroll || !virtualScrollManager) {
-            if (virtualScrollManager) virtualScrollManager.destroy(); // 先销毁旧的
+            if (virtualScrollManager) virtualScrollManager.destroy();
             
-            container.innerHTML = ''; // 清空容器 DOM（包括骨架屏）
+            container.innerHTML = '';
             container.style.overflowY = 'auto';
             container.style.height = 'calc(100vh - 400px)';
             
-            // 重新实例化 VirtualScrollManager
             const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
             virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
             window.virtualScrollManager = virtualScrollManager;
         }
         
-        // 【修复】确保 virtualScrollManager 存在且有效，再进行数据更新
-        // 额外检查：如果管理器存在但其容器引用已失效，也需要重新创建
         if (!virtualScrollManager || !virtualScrollManager.container || !virtualScrollManager.container.parentElement) {
             if (virtualScrollManager) {
                 virtualScrollManager.destroy();
@@ -1256,34 +1203,26 @@ function renderDatabase(resetScroll = false) {
             window.virtualScrollManager = virtualScrollManager;
         }
         
-        // 更新数据到虚拟滚动组件
-        // 这里的 true 表示强制刷新内部缓存
         virtualScrollManager.updateData(data, ListState.totalCount, true);
         
-        // 如果是重置，强制滚动到顶部
         if (resetScroll) {
             container.scrollTop = 0;
         }
     }
     
-    // 【性能优化】使用缓存的统计计算
     document.getElementById('count_text').innerText = ListState.totalCount;
     const stats = calculateStats(data);
     document.getElementById('money_text').innerText = `$${stats.totalAmount.toFixed(2)}`;
-    // 【性能优化】使用节流的图表更新（减少图表更新频率）
     if (typeof updatePieChartThrottled === 'function') {
         updatePieChartThrottled(data);
     } else {
-        // 降级方案：如果节流函数不可用，使用原始函数
         updatePieChart(data);
     }
     
-    // 【搜索功能增强】更新搜索结果提示
     if (typeof window.updateSearchResultHint === 'function') {
         window.updateSearchResultHint();
     }
     
-    // 【修复】确保批量操作工具栏状态正确（数据渲染后更新）
     if (typeof window.updateBatchActionBar === 'function') {
         window.updateBatchActionBar();
     }
@@ -1515,6 +1454,7 @@ function getFormDataFromInput() {
         cust_name: document.getElementById('cust_name').value,
         contact_name: document.getElementById('contact_name').value,
         contact_info: document.getElementById('contact_info').value,
+        store_by: document.getElementById('store_by').value,
         order_no: document.getElementById('order_no').value.trim(),
         tracking_no: document.getElementById('tracking_no').value,
         ship_date: document.getElementById('ship_date').value,
@@ -1816,6 +1756,7 @@ function fillEditForm(item) {
         title: '订单信息',
         icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
         fields: [
+            { id: 'edit_store_by', label: '所属店铺', type: 'select', required: true, value: item.store_by || '', options: ['XKY', 'SZ POWCHO【SHEIN】', 'CRQ', 'TEMU Love pin local【XKY】', 'Your love local', 'TEMU（Domiciliary local）KDM', 'TEMU（Electronically local）KDM', 'CRRQ', '美半包2店', '美半包1店'] },
             { id: 'edit_order_no', label: '海外仓单号（OBS出库号）', type: 'text', required: true, value: item.order_no, placeholder: '系统生成的唯一单号' },
             { id: 'edit_tracking_no', label: '物流运单号', type: 'text', required: true, value: item.tracking_no, placeholder: '头程/尾程物流单号' },
             { id: 'edit_ship_date', label: '发货日期', type: 'date', required: true, value: item.ship_date ? item.ship_date.substring(0, 10) : '' },
@@ -1873,6 +1814,7 @@ function getEditFormData() {
         cust_name: document.getElementById('edit_cust_name').value,
         contact_name: document.getElementById('edit_contact_name').value,
         contact_info: document.getElementById('edit_contact_info').value,
+        store_by: document.getElementById('edit_store_by').value,
         order_no: document.getElementById('edit_order_no').value.trim(),
         tracking_no: document.getElementById('edit_tracking_no').value,
         ship_date: document.getElementById('edit_ship_date').value,
@@ -1952,6 +1894,7 @@ async function editRowById(id) {
     document.getElementById('cust_name').value = item.cust_name || '';
     document.getElementById('contact_name').value = item.contact_name || '';
     document.getElementById('contact_info').value = item.contact_info || '';
+    document.getElementById('store_by').value = item.store_by || '';
     document.getElementById('order_no').value = item.order_no || '';
     document.getElementById('tracking_no').value = item.tracking_no || '';
     document.getElementById('ship_date').value = item.ship_date || '';

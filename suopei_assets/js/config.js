@@ -35,6 +35,7 @@ if (typeof window !== 'undefined') {
 
 // 表格列配置
 const TABLE_COLUMNS = [
+    { key: 'store_by', label: '所属店铺', minW: '140px', sort: true },
     { key: 'order_no', label: '海外仓单号', minW: '140px', sort: true },
     { key: 'tracking_no', label: '物流运单号', minW: '140px', sort: true },
     { key: 'warehouse', label: '发货仓', minW: '100px', sort: true },
@@ -64,7 +65,7 @@ const PERMISSION_DEFINITIONS = [
 const DB_ALLOWED_COLUMNS = [
     'id',
     'cust_name', 'contact_name', 'contact_info',
-    'order_no', 'tracking_no', 'warehouse', 'ship_date',
+    'store_by', 'order_no', 'tracking_no', 'warehouse', 'ship_date',
     'sku', 'claim_type', 'description', 'val_amount', 'claim_qty',
     'claim_total', 'currency', 'entry_date', 'process_status', 'remarks',
     'attachments',

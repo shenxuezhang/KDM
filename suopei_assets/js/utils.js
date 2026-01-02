@@ -221,6 +221,7 @@ function sanitizeDataForSupabase(data) {
         : (typeof DB_ALLOWED_COLUMNS !== 'undefined' ? DB_ALLOWED_COLUMNS : []);
     
     allowedColumns.forEach(key => {
+        // 保留字段，即使值为 null 或空字符串也要保留（但排除 undefined）
         if (data.hasOwnProperty(key) && data[key] !== undefined) {
             cleanData[key] = data[key];
         }

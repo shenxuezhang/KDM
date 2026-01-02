@@ -125,7 +125,22 @@ function renderTableHeader() {
     let html = visibleColumns.map(key => {
         const col = TABLE_COLUMNS.find(c => c.key === key);
         const sortIcon = col.sort ? `<span id="sort-icon-${key}" class="ml-1 opacity-30 text-[10px]">↕</span>` : '';
-        return `<th ${col.sort ? `onclick="sortColumn('${key}')"` : ''} class="erp-th ${col.sort ? 'erp-th-sortable' : ''} ${col.center ? 'text-center' : ''} min-w-[${col.minW}]">${col.label}${sortIcon}</th>`;
+        
+        // 复制按钮（仅对海外仓单号和物流运单号列显示）
+        let copyBtnHtml = '';
+        if (key === 'order_no' || key === 'tracking_no') {
+            copyBtnHtml = `
+                <button onclick="event.stopPropagation(); copyColumnData('${key}')" 
+                        class="ml-1 p-0.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" 
+                        title="复制整列数据">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </button>
+            `;
+        }
+        
+        return `<th ${col.sort ? `onclick="sortColumn('${key}')"` : ''} class="erp-th ${col.sort ? 'erp-th-sortable' : ''} ${col.center ? 'text-center' : ''} min-w-[${col.minW}]">${col.label}${sortIcon}${copyBtnHtml}</th>`;
     }).join('');
     
     document.getElementById('tableHeaderRow').innerHTML = checkboxTh + html + `<th class="erp-th text-center min-w-[120px] pr-6">操作</th>`;
@@ -204,7 +219,6 @@ function switchSubTab(status) {
     if (typeof window.fetchTableData === 'function') {
         window.fetchTableData(false, true); 
     } else {
-        console.error("fetchTableData 函数未找到，请检查 database.js 是否加载");
     }
 }
 
@@ -1038,14 +1052,55 @@ function renderKanban() {
 
 /**
  * 导出筛选后的数据
+ * 优化：排除 id 列，按照 TABLE_COLUMNS 顺序排列，使用中文表头
  */
 function exportFilteredData() {
     const dataToExport = currentFilteredData.length > 0 ? currentFilteredData : [];
     if (dataToExport.length === 0) return showToast('当前没有可导出的数据', 'error');
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    
+    // 获取表格列配置（排除隐藏列和 id 列）
+    const exportColumns = (typeof TABLE_COLUMNS !== 'undefined' ? TABLE_COLUMNS : []).filter(col => 
+        col.key !== 'id' && !col.hidden
+    );
+    
+    // 构建表头（中文）
+    const headers = exportColumns.map(col => col.label);
+    
+    // 构建数据行，按照 TABLE_COLUMNS 的顺序
+    const rows = dataToExport.map(item => {
+        return exportColumns.map(col => {
+            const value = item[col.key];
+            // 日期字段格式化：只显示日期部分
+            if ((col.key === 'ship_date' || col.key === 'entry_date') && value) {
+                const dateStr = String(value);
+                return dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr;
+            }
+            return value || '';
+        });
+    });
+    
+    // 构建工作表数据：表头 + 数据行
+    const wsData = [headers, ...rows];
+    
+    // 创建工作表
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // 设置列宽（可选，根据 minW 设置）
+    const colWidths = exportColumns.map(col => {
+        // 将 minW 转换为数字（去掉 px）
+        const width = parseInt(col.minW) || 15;
+        return { wch: Math.max(width / 8, 10) }; // 转换为 Excel 列宽单位
+    });
+    ws['!cols'] = colWidths;
+    
+    // 创建工作簿并添加工作表
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "索赔清单");
+    
+    // 导出文件
     XLSX.writeFile(wb, `索赔清单_导出_${new Date().toLocaleDateString()}.xlsx`);
+    
+    showToast(`成功导出 ${dataToExport.length} 条数据`, 'success');
 }
 
 /**
@@ -1102,7 +1157,7 @@ function exportSingleExcel(data) {
         };
     }
     XLSX.utils.book_append_sheet(wb, ws, "申请表");
-    XLSX.writeFile(wb, `索赔单_${data.order_no}.xlsx`);
+    XLSX.writeFile(wb, `索赔单_${data.order_no}_${data.claim_total}.xlsx`);
 }
 
 /**
@@ -1144,6 +1199,83 @@ function copyToWeChat() {
 }
 
 /**
+ * 复制列数据
+ * 获取当前显示的所有行的指定列数据，用换行符分隔后复制到剪贴板
+ * @param {string} columnKey - 列字段名（如 'order_no' 或 'tracking_no'）
+ */
+function copyColumnData(columnKey) {
+    // 获取当前显示的数据
+    const currentData = (typeof ListState !== 'undefined' && ListState.data) ? ListState.data : [];
+    
+    if (currentData.length === 0) {
+        showToast('当前没有可复制的数据', 'error');
+        return;
+    }
+    
+    // 提取指定列的所有值，过滤空值但保留所有行（包括空值行用空字符串表示）
+    const columnValues = currentData.map(item => {
+        const value = item[columnKey];
+        // 如果值是日期类型，格式化显示
+        if (columnKey === 'ship_date' || columnKey === 'entry_date') {
+            if (value) {
+                // 如果是ISO格式日期，只取日期部分
+                const dateStr = String(value);
+                return dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr;
+            }
+            return '';
+        }
+        return value || '';
+    });
+    
+    // 用换行符连接所有值
+    const clipboardText = columnValues.join('\n');
+    
+    // 获取列名用于提示
+    const colConfig = (typeof TABLE_COLUMNS !== 'undefined') ? 
+        TABLE_COLUMNS.find(c => c.key === columnKey) : null;
+    const columnLabel = colConfig ? colConfig.label : columnKey;
+    
+    // 复制到剪贴板
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(clipboardText).then(() => {
+            showToast(`成功复制 ${currentData.length} 条${columnLabel}数据到剪贴板！`, 'success');
+        }).catch(err => {
+            fallbackCopyColumnData(clipboardText, currentData.length, columnLabel);
+        });
+    } else {
+        fallbackCopyColumnData(clipboardText, currentData.length, columnLabel);
+    }
+}
+
+/**
+ * 兼容性复制列数据函数
+ * @param {string} text - 要复制的文本
+ * @param {number} count - 数据条数
+ * @param {string} columnLabel - 列名
+ */
+function fallbackCopyColumnData(text, count, columnLabel) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        var successful = document.execCommand('copy');
+        if(successful) {
+            showToast(`成功复制 ${count} 条${columnLabel}数据到剪贴板！`, 'success');
+        } else {
+            showToast('复制失败，请手动复制', 'error');
+        }
+    } catch (err) {
+        showToast('复制失败，请手动复制', 'error');
+    }
+    document.body.removeChild(textArea);
+}
+
+/**
  * 兼容性复制函数
  */
 function fallbackCopyTextToClipboard(text, count) {
@@ -1168,5 +1300,11 @@ function fallbackCopyTextToClipboard(text, count) {
     }
 
     document.body.removeChild(textArea);
+}
+
+// 将复制列数据函数暴露到全局作用域
+if (typeof window !== 'undefined') {
+    window.copyColumnData = copyColumnData;
+    window.fallbackCopyColumnData = fallbackCopyColumnData;
 }
 
