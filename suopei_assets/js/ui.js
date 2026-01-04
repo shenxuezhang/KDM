@@ -306,14 +306,15 @@ async function updateStatus(newStatus) {
             resetSortingToDefault();
         }
         
+        // 强制刷新数据，跳过缓存，确保排序正确
         if (ListState.filters.status !== 'all') {
             if (oldStatus === ListState.filters.status && newStatus !== ListState.filters.status) {
-                fetchTableData();
+                fetchTableData(false, true);
             } else if (success) {
-                fetchTableData();
+                fetchTableData(false, true);
             }
         } else {
-            fetchTableData();
+            fetchTableData(false, true);
         }
         
         showToast(`状态更新为：${newStatus}`, 'info');
@@ -340,6 +341,11 @@ function updateNavState(activeView) {
  * 切换视图
  */
 async function switchView(view) {
+    // 【内存泄漏修复】清理当前视图的图表
+    if (typeof ChartManager !== 'undefined') {
+        ChartManager.clear();
+    }
+    
     await trySwitchView(view);
     
     // 保存当前视图到 localStorage，以便刷新后恢复

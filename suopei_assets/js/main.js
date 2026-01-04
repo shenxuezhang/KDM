@@ -41,6 +41,68 @@ if (typeof window !== 'undefined') {
     window.virtualScrollManager = null;
 }
 
+// 事件监听器管理器（内存泄漏修复）
+const EventListenerManager = {
+    listeners: new Map(),
+    
+    /**
+     * 添加事件监听器并记录
+     * @param {HTMLElement} element - 目标元素
+     * @param {string} event - 事件类型
+     * @param {Function} handler - 事件处理函数
+     * @param {string} key - 唯一标识符
+     */
+    add(element, event, handler, key) {
+        // 如果已存在相同key的监听器，先移除
+        if (this.listeners.has(key)) {
+            const old = this.listeners.get(key);
+            old.element.removeEventListener(old.event, old.handler);
+        }
+        
+        // 添加新监听器
+        element.addEventListener(event, handler);
+        
+        // 记录监听器
+        this.listeners.set(key, { element, event, handler });
+    },
+    
+    /**
+     * 移除指定key的监听器
+     * @param {string} key - 唯一标识符
+     */
+    remove(key) {
+        if (this.listeners.has(key)) {
+            const { element, event, handler } = this.listeners.get(key);
+            element.removeEventListener(event, handler);
+            this.listeners.delete(key);
+        }
+    },
+    
+    /**
+     * 清理所有监听器
+     */
+    clear() {
+        this.listeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.listeners.clear();
+    },
+    
+    /**
+     * 清理指定前缀的所有监听器（用于清理分页控件）
+     * @param {string} prefix - 前缀
+     */
+    clearByPrefix(prefix) {
+        const keysToRemove = [];
+        this.listeners.forEach((value, key) => {
+            if (key.startsWith(prefix)) {
+                keysToRemove.push(key);
+            }
+        });
+        keysToRemove.forEach(key => this.remove(key));
+    }
+};
+
 // 生成UUID
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -53,11 +115,19 @@ function generateUUID() {
 /**
  * 重置排序为默认值（申请提交日期降序）
  * 标记为系统默认排序，不持久化
+ * 清除与当前筛选条件相关的缓存，确保排序状态变化时缓存失效
  */
 function resetSortingToDefault() {
     ListState.sorting.col = 'entry_date';
     ListState.sorting.asc = false;
     ListState.sorting.isUserDefined = false;
+    
+    // 清除与当前筛选条件相关的所有缓存（忽略排序），避免使用错误的排序缓存
+    if (typeof window.clearCacheByFilters === 'function') {
+        window.clearCacheByFilters(ListState.filters);
+    } else if (typeof clearCacheByFilters === 'function') {
+        clearCacheByFilters(ListState.filters);
+    }
 }
 
 // 虚拟滚动管理器类（性能优化版）
@@ -224,6 +294,31 @@ class VirtualScrollManager {
                 this.renderVisibleItems();
             }
         }
+        
+        // 强制应用行高样式，确保所有行高度一致
+        this.applyUniformRowHeight();
+    }
+    
+    /**
+     * 强制应用统一行高，确保所有行高度一致
+     */
+    applyUniformRowHeight() {
+        if (!this.container) return;
+        
+        const rowHeightPx = `${this.itemHeight}px`;
+        const rows = this.container.querySelectorAll('tr[data-item-id]');
+        rows.forEach(row => {
+            row.style.height = rowHeightPx;
+            row.style.minHeight = rowHeightPx;
+            row.style.maxHeight = rowHeightPx;
+            
+            // 同时设置所有单元格的高度和垂直对齐
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.height = rowHeightPx;
+                cell.style.verticalAlign = 'middle';
+            });
+        });
     }
     
     renderVisibleItems() {
@@ -657,6 +752,10 @@ class VirtualScrollManager {
             if (savedScrollTop > 0) {
                 this.container.scrollTop = savedScrollTop;
             }
+            // 强制应用统一行高
+            requestAnimationFrame(() => {
+                this.applyUniformRowHeight();
+            });
         } else {
             // 使用 requestAnimationFrame 包装数据更新逻辑，确保平滑渲染
             if (this.renderAnimationFrame) {
@@ -672,6 +771,10 @@ class VirtualScrollManager {
                     this.updateChangedItems(changedRange);
                     // 恢复滚动位置
                     this.container.scrollTop = savedScrollTop;
+                    // 强制应用统一行高
+                    requestAnimationFrame(() => {
+                        this.applyUniformRowHeight();
+                    });
                 } else {
                     // 变化较大，使用全量更新
                     // 基于滚动位置计算 startIndex
@@ -683,6 +786,8 @@ class VirtualScrollManager {
                     // 渲染后恢复滚动位置
                     requestAnimationFrame(() => {
                         this.container.scrollTop = savedScrollTop;
+                        // 强制应用统一行高
+                        this.applyUniformRowHeight();
                     });
                 }
                 
@@ -1184,9 +1289,14 @@ function renderDatabase(resetScroll = false) {
             
             container.innerHTML = '';
             container.style.overflowY = 'auto';
-            container.style.height = 'calc(100vh - 400px)';
             
+            // 动态计算容器高度：根据数据量和行高自动调整
             const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+            const maxHeight = window.innerHeight - 400; // 最大高度限制
+            const dynamicHeight = Math.min(data.length * rowHeight + 20, maxHeight); // +20为缓冲
+            container.style.height = `${dynamicHeight}px`;
+            container.style.maxHeight = `${maxHeight}px`;
+            
             virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
             window.virtualScrollManager = virtualScrollManager;
         }
@@ -1197,11 +1307,24 @@ function renderDatabase(resetScroll = false) {
             }
             container.innerHTML = '';
             container.style.overflowY = 'auto';
-            container.style.height = 'calc(100vh - 400px)';
+            
+            // 动态计算容器高度：根据数据量和行高自动调整
             const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+            const maxHeight = window.innerHeight - 400; // 最大高度限制
+            const dynamicHeight = Math.min(data.length * rowHeight + 20, maxHeight); // +20为缓冲
+            container.style.height = `${dynamicHeight}px`;
+            container.style.maxHeight = `${maxHeight}px`;
+            
             virtualScrollManager = new VirtualScrollManager('dbContent', rowHeight);
             window.virtualScrollManager = virtualScrollManager;
         }
+        
+        // 更新容器高度，确保数据量变化时高度也能动态调整
+        const rowHeight = (typeof TABLE_ROW_HEIGHT !== 'undefined') ? TABLE_ROW_HEIGHT : 130;
+        const maxHeight = window.innerHeight - 400; // 最大高度限制
+        const dynamicHeight = Math.min(data.length * rowHeight + 20, maxHeight); // +20为缓冲
+        container.style.height = `${dynamicHeight}px`;
+        container.style.maxHeight = `${maxHeight}px`;
         
         virtualScrollManager.updateData(data, ListState.totalCount, true);
         
@@ -1232,6 +1355,9 @@ function renderDatabase(resetScroll = false) {
 function renderPaginationControls() {
     const paginationContainer = document.getElementById('pagination-container');
     if (!paginationContainer) return;
+    
+    // 【内存泄漏修复】清理旧的分页控件监听器
+    EventListenerManager.clearByPrefix('pagination_');
     
     // 【数值验证】确保页码和数据计数的有效性
     const totalCount = Math.max(0, ListState.totalCount || 0);
@@ -1362,89 +1488,138 @@ function renderPaginationControls() {
     }
     
     // 每页显示数量选择
-    document.getElementById('page-size-select').addEventListener('change', (e) => {
-        if (ListState.isLoading) return; // 防止重复请求
-        
-        const newPageSize = parseInt(e.target.value);
-        // 【数值验证】
-        if (isNaN(newPageSize) || newPageSize < 1) {
-            return;
-        }
-        
-        ListState.pagination.pageSize = newPageSize;
-        ListState.pagination.page = 1; // 重置到第一页
-        localStorage.setItem('wh_claims_pageSize', ListState.pagination.pageSize);
-        fetchTableData(false, false, 1, false);
-    });
+    const pageSizeSelect = document.getElementById('page-size-select');
+    if (pageSizeSelect) {
+        EventListenerManager.add(
+            pageSizeSelect,
+            'change',
+            (e) => {
+                if (ListState.isLoading) return;
+                const newPageSize = parseInt(e.target.value);
+                if (isNaN(newPageSize) || newPageSize < 1) return;
+                ListState.pagination.pageSize = newPageSize;
+                ListState.pagination.page = 1;
+                localStorage.setItem('wh_claims_pageSize', ListState.pagination.pageSize);
+                fetchTableData(false, false, 1, false);
+            },
+            'pagination_pageSize'
+        );
+    }
     
     // 首页按钮
-    document.getElementById('first-page').addEventListener('click', () => {
-        if (ListState.isLoading || currentPage === 1) return;
-        fetchTableData(false, false, 1, false);
-    });
+    const firstPageBtn = document.getElementById('first-page');
+    if (firstPageBtn) {
+        EventListenerManager.add(
+            firstPageBtn,
+            'click',
+            () => {
+                if (ListState.isLoading || currentPage === 1) return;
+                fetchTableData(false, false, 1, false);
+            },
+            'pagination_first'
+        );
+    }
     
     // 上一页按钮
-    document.getElementById('prev-page').addEventListener('click', () => {
-        if (ListState.isLoading || currentPage <= 1) return;
-        fetchTableData(false, false, currentPage - 1, false);
-    });
+    const prevPageBtn = document.getElementById('prev-page');
+    if (prevPageBtn) {
+        EventListenerManager.add(
+            prevPageBtn,
+            'click',
+            () => {
+                if (ListState.isLoading || currentPage <= 1) return;
+                fetchTableData(false, false, currentPage - 1, false);
+            },
+            'pagination_prev'
+        );
+    }
     
     // 下一页按钮
-    document.getElementById('next-page').addEventListener('click', () => {
-        if (ListState.isLoading || currentPage >= totalPages) return;
-        fetchTableData(false, false, currentPage + 1, false);
-    });
+    const nextPageBtn = document.getElementById('next-page');
+    if (nextPageBtn) {
+        EventListenerManager.add(
+            nextPageBtn,
+            'click',
+            () => {
+                if (ListState.isLoading || currentPage >= totalPages) return;
+                fetchTableData(false, false, currentPage + 1, false);
+            },
+            'pagination_next'
+        );
+    }
     
     // 末页按钮
-    document.getElementById('last-page').addEventListener('click', () => {
-        if (ListState.isLoading || currentPage >= totalPages) return;
-        fetchTableData(false, false, totalPages, false);
+    const lastPageBtn = document.getElementById('last-page');
+    if (lastPageBtn) {
+        EventListenerManager.add(
+            lastPageBtn,
+            'click',
+            () => {
+                if (ListState.isLoading || currentPage >= totalPages) return;
+                fetchTableData(false, false, totalPages, false);
+            },
+            'pagination_last'
+        );
+    }
+    
+    // 页码按钮
+    const pageNumberBtns = document.querySelectorAll('.page-number-btn');
+    pageNumberBtns.forEach((btn, index) => {
+        EventListenerManager.add(
+            btn,
+            'click',
+            () => {
+                if (ListState.isLoading) return;
+                const targetPage = parseInt(btn.getAttribute('data-page'));
+                if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) return;
+                if (targetPage !== currentPage) {
+                    fetchTableData(false, false, targetPage, false);
+                }
+            },
+            `pagination_page_${index}`
+        );
     });
     
-    // 【页码直接跳转功能】页码按钮点击
-    document.querySelectorAll('.page-number-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if (ListState.isLoading) return;
-            const targetPage = parseInt(btn.getAttribute('data-page'));
-            // 【数值验证】
-            if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
-                return;
-            }
-            if (targetPage !== currentPage) {
-                fetchTableData(false, false, targetPage, false);
-            }
-        });
-    });
-    
-    // 【页码直接跳转功能】输入框跳转
+    // 跳转输入框
     const jumpInput = document.getElementById('page-jump-input');
     const jumpBtn = document.getElementById('page-jump-btn');
     
-    jumpInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            jumpBtn.click();
-        }
-    });
+    if (jumpInput) {
+        EventListenerManager.add(
+            jumpInput,
+            'keypress',
+            (e) => {
+                if (e.key === 'Enter' && jumpBtn) {
+                    jumpBtn.click();
+                }
+            },
+            'pagination_jump_input'
+        );
+    }
     
-    jumpBtn.addEventListener('click', () => {
-        if (ListState.isLoading) return;
-        
-        const targetPage = parseInt(jumpInput.value);
-        // 【数值验证】确保页码和数据计数的有效性
-        if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
-            if (typeof showToast === 'function') {
-                showToast(`请输入有效的页码（1-${totalPages}）`, 'error');
-            } else {
-                alert(`请输入有效的页码（1-${totalPages}）`);
-            }
-            jumpInput.value = currentPage; // 恢复当前页
-            return;
-        }
-        
-        if (targetPage !== currentPage) {
-            fetchTableData(false, false, targetPage, false);
-        }
-    });
+    if (jumpBtn) {
+        EventListenerManager.add(
+            jumpBtn,
+            'click',
+            () => {
+                if (ListState.isLoading) return;
+                const targetPage = parseInt(jumpInput.value);
+                if (isNaN(targetPage) || targetPage < 1 || targetPage > totalPages) {
+                    if (typeof showToast === 'function') {
+                        showToast(`请输入有效的页码（1-${totalPages}）`, 'error');
+                    } else {
+                        alert(`请输入有效的页码（1-${totalPages}）`);
+                    }
+                    jumpInput.value = currentPage;
+                    return;
+                }
+                if (targetPage !== currentPage) {
+                    fetchTableData(false, false, targetPage, false);
+                }
+            },
+            'pagination_jump_btn'
+        );
+    }
 }
 
 // 获取表单数据
@@ -1654,6 +1829,7 @@ function createFormSection(config) {
 
 // 当前编辑的ID（用于弹窗编辑）
 let editingModalId = null;
+let editingOriginalData = null; // 保存编辑时的原始数据，用于冲突检测
 
 /**
  * 打开编辑弹窗
@@ -1666,8 +1842,28 @@ async function openEditModal(id) {
         return;
     }
     
-    // 填充表单数据
-    fillEditForm(item);
+    // 【数据冲突处理】从数据库获取最新数据并保存原始数据
+    try {
+        const { data: latestRecord, error } = await supabaseClient
+            .from('claims_v2')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        if (!error && latestRecord) {
+            editingOriginalData = { ...latestRecord };
+            // 使用最新数据填充表单
+            fillEditForm(latestRecord);
+        } else {
+            // 如果获取失败，使用本地数据
+            editingOriginalData = { ...item };
+            fillEditForm(item);
+        }
+    } catch (error) {
+        // 获取失败，使用本地数据
+        editingOriginalData = { ...item };
+        fillEditForm(item);
+    }
     
     // 显示弹窗
     const backdrop = document.getElementById('editModalBackdrop');
@@ -1691,17 +1887,78 @@ function closeEditModal() {
         // 清空表单
         document.getElementById('editClaimForm').reset();
         editingModalId = null;
+        editingOriginalData = null; // 清除原始数据
     }, 300);
 }
 
 /**
  * 打开提交表格弹窗
+ * 如果用户勾选了数据，会在弹窗标题右侧显示选中数据信息（海外仓单号、索赔类型、总赔偿金额）
+ * 仅支持勾选一条数据，多条数据会提示错误
  */
 function openSubmitFormModal() {
     const backdrop = document.getElementById('submitFormModalBackdrop');
     if (!backdrop) {
         showToast('弹窗元素未找到', 'error');
         return;
+    }
+    
+    // 获取选中的数据
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    const selectedInfoDiv = document.getElementById('submitFormSelectedInfo');
+    
+    // 检查是否勾选了多条数据
+    if (checkedBoxes.length > 1) {
+        showToast('不支持勾选多条数据提交，请检查并重选！', 'error');
+        return;
+    }
+    
+    // 如果只勾选了一条数据，显示信息
+    if (checkedBoxes.length === 1) {
+        const selectedId = checkedBoxes[0].value;
+        // 从全局 database 变量获取数据（如果不存在则从 ListState.data 获取）
+        const dataSource = (typeof database !== 'undefined' && database.length > 0) 
+            ? database 
+            : ((typeof ListState !== 'undefined' && ListState.data) ? ListState.data : []);
+        const selectedItem = dataSource.find(item => item.id === selectedId);
+        
+        if (selectedItem && selectedInfoDiv) {
+            // 填充数据
+            const orderNoEl = document.getElementById('selectedOrderNo');
+            const claimTypeEl = document.getElementById('selectedClaimType');
+            const claimTotalEl = document.getElementById('selectedClaimTotal');
+            
+            if (orderNoEl) orderNoEl.textContent = selectedItem.order_no || '-';
+            if (claimTypeEl) claimTypeEl.textContent = selectedItem.claim_type || '-';
+            
+            // 格式化总赔偿金额（包含币种）
+            const currency = selectedItem.currency || 'USD';
+            const claimTotal = selectedItem.claim_total || '0';
+            if (claimTotalEl) claimTotalEl.textContent = `${claimTotal} ${currency}`;
+            
+            // 重置USD汇率输入框和计算金额
+            const usdRateInput = document.getElementById('usdExchangeRate');
+            const calculatedAmountEl = document.getElementById('calculatedClaimAmount');
+            if (usdRateInput) {
+                usdRateInput.value = '';
+            }
+            if (calculatedAmountEl) {
+                calculatedAmountEl.textContent = '-';
+            }
+            
+            // 显示信息区域
+            selectedInfoDiv.classList.remove('hidden');
+        } else {
+            // 如果找不到数据，隐藏信息区域
+            if (selectedInfoDiv) {
+                selectedInfoDiv.classList.add('hidden');
+            }
+        }
+    } else {
+        // 没有勾选，隐藏信息区域
+        if (selectedInfoDiv) {
+            selectedInfoDiv.classList.add('hidden');
+        }
     }
     
     backdrop.classList.remove('hidden');
@@ -1865,19 +2122,26 @@ async function submitEditForm() {
         record.process_status = originalItem.process_status;
         record.remarks = originalItem.remarks;
         
-        database[index] = record;
-        await updateDataInSupabase(editingModalId, record);
-        localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+        // 【数据冲突处理】传递原始数据用于冲突检测
+        const success = await updateDataInSupabase(editingModalId, record, editingOriginalData);
         
-        // 编辑成功后，重置排序为默认值
-        resetSortingToDefault();
-        
-        // 刷新数据列表
-        await fetchTableData(false, true);
-        renderKanban();
-        
-        showToast('数据修改已保存', 'success');
-        closeEditModal();
+        if (success) {
+            database[index] = record;
+            localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+            
+            // 编辑成功后，重置排序为默认值
+            resetSortingToDefault();
+            
+            // 刷新数据列表
+            await fetchTableData(false, true);
+            renderKanban();
+            
+            showToast('数据修改已保存', 'success');
+            closeEditModal();
+        } else {
+            // 更新失败（可能是冲突），不关闭弹窗，让用户决定如何处理
+            // 如果用户已解决冲突，会重新调用submitEditForm
+        }
     }
 }
 
@@ -2373,6 +2637,137 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitFormModalCloseBtn = document.getElementById('submitFormModalCloseBtn');
     if (submitFormModalCloseBtn) {
         submitFormModalCloseBtn.addEventListener('click', closeSubmitFormModal);
+    }
+    
+    // 复制海外仓单号按钮事件绑定
+    const copyOrderNoBtn = document.getElementById('copyOrderNoBtn');
+    if (copyOrderNoBtn) {
+        copyOrderNoBtn.addEventListener('click', function() {
+            const orderNo = document.getElementById('selectedOrderNo')?.textContent || '-';
+            
+            // 只复制海外仓单号，如果包含冒号则截断后面的内容
+            let copyText = orderNo;
+            if (copyText.includes('：')) {
+                copyText = copyText.split('：')[0];
+            } else if (copyText.includes(':')) {
+                copyText = copyText.split(':')[0];
+            }
+            
+            copyToClipboard(copyText, '海外仓单号已复制到剪贴板');
+        });
+    }
+    
+    // 复制客户代码按钮事件绑定
+    const copyCustomerCodeBtn = document.getElementById('copyCustomerCodeBtn');
+    if (copyCustomerCodeBtn) {
+        copyCustomerCodeBtn.addEventListener('click', function() {
+            copyToClipboard('1535172', '客户代码已复制到剪贴板');
+        });
+    }
+    
+    // 复制公司名称按钮事件绑定
+    const copyCompanyNameBtn = document.getElementById('copyCompanyNameBtn');
+    if (copyCompanyNameBtn) {
+        copyCompanyNameBtn.addEventListener('click', function() {
+            copyToClipboard('深圳市信凯源科技有限公司', '公司名称已复制到剪贴板');
+        });
+    }
+    
+    // 复制索赔金额(￥)按钮事件绑定
+    const copyClaimAmountBtn = document.getElementById('copyClaimAmountBtn');
+    if (copyClaimAmountBtn) {
+        copyClaimAmountBtn.addEventListener('click', function() {
+            const calculatedAmountEl = document.getElementById('calculatedClaimAmount');
+            const amountText = calculatedAmountEl?.textContent || '-';
+            
+            // 只复制数值，如果显示"-"则不复制
+            if (amountText === '-') {
+                showToast('请先输入USD汇率并计算索赔金额', 'error');
+                return;
+            }
+            
+            // 提取数值部分（去除可能的符号和单位）
+            const amountValue = amountText.trim();
+            copyToClipboard(amountValue, '索赔金额已复制到剪贴板');
+        });
+    }
+    
+    // USD汇率输入框变化事件：计算索赔金额(￥)
+    const usdExchangeRateInput = document.getElementById('usdExchangeRate');
+    if (usdExchangeRateInput) {
+        usdExchangeRateInput.addEventListener('input', function() {
+            calculateClaimAmountCNY();
+        });
+        
+        // 限制小数点后两位
+        usdExchangeRateInput.addEventListener('blur', function() {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toFixed(2);
+                calculateClaimAmountCNY();
+            }
+        });
+    }
+    
+    /**
+     * 计算索赔金额(￥) = 总赔偿金额 * USD汇率
+     */
+    function calculateClaimAmountCNY() {
+        const usdRateInput = document.getElementById('usdExchangeRate');
+        const claimTotalEl = document.getElementById('selectedClaimTotal');
+        const calculatedAmountEl = document.getElementById('calculatedClaimAmount');
+        
+        if (!usdRateInput || !claimTotalEl || !calculatedAmountEl) return;
+        
+        const usdRate = parseFloat(usdRateInput.value);
+        const claimTotalText = claimTotalEl.textContent || '0';
+        
+        // 提取总赔偿金额数值（去除币种）
+        const claimTotalMatch = claimTotalText.match(/^([\d.]+)/);
+        const claimTotal = claimTotalMatch ? parseFloat(claimTotalMatch[1]) : 0;
+        
+        if (!isNaN(usdRate) && !isNaN(claimTotal) && usdRate > 0) {
+            const calculatedAmount = (claimTotal * usdRate).toFixed(2);
+            calculatedAmountEl.textContent = calculatedAmount;
+        } else {
+            calculatedAmountEl.textContent = '-';
+        }
+    }
+    
+    /**
+     * 复制文本到剪贴板的通用函数
+     */
+    function copyToClipboard(text, successMessage) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(successMessage, 'success');
+            }).catch(err => {
+                // 降级方案
+                fallbackCopyToClipboard(text, successMessage);
+            });
+        } else {
+            // 降级方案
+            fallbackCopyToClipboard(text, successMessage);
+        }
+    }
+    
+    /**
+     * 降级复制方案
+     */
+    function fallbackCopyToClipboard(text, successMessage) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast(successMessage, 'success');
+        } catch (e) {
+            showToast('复制失败，请手动复制', 'error');
+        }
+        document.body.removeChild(textArea);
     }
     
     const submitFormAutoBtn = document.getElementById('submitFormAutoBtn');

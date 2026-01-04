@@ -7,14 +7,74 @@
 let lineChartInstance = null;
 let pieChartInstance = null;
 
+// 图表实例管理器（内存泄漏修复）
+const ChartManager = {
+    instances: new Map(),
+    
+    /**
+     * 注册图表实例
+     * @param {string} key - 唯一标识符
+     * @param {Chart} chart - Chart.js实例
+     */
+    register(key, chart) {
+        // 如果已存在，先销毁
+        if (this.instances.has(key)) {
+            this.destroy(key);
+        }
+        this.instances.set(key, chart);
+    },
+    
+    /**
+     * 销毁指定图表
+     * @param {string} key - 唯一标识符
+     */
+    destroy(key) {
+        if (this.instances.has(key)) {
+            const chart = this.instances.get(key);
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+            this.instances.delete(key);
+        }
+    },
+    
+    /**
+     * 清理所有图表
+     */
+    clear() {
+        this.instances.forEach((chart, key) => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+        this.instances.clear();
+    },
+    
+    /**
+     * 清理指定前缀的所有图表
+     * @param {string} prefix - 前缀
+     */
+    clearByPrefix(prefix) {
+        const keysToRemove = [];
+        this.instances.forEach((value, key) => {
+            if (key.startsWith(prefix)) {
+                keysToRemove.push(key);
+            }
+        });
+        keysToRemove.forEach(key => this.destroy(key));
+    }
+};
+
 /**
  * 初始化图表
  */
 function initCharts() {
-    // 检查两个图表实例，防止重复创建
-    if (lineChartInstance && pieChartInstance) {
-        return;
-    }
+    // 【内存泄漏修复】清理旧的图表实例
+    ChartManager.clearByPrefix('chart_');
+    
+    // 重置实例变量
+    lineChartInstance = null;
+    pieChartInstance = null;
     
     const months = [];
     const dataPoints = [];
@@ -34,57 +94,55 @@ function initCharts() {
         dataPoints.push(sum);
     }
     
-    // 只在未创建时创建折线图
-    if (!lineChartInstance) {
-        const lineCtx = document.getElementById('lineChart');
-        if (lineCtx) {
-            lineChartInstance = new Chart(lineCtx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: '索赔金额',
-                        data: dataPoints,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { display: true, grid: { display: false } },
-                        x: { display: true, grid: { display: false } }
-                    }
+    // 创建折线图
+    const lineCtx = document.getElementById('lineChart');
+    if (lineCtx) {
+        lineChartInstance = new Chart(lineCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: '索赔金额',
+                    data: dataPoints,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { display: true, grid: { display: false } },
+                    x: { display: true, grid: { display: false } }
                 }
-            });
-        }
+            }
+        });
+        ChartManager.register('chart_line', lineChartInstance);
     }
     
-    // 只在未创建时创建饼图
-    if (!pieChartInstance) {
-        const pieCtx = document.getElementById('pieChart');
-        if (pieCtx) {
-            pieChartInstance = new Chart(pieCtx.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    cutout: '70%'
-                }
-            });
-        }
+    // 创建饼图
+    const pieCtx = document.getElementById('pieChart');
+    if (pieCtx) {
+        pieChartInstance = new Chart(pieCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                cutout: '70%'
+            }
+        });
+        ChartManager.register('chart_pie', pieChartInstance);
     }
 }
 

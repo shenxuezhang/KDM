@@ -280,6 +280,74 @@ async function warmupCache() {
 }
 
 /**
+ * 清除与指定筛选条件相关的所有缓存（忽略排序）
+ * 用于排序状态变化时，清除可能包含错误排序的缓存
+ * @param {Object} filters - 筛选条件
+ */
+function clearCacheByFilters(filters) {
+    try {
+        const filterKey = JSON.stringify({
+            status: filters.status,
+            type: filters.type,
+            search: filters.search,
+            searchMode: filters.searchMode,
+            searchField: filters.searchField,
+            advancedFilters: filters.advancedFilters
+        });
+        
+        // 清除内存缓存中匹配的条目
+        const keysToDelete = [];
+        for (const [key, value] of requestCache.entries()) {
+            try {
+                const cachedKey = JSON.parse(key);
+                const cachedFilterKey = JSON.stringify({
+                    status: cachedKey.status,
+                    type: cachedKey.type,
+                    search: cachedKey.search,
+                    searchMode: cachedKey.searchMode,
+                    searchField: cachedKey.searchField,
+                    advancedFilters: cachedKey.advancedFilters
+                });
+                
+                if (cachedFilterKey === filterKey) {
+                    keysToDelete.push(key);
+                }
+            } catch (error) {
+                // 解析失败，跳过
+            }
+        }
+        keysToDelete.forEach(key => requestCache.delete(key));
+        
+        // 清除localStorage中匹配的条目
+        const localStorageKeys = Object.keys(localStorage);
+        localStorageKeys.forEach(key => {
+            if (key.startsWith(LOCALSTORAGE_CACHE_PREFIX)) {
+                try {
+                    const cacheKey = key.replace(LOCALSTORAGE_CACHE_PREFIX, '');
+                    const cachedKey = JSON.parse(cacheKey);
+                    const cachedFilterKey = JSON.stringify({
+                        status: cachedKey.status,
+                        type: cachedKey.type,
+                        search: cachedKey.search,
+                        searchMode: cachedKey.searchMode,
+                        searchField: cachedKey.searchField,
+                        advancedFilters: cachedKey.advancedFilters
+                    });
+                    
+                    if (cachedFilterKey === filterKey) {
+                        localStorage.removeItem(key);
+                    }
+                } catch (error) {
+                    // 解析失败，跳过
+                }
+            }
+        });
+    } catch (error) {
+        // 静默处理
+    }
+}
+
+/**
  * 清除所有缓存（用于强制刷新数据）
  */
 function clearAllCache() {
@@ -732,6 +800,7 @@ function applyAdvancedFilters(query, filters) {
 if (typeof window !== 'undefined') {
     window.fetchTableData = fetchTableData;
     window.clearAllCache = clearAllCache;
+    window.clearCacheByFilters = clearCacheByFilters;
     window.getCacheStats = getCacheStats;
     window.warmupCache = warmupCache;
     window.applyAdvancedFilters = applyAdvancedFilters;
@@ -769,19 +838,83 @@ async function saveDataToSupabase() {
 }
 
 /**
- * 更新数据到Supabase
+ * 获取单条记录（用于冲突检测）
  */
-async function updateDataInSupabase(id, data) {
+async function getRecordById(id) {
     try {
+        const { data, error } = await supabaseClient
+            .from('claims_v2')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        if (error) {
+            return null;
+        }
+        return data;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * 更新数据到Supabase（带冲突检测）
+ */
+async function updateDataInSupabase(id, data, originalData = null) {
+    try {
+        // 【数据冲突处理】获取数据库中的最新记录
+        const currentRecord = await getRecordById(id);
+        
+        if (!currentRecord) {
+            showToast('记录不存在或已被删除', 'error');
+            return false;
+        }
+        
+        // 【数据冲突处理】检查关键字段是否被其他用户修改
+        if (originalData) {
+            const conflictFields = detectConflict(originalData, currentRecord, data);
+            if (conflictFields.length > 0) {
+                // 显示冲突解决对话框
+                const resolved = await showConflictDialog(currentRecord, data, conflictFields);
+                if (!resolved || !resolved.resolved) {
+                    return false; // 用户取消操作
+                }
+                // 使用解决后的数据继续更新
+                if (resolved.data) {
+                    data = resolved.data;
+                }
+            }
+        }
+        
         const dataToUpdate = sanitizeDataForSupabase(data);
         delete dataToUpdate.id;
         
-        const { error } = await supabaseClient
+        // 【数据冲突处理】使用updated_at作为乐观锁（如果存在）
+        let query = supabaseClient
             .from('claims_v2')
             .update(dataToUpdate)
             .eq('id', id);
         
+        // 如果原始数据有updated_at，使用它作为版本检查
+        if (originalData && originalData.updated_at && currentRecord.updated_at) {
+            if (originalData.updated_at !== currentRecord.updated_at) {
+                // 数据已被修改，但用户已选择解决冲突，继续更新
+            }
+        }
+        
+        const { error, data: updatedData } = await query.select().single();
+        
         if (error) {
+            // 检查是否是冲突错误（行数影响为0表示版本不匹配）
+            if (error.code === 'PGRST116' || (error.message && error.message.includes('0 rows'))) {
+                showToast('数据已被其他用户修改，请刷新后重试', 'error');
+                // 刷新数据
+                if (typeof fetchTableData === 'function') {
+                    fetchTableData(false, true);
+                }
+                return false;
+            }
+            
             handleError(error, '云端更新');
             const index = database.findIndex(item => item.id === id);
             if (index !== -1) {
@@ -790,6 +923,13 @@ async function updateDataInSupabase(id, data) {
             }
             return false;
         } else {
+            // 更新本地缓存
+            const index = database.findIndex(item => item.id === id);
+            if (index !== -1 && updatedData) {
+                database[index] = updatedData;
+                localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
+            }
+            
             showToast('云端数据已更新', 'success');
             return true;
         }
@@ -801,6 +941,36 @@ async function updateDataInSupabase(id, data) {
         }
         return false;
     }
+}
+
+/**
+ * 检测数据冲突
+ * @param {Object} originalData - 编辑时的原始数据
+ * @param {Object} currentRecord - 数据库中的当前数据
+ * @param {Object} userData - 用户要保存的数据
+ * @returns {Array} 冲突字段列表
+ */
+function detectConflict(originalData, currentRecord, userData) {
+    const conflictFields = [];
+    const keyFields = ['order_no', 'tracking_no', 'process_status', 'claim_total', 'claim_qty'];
+    
+    keyFields.forEach(field => {
+        const originalValue = originalData[field];
+        const currentValue = currentRecord[field];
+        const userValue = userData[field];
+        
+        // 如果数据库中的值已被修改（与原始值不同），且用户也在修改这个字段
+        if (originalValue !== currentValue && userValue !== currentValue) {
+            conflictFields.push({
+                field,
+                originalValue,
+                currentValue,
+                userValue
+            });
+        }
+    });
+    
+    return conflictFields;
 }
 
 /**

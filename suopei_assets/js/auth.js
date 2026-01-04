@@ -14,6 +14,40 @@ if (typeof window !== 'undefined') {
     window.heartbeatInterval = heartbeatInterval;
 }
 
+// 定时器管理器（内存泄漏修复）
+const TimerManager = {
+    timers: new Set(),
+    
+    /**
+     * 添加定时器
+     * @param {number} timerId - 定时器ID
+     */
+    add(timerId) {
+        this.timers.add(timerId);
+    },
+    
+    /**
+     * 移除定时器
+     * @param {number} timerId - 定时器ID
+     */
+    remove(timerId) {
+        if (this.timers.has(timerId)) {
+            clearInterval(timerId);
+            this.timers.delete(timerId);
+        }
+    },
+    
+    /**
+     * 清理所有定时器
+     */
+    clear() {
+        this.timers.forEach(timerId => {
+            clearInterval(timerId);
+        });
+        this.timers.clear();
+    }
+};
+
 /**
  * 获取当前登录用户信息
  */
@@ -92,18 +126,55 @@ async function updateUserHeartbeat(userId) {
  * 启动心跳定时器
  */
 function startHeartbeat(userId) {
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    // 清理旧的定时器
+    if (heartbeatInterval) {
+        TimerManager.remove(heartbeatInterval);
+        heartbeatInterval = null;
+    }
     if (typeof window !== 'undefined' && window.heartbeatInterval) {
-        clearInterval(window.heartbeatInterval);
+        TimerManager.remove(window.heartbeatInterval);
+        window.heartbeatInterval = null;
     }
     
     // 立即执行一次
     updateUserHeartbeat(userId);
     
-    // 每 2 分钟执行一次 (300000ms)
+    let lastActivityTime = Date.now();
+    
+    // 监听用户活动
+    function resetActivityTimer() {
+        lastActivityTime = Date.now();
+    }
+    
+    // 添加活动监听器
+    document.addEventListener('mousemove', resetActivityTimer);
+    document.addEventListener('keydown', resetActivityTimer);
+    document.addEventListener('scroll', resetActivityTimer);
+    
+    // 创建智能心跳定时器
     heartbeatInterval = setInterval(() => {
-        updateUserHeartbeat(userId);
-    }, 300000);
+        const now = Date.now();
+        const idleTime = now - lastActivityTime;
+        
+        // 根据空闲时间动态调整心跳频率
+        if (idleTime < 300000) { // 5分钟内有活动
+            updateUserHeartbeat(userId);
+        } else if (idleTime < 1800000) { // 5-30分钟空闲
+            // 每15分钟发送一次心跳
+            if (Math.random() < 0.33) {
+                updateUserHeartbeat(userId);
+            }
+        } else {
+            // 超过30分钟空闲，停止心跳
+            TimerManager.remove(heartbeatInterval);
+            heartbeatInterval = null;
+            if (typeof window !== 'undefined') {
+                window.heartbeatInterval = null;
+            }
+        }
+    }, 300000); // 仍然保持5分钟检查间隔
+    
+    TimerManager.add(heartbeatInterval);
     
     // 同步到全局
     if (typeof window !== 'undefined') {
@@ -118,6 +189,25 @@ function initAuth() {
     checkUserSession();
     supabaseClient.auth.onAuthStateChange((event, session) => {
         handleAuthChange(event, session);
+    });
+    
+    // 添加页面可见性监听
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // 页面隐藏时，停止心跳
+            if (heartbeatInterval) {
+                TimerManager.remove(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            if (typeof window !== 'undefined' && window.heartbeatInterval) {
+                window.heartbeatInterval = null;
+            }
+        } else {
+            // 页面可见时，恢复心跳
+            if (currentUser && currentUser.id) {
+                startHeartbeat(currentUser.id);
+            }
+        }
     });
 }
 
@@ -229,6 +319,11 @@ async function handleAuthChange(event, session) {
         // 启动心跳机制
         startHeartbeat(session.user.id);
         
+        // 启动实时数据同步
+        if (typeof initRealtimeSubscription === 'function') {
+            initRealtimeSubscription();
+        }
+        
         // 恢复之前打开的视图
         const savedView = localStorage.getItem('wh_claims_currentView') || 'form';
         if (typeof switchView === 'function') {
@@ -249,8 +344,17 @@ async function handleAuthChange(event, session) {
             showToast('登录成功！', 'success');
         }
     } else if (event === 'SIGNED_OUT') {
-        // 停止心跳
-        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        // 停止实时数据同步
+        if (typeof stopRealtimeSubscription === 'function') {
+            stopRealtimeSubscription();
+        }
+        
+        // 停止心跳并清理所有定时器
+        TimerManager.clear();
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
         if (typeof window !== 'undefined' && window.heartbeatInterval) {
             clearInterval(window.heartbeatInterval);
             window.heartbeatInterval = null;
@@ -316,6 +420,18 @@ async function handlePasswordReset() {
  * 登出功能
  */
 function handleLogout() {
+    // 清理所有定时器
+    TimerManager.clear();
+    
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+    if (typeof window !== 'undefined' && window.heartbeatInterval) {
+        clearInterval(window.heartbeatInterval);
+        window.heartbeatInterval = null;
+    }
+    
     supabaseClient.auth.signOut();
 }
 
