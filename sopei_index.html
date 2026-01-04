@@ -1294,7 +1294,7 @@
                     </button>
                     <button onclick="exportFilteredData()" class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        导出结果
+                        导出全量数据
                     </button>
                     <button onclick="downloadImportTemplate()" class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5636,8 +5636,8 @@ document.getElementById('entry_date').value = dateValue;
             
             // 创建工作簿并添加工作表
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "索赔清单"); 
-            XLSX.writeFile(wb, `索赔清单_导出_${new Date().toLocaleDateString()}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "全数据清单"); 
+            XLSX.writeFile(wb, `全数据清单_导出_${new Date().toLocaleDateString()}.xlsx`);
             
             showToast(`成功导出 ${dataToExport.length} 条数据`, 'success');
         }
@@ -6516,18 +6516,76 @@ document.getElementById('entry_date').value = dateValue;
                     return;
                 }
                 
-                // 使用现有的导出功能（如果存在）
-                if (typeof exportToExcel === 'function') {
-                    exportToExcel(data, `批量导出_${new Date().toISOString().split('T')[0]}.xlsx`);
-                } else {
-                    // 简单的CSV导出
-                    const csvContent = convertToCSV(data);
-                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `批量导出_${new Date().toISOString().split('T')[0]}.csv`;
-                    link.click();
+                // 获取表格列配置（排除隐藏列和 id 列）
+                const exportColumns = (typeof TABLE_COLUMNS !== 'undefined' ? TABLE_COLUMNS : []).filter(col => 
+                    col.key !== 'id' && !col.hidden
+                );
+                
+                // 构建表头（中文）
+                const headers = exportColumns.map(col => col.label);
+                
+                // 构建数据行，按照 TABLE_COLUMNS 的顺序
+                const rows = data.map(item => {
+                    return exportColumns.map(col => {
+                        const value = item[col.key];
+                        // 日期字段格式化：只显示日期部分
+                        if ((col.key === 'ship_date' || col.key === 'entry_date') && value) {
+                            const dateStr = String(value);
+                            return dateStr.length >= 10 ? dateStr.substring(0, 10) : dateStr;
+                        }
+                        return value || '';
+                    });
+                });
+                
+                // 构建工作表数据：表头 + 数据行
+                const wsData = [headers, ...rows];
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                
+                // 设置单元格样式：全表垂直居中，水平居中
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let r = range.s.r; r <= range.e.r; r++) {
+                    for (let c = range.s.c; c <= range.e.c; c++) {
+                        const cellRef = XLSX.utils.encode_cell({ r, c });
+                        if (!ws[cellRef]) ws[cellRef] = { v: '' };
+                        
+                        ws[cellRef].s = {
+                            alignment: {
+                                vertical: 'center',
+                                horizontal: 'center',
+                                wrapText: true
+                            }
+                        };
+                        
+                        // 表头（第1行）加粗
+                        if (r === 0) {
+                            ws[cellRef].s.font = {
+                                bold: true
+                            };
+                        }
+                    }
                 }
+                
+                // 自动调整列宽
+                ws['!cols'] = exportColumns.map(col => {
+                    // 根据内容自动调整列宽
+                    const maxWidth = Math.max(
+                        col.label.length + 2, // 表头宽度
+                        ...rows.map(row => {
+                            const value = row[exportColumns.indexOf(col)];
+                            return String(value).length + 2;
+                        })
+                    );
+                    return { wch: Math.min(maxWidth, 50) }; // 限制最大宽度为50
+                });
+                
+                // 创建工作簿并添加工作表
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "索赔清单");
+                
+                // 导出文件
+                XLSX.writeFile(wb, `追溯索赔清单列表_${new Date().toISOString().split('T')[0]}.xlsx`);
                 
                 showToast(`成功导出 ${data.length} 条记录`, 'success');
             } catch (error) {
@@ -6593,8 +6651,8 @@ document.getElementById('entry_date').value = dateValue;
             if (!data || data.length === 0) return '';
             
             // 定义列头（中文）
-            const headers = ['所属店铺', '海外仓单号', '物流运单号', '发货仓', '发货日期', '订单SKU', '索赔类型', '问题描述', '货物声明价值', '索赔数量', '总赔偿金额', '币种', '处理状态', '申请提交日期'];
-            const keys = ['store_by', 'order_no', 'tracking_no', 'warehouse', 'ship_date', 'sku', 'claim_type', 'description', 'val_amount', 'claim_qty', 'claim_total', 'currency', 'process_status', 'entry_date'];
+            const headers = ['海外仓单号', '物流运单号', '发货仓', '发货日期', '订单SKU', '索赔类型', '问题描述', '货物声明价值', '索赔数量', '总赔偿金额', '币种', '处理状态', '申请提交日期'];
+            const keys = ['order_no', 'tracking_no', 'warehouse', 'ship_date', 'sku', 'claim_type', 'description', 'val_amount', 'claim_qty', 'claim_total', 'currency', 'process_status', 'entry_date'];
             
             // 构建CSV内容
             let csv = headers.join(',') + '\n';
