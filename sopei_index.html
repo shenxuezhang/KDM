@@ -2176,11 +2176,6 @@
                 document.documentElement.style.setProperty('--table-row-height', `${rowHeight}px`);
                 
                 initNewSearchFunctions();
-                
-                setTimeout(() => {
-                    updateStatusCounts();
-                    setInterval(updateStatusCounts, 30000);
-                }, 1000);
             });
             document._domContentLoadedRegistered = true;
         }
@@ -2603,6 +2598,14 @@
                 // 启动心跳机制，证明我在线
                 startHeartbeat(session.user.id);
                 
+                // 登录成功后启动状态统计更新
+                setTimeout(() => {
+                    updateStatusCounts();
+                    if (typeof window.statusCountsInterval === 'undefined' || !window.statusCountsInterval) {
+                        window.statusCountsInterval = setInterval(updateStatusCounts, 30000);
+                    }
+                }, 1000);
+                
                 // 恢复之前打开的视图
                 const savedView = localStorage.getItem('wh_claims_currentView') || 'form';
                 if (typeof switchView === 'function') {
@@ -2628,6 +2631,13 @@
                     clearInterval(window.heartbeatInterval);
                     window.heartbeatInterval = null;
                 }
+                
+                // 停止状态统计更新
+                if (typeof window.statusCountsInterval !== 'undefined' && window.statusCountsInterval) {
+                    clearInterval(window.statusCountsInterval);
+                    window.statusCountsInterval = null;
+                }
+                
                 currentUser = null;
                 isAuthenticated = false;
                 document.getElementById('user-info').classList.add('hidden');
@@ -3733,8 +3743,16 @@
             if (!supabaseClient) return;
             
             try {
-                // 获取各状态的统计数量
-                const statuses = ['待审核', '处理中', '等待赔付', '已赔付', '已驳回'];
+                // 优化：将多个请求合并为一个请求，减少请求数量
+                // 使用count()和groupBy()获取所有状态的统计数据
+                const { data, error } = await supabaseClient
+                    .from('claims_v2')
+                    .select('process_status, count()', { count: 'exact' })
+                    .group('process_status');
+                
+                if (error) throw error;
+                
+                // 构建状态统计映射
                 const statusMap = {
                     '待审核': 'pending',
                     '处理中': 'processing', 
@@ -3743,10 +3761,15 @@
                     '已驳回': 'rejected'
                 };
                 
-                // 获取总数（全部）
-                const { count: totalCount } = await supabaseClient
-                    .from('claims_v2')
-                    .select('*', { count: 'exact', head: true });
+                const statusCounts = {};
+                let totalCount = 0;
+                
+                // 计算各状态数量和总数量
+                data.forEach(item => {
+                    const count = parseInt(item.count, 10);
+                    statusCounts[item.process_status] = count;
+                    totalCount += count;
+                });
                 
                 // 更新"全部"按钮的统计
                 const allCountEl = document.getElementById('count-all');
@@ -3754,17 +3777,13 @@
                     allCountEl.textContent = `(${totalCount || 0})`;
                 }
                 
-                // 获取各状态的统计
-                for (const status of statuses) {
-                    const { count } = await supabaseClient
-                        .from('claims_v2')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('process_status', status);
-                    
-                    const countId = `count-${statusMap[status]}`;
+                // 更新各状态按钮的统计
+                for (const [status, key] of Object.entries(statusMap)) {
+                    const count = statusCounts[status] || 0;
+                    const countId = `count-${key}`;
                     const countEl = document.getElementById(countId);
                     if (countEl) {
-                        countEl.textContent = `(${count || 0})`;
+                        countEl.textContent = `(${count})`;
                     }
                 }
             } catch (error) {
@@ -5650,8 +5669,7 @@ document.getElementById('entry_date').value = dateValue;
                 [null, "客户信息", "客户名称 (公司全称)", data.cust_name, "客户", "必填项", null, null, null],
                 [null, null, "联系人", data.contact_name, "客户", "必填项", null, null, null],
                 [null, null, "联系方式", data.contact_info, "客户", "必填项", null, null, null],
-                [null, "订单信息", "所属店铺", data.store_by, "客户", "必填项", null, null, null],
-                [null, null, "海外仓单号", data.order_no, "客户", "必填项", null, null, null],
+                [null, "订单信息", "海外仓单号", data.order_no, "客户", "必填项", null, null, null],
                 [null, null, "物流运单号", data.tracking_no, "客户", "必填项", null, null, null],
                 [null, null, "发货日期", data.ship_date, "客户", "必填项", null, null, null],
                 [null, null, "订单SKU", data.sku, "客户", "必填项", null, null, null],
@@ -5669,30 +5687,68 @@ document.getElementById('entry_date').value = dateValue;
                 [null, null, "备注", data.remarks, "有只熊", "必填项", null, null, null]
             ];
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            
+            // 修复合并单元格定义，确保所有合并区域正确
             ws['!merges'] = [
-                { s: {r: 0, c: 1}, e: {r: 0, c: 4} }, 
-                { s: {r: 2, c: 1}, e: {r: 4, c: 1} }, 
-                { s: {r: 5, c: 1}, e: {r: 10, c: 1} }, 
-                { s: {r: 10, c: 1}, e: {r: 12, c: 1} }, 
-                { s: {r: 13, c: 1}, e: {r: 16, c: 1} }, 
-                { s: {r: 17, c: 1}, e: {r: 20, c: 1} }
+                { s: {r: 0, c: 1}, e: {r: 0, c: 4} }, // 标题
+                { s: {r: 2, c: 1}, e: {r: 4, c: 1} }, // 客户信息
+                { s: {r: 5, c: 1}, e: {r: 9, c: 1} }, // 订单信息
+                { s: {r: 10, c: 1}, e: {r: 12, c: 1} }, // 索赔详情
+                { s: {r: 13, c: 1}, e: {r: 16, c: 1} }, // 赔偿计算
+                { s: {r: 17, c: 1}, e: {r: 20, c: 1} }  // 其他信息
             ];
+            
             ws['!cols'] = [{wch: 2}, {wch: 15}, {wch: 25}, {wch: 40}, {wch: 15}];
-            for (let key in ws) {
-    if (key[0] === '!') continue;
-    ws[key].s = {
-        alignment: {
-            vertical: 'center',
-            horizontal: 'center',
-        },
-        border: {
-            top: { style: "thin" },
-            bottom: { style: "thin" },
-            left: { style: "thin" },
-            right: { style: "thin" }
-        }
-    };
-}
+            
+            // 获取所有单元格范围
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            
+            // 遍历所有单元格，设置样式
+            for (let r = range.s.r; r <= range.e.r; r++) {
+                for (let c = range.s.c; c <= range.e.c; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r, c });
+                    if (!ws[cellRef]) ws[cellRef] = { v: '' };
+                    
+                    // 基础样式：全表垂直居中，水平居中
+                    ws[cellRef].s = {
+                        alignment: {
+                            vertical: 'center',
+                            horizontal: 'center',
+                            wrapText: true
+                        },
+                        border: {
+                            top: { style: "thin" },
+                            bottom: { style: "thin" },
+                            left: { style: "thin" },
+                            right: { style: "thin" }
+                        }
+                    };
+                    
+                    // 第1-2行表头加粗显示
+                    if (r <= 1) {
+                        ws[cellRef].s.font = {
+                            bold: true
+                        };
+                    }
+                    
+                    // 确保合并单元格的文本内容被正确保留
+                    // 对于所有合并区域的左上角单元格，确保文本存在且样式正确
+                    ws['!merges'].forEach(merge => {
+                        if (r === merge.s.r && c === merge.s.c) {
+                            // 这是合并区域的左上角单元格
+                            // 确保它有值
+                            if (!ws[cellRef].v && ws_data[r][c]) {
+                                ws[cellRef].v = ws_data[r][c];
+                            }
+                            // 合并区域标题加粗
+                            ws[cellRef].s.font = {
+                                bold: true
+                            };
+                        }
+                    });
+                }
+            }
+            
             XLSX.utils.book_append_sheet(wb, ws, "申请表");
             XLSX.writeFile(wb, `索赔单_${data.order_no}_${data.claim_total}.xlsx`); 
         }
@@ -6412,11 +6468,6 @@ document.getElementById('entry_date').value = dateValue;
                 
                 if (error) throw error;
                 
-                // 批量更新状态成功后，重置排序为默认值
-                if (typeof window !== 'undefined' && typeof window.resetSortingToDefault === 'function') {
-                    window.resetSortingToDefault();
-                }
-                
                 showToast(`成功更新 ${selectedIds.length} 条记录`, 'success');
                 
                 // 【修复】立即更新 ListState.data 中对应项的状态，确保UI能立即反映状态变化
@@ -6456,9 +6507,9 @@ document.getElementById('entry_date').value = dateValue;
                             window.clearAllCache();
                         }
                         if (typeof window !== 'undefined' && typeof window.fetchTableData === 'function') {
-                            await window.fetchTableData(false, true); // append=false, forceRefresh=true
+                            await window.fetchTableData(false, true, null, true); // append=false, forceRefresh=true, keepScrollPosition=true
                         } else if (typeof fetchTableData === 'function') {
-                            await fetchTableData(false, true);
+                            await fetchTableData(false, true, null, true);
                         }
                     } catch (error) {
                         // 刷新数据失败，静默处理

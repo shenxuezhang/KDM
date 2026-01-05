@@ -324,6 +324,11 @@ async function handleAuthChange(event, session) {
             initRealtimeSubscription();
         }
         
+        // 检查Supabase表结构，确保表存在且结构正确
+        if (typeof checkSupabaseTableStructure === 'function') {
+            checkSupabaseTableStructure();
+        }
+        
         // 恢复之前打开的视图
         const savedView = localStorage.getItem('wh_claims_currentView') || 'form';
         if (typeof switchView === 'function') {

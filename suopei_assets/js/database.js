@@ -579,7 +579,12 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
         }
         
         if (typeof renderPaginationControls === 'function') renderPaginationControls();
-        if (typeof updateStatusCounts === 'function') updateStatusCounts();
+        
+        // 优化：减少updateStatusCounts的调用频率，避免频繁更新
+        // 只有在首次加载或强制刷新时才调用
+        if ((typeof updateStatusCounts === 'function') && (forceRefresh || targetPage === 1)) {
+            updateStatusCounts();
+        }
         
     } catch (error) {
         if (skeletonTimeout) {

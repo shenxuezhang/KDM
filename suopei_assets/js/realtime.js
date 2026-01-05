@@ -307,12 +307,19 @@ class RealtimeSubscriptionManager {
             }
         }
         
-        // 延迟刷新，合并多次请求
+        // 优化：增加防抖机制，避免短时间内多次触发刷新
+        // 只有当距离上次刷新超过3秒时，才会立即触发；否则延迟执行
+        const now = Date.now();
+        const timeSinceLastRefresh = now - (this.lastRefreshTime || 0);
+        const minInterval = 3000; // 最小刷新间隔3秒
+        const delay = timeSinceLastRefresh < minInterval ? minInterval - timeSinceLastRefresh : 0;
+        
         if (this.refreshTimer) {
             clearTimeout(this.refreshTimer);
         }
         
         this.refreshTimer = setTimeout(() => {
+            this.lastRefreshTime = Date.now();
             if (typeof window !== 'undefined') {
                 if (typeof window.fetchTableData === 'function') {
                     window.fetchTableData(false, true);
@@ -320,7 +327,7 @@ class RealtimeSubscriptionManager {
                     fetchTableData(false, true);
                 }
             }
-        }, 1000); // 延迟1秒刷新
+        }, delay);
     }
 
     /**

@@ -301,20 +301,15 @@ async function updateStatus(newStatus) {
         
         const success = await updateDataInSupabase(id, database[index]);
         
-        // 更新状态成功后，重置排序为默认值
-        if (typeof resetSortingToDefault === 'function') {
-            resetSortingToDefault();
-        }
-        
-        // 强制刷新数据，跳过缓存，确保排序正确
+        // 强制刷新数据，跳过缓存，确保排序正确，并保持滚动位置
         if (ListState.filters.status !== 'all') {
             if (oldStatus === ListState.filters.status && newStatus !== ListState.filters.status) {
-                fetchTableData(false, true);
+                fetchTableData(false, true, null, true);
             } else if (success) {
-                fetchTableData(false, true);
+                fetchTableData(false, true, null, true);
             }
         } else {
-            fetchTableData(false, true);
+            fetchTableData(false, true, null, true);
         }
         
         showToast(`状态更新为：${newStatus}`, 'info');
@@ -1064,9 +1059,9 @@ function exportFilteredData() {
     const dataToExport = currentFilteredData.length > 0 ? currentFilteredData : [];
     if (dataToExport.length === 0) return showToast('当前没有可导出的数据', 'error');
     
-    // 获取表格列配置（排除隐藏列和 id 列）
+    // 获取表格列配置（排除隐藏列、id列和所属店铺列）
     const exportColumns = (typeof TABLE_COLUMNS !== 'undefined' ? TABLE_COLUMNS : []).filter(col => 
-        col.key !== 'id' && !col.hidden
+        col.key !== 'id' && !col.hidden && col.key !== 'store_by'
     );
     
     // 构建表头（中文）
@@ -1091,13 +1086,52 @@ function exportFilteredData() {
     // 创建工作表
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     
-    // 设置列宽（可选，根据 minW 设置）
+    // 设置列宽（根据内容自动调整）
     const colWidths = exportColumns.map(col => {
-        // 将 minW 转换为数字（去掉 px）
-        const width = parseInt(col.minW) || 15;
-        return { wch: Math.max(width / 8, 10) }; // 转换为 Excel 列宽单位
+        // 计算该列最大宽度
+        const maxWidth = Math.max(
+            col.label.length + 2, // 表头宽度
+            ...rows.map(row => {
+                const value = row[exportColumns.indexOf(col)];
+                return String(value).length + 2;
+            })
+        );
+        return { wch: Math.min(maxWidth, 50) }; // 限制最大宽度为50
     });
     ws['!cols'] = colWidths;
+    
+    // 获取所有单元格范围
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    
+    // 遍历所有单元格，设置样式
+    for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+            const cellRef = XLSX.utils.encode_cell({ r, c });
+            if (!ws[cellRef]) ws[cellRef] = { v: '' };
+            
+            // 基础样式：全表垂直居中，水平居中
+            ws[cellRef].s = {
+                alignment: {
+                    vertical: 'center',
+                    horizontal: 'center',
+                    wrapText: true
+                },
+                border: {
+                    top: { style: "thin" },
+                    bottom: { style: "thin" },
+                    left: { style: "thin" },
+                    right: { style: "thin" }
+                }
+            };
+            
+            // 第1-2行表头加粗显示
+            if (r <= 1) {
+                ws[cellRef].s.font = {
+                    bold: true
+                };
+            }
+        }
+    }
     
     // 创建工作簿并添加工作表
     const wb = XLSX.utils.book_new();
@@ -1138,30 +1172,68 @@ function exportSingleExcel(data) {
         [null, null, "备注", data.remarks, "有只熊", "必填项", null, null, null]
     ];
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    
+    // 修复合并单元格定义，确保所有合并区域正确
     ws['!merges'] = [
-        { s: {r: 0, c: 1}, e: {r: 0, c: 4} },
-        { s: {r: 2, c: 1}, e: {r: 4, c: 1} },
-        { s: {r: 5, c: 1}, e: {r: 9, c: 1} },
-        { s: {r: 10, c: 1}, e: {r: 12, c: 1} },
-        { s: {r: 13, c: 1}, e: {r: 16, c: 1} },
-        { s: {r: 17, c: 1}, e: {r: 20, c: 1} }
+        { s: {r: 0, c: 1}, e: {r: 0, c: 4} }, // 标题
+        { s: {r: 2, c: 1}, e: {r: 4, c: 1} }, // 客户信息
+        { s: {r: 5, c: 1}, e: {r: 9, c: 1} }, // 订单信息
+        { s: {r: 10, c: 1}, e: {r: 12, c: 1} }, // 索赔详情
+        { s: {r: 13, c: 1}, e: {r: 16, c: 1} }, // 赔偿计算
+        { s: {r: 17, c: 1}, e: {r: 20, c: 1} }  // 其他信息
     ];
+    
     ws['!cols'] = [{wch: 2}, {wch: 15}, {wch: 25}, {wch: 40}, {wch: 15}];
-    for (let key in ws) {
-        if (key[0] === '!') continue;
-        ws[key].s = {
-            alignment: {
-                vertical: 'center',
-                horizontal: 'center',
-            },
-            border: {
-                top: { style: "thin" },
-                bottom: { style: "thin" },
-                left: { style: "thin" },
-                right: { style: "thin" }
+    
+    // 获取所有单元格范围
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    
+    // 遍历所有单元格，设置样式
+    for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+            const cellRef = XLSX.utils.encode_cell({ r, c });
+            if (!ws[cellRef]) ws[cellRef] = { v: '' };
+            
+            // 基础样式：全表垂直居中，水平居中
+            ws[cellRef].s = {
+                alignment: {
+                    vertical: 'center',
+                    horizontal: 'center',
+                    wrapText: true
+                },
+                border: {
+                    top: { style: "thin" },
+                    bottom: { style: "thin" },
+                    left: { style: "thin" },
+                    right: { style: "thin" }
+                }
+            };
+            
+            // 第1-2行表头加粗显示
+            if (r <= 1) {
+                ws[cellRef].s.font = {
+                    bold: true
+                };
             }
-        };
+            
+            // 确保合并单元格的文本内容被正确保留
+            // 对于所有合并区域的左上角单元格，确保文本存在且样式正确
+            ws['!merges'].forEach(merge => {
+                if (r === merge.s.r && c === merge.s.c) {
+                    // 这是合并区域的左上角单元格
+                    // 确保它有值
+                    if (!ws[cellRef].v && ws_data[r][c]) {
+                        ws[cellRef].v = ws_data[r][c];
+                    }
+                    // 合并区域标题加粗
+                    ws[cellRef].s.font = {
+                        bold: true
+                    };
+                }
+            });
+        }
     }
+    
     XLSX.utils.book_append_sheet(wb, ws, "申请表");
     XLSX.writeFile(wb, `索赔单_${data.order_no}_${data.claim_total}.xlsx`);
 }

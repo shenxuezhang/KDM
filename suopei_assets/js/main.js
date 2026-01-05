@@ -2318,8 +2318,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.onbeforeunload = () => isFormDirty ? "您有未保存的内容" : undefined;
     
-    checkSupabaseTableStructure();
-    
     // 注意：不要在 DOMContentLoaded 时加载公告，因为此时视图是隐藏的
     // 公告列表应该在切换到公告视图时通过 trySwitchView 函数加载
     // 如果当前视图是公告视图，则加载公告
