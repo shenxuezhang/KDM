@@ -1093,71 +1093,79 @@
                 </div>
                 <form id="claimForm" class="p-4 md:p-6 space-y-5" oninput="markFormDirty()">
                     
-                    <!-- 1. 客户信息 -->
-                    <div class="form-section section-customer">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
-                            <svg class="section-title-icon w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                            <span>客户信息</span>
-                        </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>客户名称 (公司全称)：</label><input type="text" id="cust_name" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="深圳市信凯源科技有限公司" required></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>联系人：</label><input type="text" id="contact_name" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="沈学章" required></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>联系方式：</label><input type="text" id="contact_info" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="shenxz1989@foxmail.com" required></div>
+                    <!-- 第一行：客户信息和订单信息 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <!-- 1. 客户信息 -->
+                        <div class="form-section section-customer">
+                            <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
+                                <svg class="section-title-icon w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span>客户信息</span>
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>客户名称 (公司全称)：</label><input type="text" id="cust_name" class="form-input" value="深圳市信凯源科技有限公司" required></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>联系人：</label><input type="text" id="contact_name" class="form-input" value="沈学章" required></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>联系方式：</label><input type="text" id="contact_info" class="form-input" value="shenxz1989@foxmail.com" required></div>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- 2. 订单信息 -->
-                    <div class="form-section section-order">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
-                            <svg class="section-title-icon w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span>订单信息</span>
-                        </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>所属店铺：</label><select id="store_by" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required><option value="">请选择</option><option value="XKY">XKY</option><option value="SZ POWCHO【SHEIN】">SZ POWCHO【SHEIN】</option><option value="CRQ">CRQ</option><option value="TEMU Love pin local【XKY】">TEMU Love pin local【XKY】</option><option value="Your love local">Your love local</option><option value="TEMU（Domiciliary local）KDM">TEMU（Domiciliary local）KDM</option><option value="TEMU（Electronically local）KDM">TEMU（Electronically local）KDM</option><option value="CRRQ">CRRQ</option><option value="美半包2店">美半包2店</option><option value="美半包1店">美半包1店</option></select></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>海外仓单号（OBS出库号）：</label><input type="text" id="order_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="系统生成的唯一单号(领星ERP-运单号)"></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>物流运单号：</label><input type="text" id="tracking_no" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="头程/尾程物流单号"></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货日期：</label><input type="date" id="ship_date" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>订单 SKU：</label><input type="text" id="sku" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="货物发货SKU"></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货仓：</label><select id="warehouse" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required><option value="美西-4仓">美西-4仓</option><option value="美西-2仓">美西-2仓</option><option value="美东-4仓">美东-4仓</option><option value="美西-1仓">美西-1仓</option></select></div>
-                        </div>
-                    </div>
-
-                    <!-- 3. 索赔详情 -->
-                    <div class="form-section section-claim">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
-                            <svg class="section-title-icon w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                            <span>索赔详情</span>
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>索赔类型：</label><select id="claim_type" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option>货物损坏</option><option>丢失</option><option>延误</option><option>库存不符</option><option>错发</option><option>发货数量不符</option></select></div>
-                            <div><label class="input-group-label">责任方判定：</label><select id="liable_party" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option>待核实</option><option>海外仓责任</option><option>物流商责任</option><option>客户责任</option></select></div>
-                            <div class="md:col-span-2">
-                                <label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>问题描述：</label>
-                                <textarea id="description" rows="2" class="form-textarea bg-white dark:bg-slate-700 dark:border-slate-600 resize" placeholder="详细说明异常情况（如损坏程度、延误天数等）" required></textarea>
+                        <!-- 2. 订单信息 -->
+                        <div class="form-section section-order">
+                            <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
+                                <svg class="section-title-icon w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>订单信息</span>
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>所属店铺：</label><select id="store_by" class="form-input" required><option value="">请选择</option><option value="XKY">XKY</option><option value="SZ POWCHO【SHEIN】">SZ POWCHO【SHEIN】</option><option value="CRQ">CRQ</option><option value="TEMU Love pin local【XKY】">TEMU Love pin local【XKY】</option><option value="Your love local">Your love local</option><option value="TEMU（Domiciliary local）KDM">TEMU（Domiciliary local）KDM</option><option value="TEMU（Electronically local）KDM">TEMU（Electronically local）KDM</option><option value="CRRQ">CRRQ</option><option value="美半包2店">美半包2店</option><option value="美半包1店">美半包1店</option></select></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>海外仓单号（OBS出库号）：</label><input type="text" id="order_no" class="form-input" required placeholder="系统生成的唯一单号(领星ERP-运单号)"></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>物流运单号：</label><input type="text" id="tracking_no" class="form-input" required placeholder="头程/尾程物流单号"></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货日期：</label><input type="date" id="ship_date" class="form-input" required></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>订单 SKU：</label><input type="text" id="sku" class="form-input" required placeholder="货物发货SKU"></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>发货仓：</label><select id="warehouse" class="form-input" required><option value="美西-4仓">美西-4仓</option><option value="美西-2仓">美西-2仓</option><option value="美东-4仓">美东-4仓</option><option value="美西-1仓">美西-1仓</option></select></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 4. 赔偿计算 -->
-                    <div class="form-section section-compensation">
-                        <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
-                            <svg class="section-title-icon w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                            </svg>
-                            <span>赔偿计算</span>
-                        </h3>
-                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            <div><label class="input-group-label">赔偿币种：</label><select id="currency" class="form-input dark:bg-slate-700 dark:border-slate-600 cursor-pointer bg-white"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="CNY">CNY (¥)</option></select></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>货物声明价值：</label><input type="number" id="val_amount" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="商品采购价或投保价值"></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>索赔数量：</label><input type="number" id="claim_qty" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" required placeholder="需赔付的商品数量"></div>
-                            <div><label class="input-group-label">赔偿比例 (%)：</label><input type="number" id="claim_ratio" class="form-input bg-white dark:bg-slate-700 dark:border-slate-600" value="100" required></div>
-                            <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>总赔偿金额：</label><input type="number" id="claim_total" class="form-input text-emerald-700 font-black text-lg bg-white dark:bg-slate-700 dark:border-slate-600" step="0.01" required placeholder="最高赔偿100USD"></div>
+                    <!-- 第二行：索赔详情和赔偿计算 -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <!-- 3. 索赔详情 -->
+                        <div class="form-section section-claim">
+                            <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
+                                <svg class="section-title-icon w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <span>索赔详情</span>
+                            </h3>
+                            <div class="grid grid-cols-1 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>索赔类型：</label><select id="claim_type" class="form-input"><option>货物损坏</option><option>丢失</option><option>延误</option><option>库存不符</option><option>错发</option><option>发货数量不符</option></select></div>
+                                    <div><label class="input-group-label">责任方判定：</label><select id="liable_party" class="form-input"><option>待核实</option><option>海外仓责任</option><option>物流商责任</option><option>客户责任</option></select></div>
+                                </div>
+                                <div>
+                                    <label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>问题描述：</label>
+                                    <textarea id="description" rows="3" class="form-textarea resize" placeholder="详细说明异常情况（如损坏程度、延误天数等）" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. 赔偿计算 -->
+                        <div class="form-section section-compensation">
+                            <h3 class="section-title flex items-center gap-2 text-lg font-extrabold text-slate-800 dark:text-white">
+                                <svg class="section-title-icon w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                <span>赔偿计算</span>
+                            </h3>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                <div><label class="input-group-label">赔偿币种：</label><select id="currency" class="form-input"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="GBP">GBP (£)</option><option value="CNY">CNY (¥)</option></select></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>货物声明价值：</label><input type="number" id="val_amount" class="form-input" step="0.01" required placeholder="商品采购价或投保价值"></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>索赔数量：</label><input type="number" id="claim_qty" class="form-input" required placeholder="需赔付的商品数量"></div>
+                                <div><label class="input-group-label">赔偿比例 (%)：</label><input type="number" id="claim_ratio" class="form-input" value="100" required></div>
+                                <div><label class="input-group-label"><span class="text-red-600 font-extrabold mr-1">*</span>总赔偿金额：</label><input type="number" id="claim_total" class="form-input" step="0.01" required placeholder="最高赔偿100USD"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -1166,7 +1174,7 @@
                         <div class="glass-card p-4 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
                             <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">证明资料</h3>
                             <label class="input-group-label">附件清单：</label>
-                            <textarea id="attachments" rows="10" class="form-textarea bg-slate-50 dark:bg-slate-700 dark:border-slate-600" placeholder="上传图片/视频/物流凭证（用超链接或标注存储路径）"></textarea>
+                            <textarea id="attachments" rows="10" class="form-textarea" placeholder="上传图片/视频/物流凭证（用超链接或标注存储路径）"></textarea>
                         </div>
 
                         <!-- 截图超链接工具模块 -->
@@ -1225,7 +1233,7 @@
                             <!-- 结果显示 -->
                             <div class="mb-3">
                                 <label class="input-group-label text-xs">图片直链结果：</label>
-                                <textarea id="imageResultLink" rows="3" class="form-textarea bg-white dark:bg-slate-700 dark:border-slate-600 font-mono text-xs" placeholder="上传成功后在此显示链接..." readonly></textarea>
+                                <textarea id="imageResultLink" rows="3" class="form-textarea font-mono text-xs" placeholder="上传成功后在此显示链接..." readonly></textarea>
                             </div>
 
                             <!-- 状态显示 -->
@@ -1237,10 +1245,10 @@
                             <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">处理进度</h3>
                             <div class="space-y-3">
                                 <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="input-group-label">申请提交日期：</label><input type="date" id="entry_date" class="form-input bg-slate-200 dark:bg-slate-700 dark:border-slate-600" readonly></div>
-                                    <div><label class="input-group-label">处理状态：</label><select id="process_status" class="form-input bg-slate-50 font-bold text-blue-600 dark:text-blue-400 dark:bg-slate-700 dark:border-slate-600 cursor-pointer"><option value="待审核">待审核</option><option value="处理中">处理中</option><option value="等待赔付">等待赔付</option><option value="已赔付">已赔付</option><option value="已驳回">已驳回</option></select></div>
+                                    <div><label class="input-group-label">申请提交日期：</label><input type="date" id="entry_date" class="form-input" readonly></div>
+                                    <div><label class="input-group-label">处理状态：</label><select id="process_status" class="form-input"><option value="待审核">待审核</option><option value="处理中">处理中</option><option value="等待赔付">等待赔付</option><option value="已赔付">已赔付</option><option value="已驳回">已驳回</option></select></div>
                                 </div>
-                                <div><label class="input-group-label">备注：</label><input type="text" id="remarks" class="form-input bg-slate-50 dark:bg-slate-700 dark:border-slate-600" placeholder="海外仓填写，客户不填"></div>
+                                <div><label class="input-group-label">备注：</label><input type="text" id="remarks" class="form-input" placeholder="海外仓填写，客户不填"></div>
                             </div>
                         </div>
                     </div>
@@ -1253,8 +1261,8 @@
         </section>
 
         <!-- 视图二：数据列表 -->
-        <section id="view-data" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fade-up">
+        <section id="view-data" class="hidden space-y-4">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 animate-fade-up">
                 <!-- 统计卡片 -->
                 <div class="glass-card p-5 flex flex-col justify-center gap-4 lg:col-span-1">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
@@ -1277,54 +1285,7 @@
                 </div>
             </div>
 
-            <header id="top-bar" class="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                <div class="flex gap-2">
-                    <button onclick="copyToWeChat()" class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group">
-                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M8.5,13.5A1.5,1.5 0 1,1 10,12A1.5,1.5 0 0,1 8.5,13.5M15.5,13.5A1.5,1.5 0 1,1 17,12A1.5,1.5 0 0,1 15.5,13.5M12,2C6.48,2 2,5.58 2,10C2,12.63 3.65,14.95 6.18,16.29C6.03,17.29 5.67,19.34 5.67,19.34C5.67,19.34 7.67,19.12 9.77,17.65C10.5,17.88 11.24,18 12,18C17.52,18 22,14.42 22,10C22,5.58 17.52,2 12,2Z"/></svg>
-                        复制微信格式
-                    </button>
-                    <button 
-                        onclick="openSubmitFormModal()"
-                        class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group"
-                    >
-                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        提交表格
-                    </button>
-                    <button onclick="exportFilteredData()" class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group">
-                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                        导出全量数据
-                    </button>
-                    <button onclick="downloadImportTemplate()" class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group">
-                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        下载格式范本
-                    </button>
-                    <label for="importFileInput" class="h-12 px-5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium text-sm group cursor-pointer">
-                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                        </svg>
-                        导入数据
-                    </label>
-                    <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleImportFile(event)">
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">海外物流查询官网：</span>
-                    <button onclick="openLogisticsModal('GOFO')" class="h-10 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-bold flex-shrink-0">
-                        GOFO
-                    </button>
-                    <button onclick="openLogisticsModal('UNINI')" class="h-10 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-bold flex-shrink-0">
-                        UNINI
-                    </button>
-                    <button onclick="openLogisticsModal('USPS')" class="h-10 px-4 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-sm font-bold flex-shrink-0">
-                        USPS
-                    </button>
-                </div>
-            </header>
-
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mt-4 transition-all">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mt-3 transition-all">
                 <div class="p-2 md:p-3 flex flex-col gap-3 md:gap-4 border-b border-slate-100 dark:border-slate-700">
                     <div class="flex items-center gap-2 md:gap-3 flex-wrap">
                         <div class="flex flex-wrap gap-2 shrink-0">
@@ -1401,6 +1362,40 @@
                         </div>
                         
                         <div class="flex items-center gap-2 shrink-0">
+                            <select id="quickFilterStoreBy" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[140px]">
+                                <option value="">全部店铺</option>
+                                <option value="XKY">XKY</option>
+                                <option value="SZ POWCHO【SHEIN】">SZ POWCHO【SHEIN】</option>
+                                <option value="CRQ">CRQ</option>
+                                <option value="TEMU Love pin local【XKY】">TEMU Love pin local【XKY】</option>
+                                <option value="Your love local">Your love local</option>
+                                <option value="TEMU（Domiciliary local）KDM">TEMU（Domiciliary local）KDM</option>
+                                <option value="TEMU（Electronically local）KDM">TEMU（Electronically local）KDM</option>
+                                <option value="CRRQ">CRRQ</option>
+                                <option value="美半包2店">美半包2店</option>
+                                <option value="美半包1店">美半包1店</option>
+                            </select>
+                            
+                            <select id="quickFilterWarehouse" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[100px]">
+                                <option value="">全部仓库</option>
+                                <option value="美西-4仓">美西-4仓</option>
+                                <option value="美西-2仓">美西-2仓</option>
+                                <option value="美东-4仓">美东-4仓</option>
+                                <option value="美西-1仓">美西-1仓</option>
+                            </select>
+                            
+                            <select id="quickFilterClaimType" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[120px]">
+                                <option value="">全部类型</option>
+                                <option value="货物损坏">货物损坏</option>
+                                <option value="丢失">丢失</option>
+                                <option value="延误">延误</option>
+                                <option value="库存不符">库存不符</option>
+                                <option value="错发">错发</option>
+                                <option value="发货数量不符">发货数量不符</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 shrink-0">
                             <button onclick="handleQuickSearch()" class="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95 whitespace-nowrap">
                                 搜索
                             </button>
@@ -1414,51 +1409,50 @@
                         </div>
                     </div>
                     
-                    <div class="flex flex-wrap items-center gap-2 lg:gap-2">
-                        <select id="quickFilterStoreBy" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[140px]">
-                            <option value="">全部店铺</option>
-                            <option value="XKY">XKY</option>
-                            <option value="SZ POWCHO【SHEIN】">SZ POWCHO【SHEIN】</option>
-                            <option value="CRQ">CRQ</option>
-                            <option value="TEMU Love pin local【XKY】">TEMU Love pin local【XKY】</option>
-                            <option value="Your love local">Your love local</option>
-                            <option value="TEMU（Domiciliary local）KDM">TEMU（Domiciliary local）KDM</option>
-                            <option value="TEMU（Electronically local）KDM">TEMU（Electronically local）KDM</option>
-                            <option value="CRRQ">CRRQ</option>
-                            <option value="美半包2店">美半包2店</option>
-                            <option value="美半包1店">美半包1店</option>
-                        </select>
-                        
-                        <select id="quickFilterWarehouse" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[100px]">
-                            <option value="">全部仓库</option>
-                            <option value="美西-4仓">美西-4仓</option>
-                            <option value="美西-2仓">美西-2仓</option>
-                            <option value="美东-4仓">美东-4仓</option>
-                            <option value="美西-1仓">美西-1仓</option>
-                        </select>
-                        
-                        <select id="quickFilterClaimType" class="px-2.5 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm cursor-pointer text-slate-900 dark:text-slate-100 h-9 min-w-[120px]">
-                            <option value="">全部类型</option>
-                            <option value="货物损坏">货物损坏</option>
-                            <option value="丢失">丢失</option>
-                            <option value="延误">延误</option>
-                            <option value="库存不符">库存不符</option>
-                            <option value="错发">错发</option>
-                            <option value="发货数量不符">发货数量不符</option>
-                        </select>
-                        
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">发货日期：</span>
-                            <input id="quickFilterShipDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
-                            <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
-                            <input id="quickFilterShipDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                    <div class="flex flex-wrap items-center gap-2 lg:gap-2 justify-between w-full">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button onclick="copyToWeChat()" class="h-9 px-4 bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-lg border-0 shadow-md hover:shadow-lg hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-800 transition-all duration-200 flex items-center gap-2 text-white font-medium text-xs group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24"><path d="M8.5,13.5A1.5,1.5 0 1,1 10,12A1.5,1.5 0 0,1 8.5,13.5M15.5,13.5A1.5,1.5 0 1,1 17,12A1.5,1.5 0 0,1 15.5,13.5M12,2C6.48,2 2,5.58 2,10C2,12.63 3.65,14.95 6.18,16.29C6.03,17.29 5.67,19.34 5.67,19.34C5.67,19.34 7.67,19.12 9.77,17.65C10.5,17.88 11.24,18 12,18C17.52,18 22,14.42 22,10C22,5.58 17.52,2 12,2Z"/></svg>
+                                复制微信格式
+                            </button>
+                            <button 
+                                onclick="openSubmitFormModal()"
+                                class="h-9 px-4 bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 rounded-lg border-0 shadow-md hover:shadow-lg hover:from-green-600 hover:to-green-700 dark:hover:from-green-700 dark:hover:to-green-800 transition-all duration-200 flex items-center gap-2 text-white font-medium text-xs group"
+                            >
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                提交表格
+                            </button>
+                            
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">发货日期：</span>
+                                <input id="quickFilterShipDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                                <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
+                                <input id="quickFilterShipDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                            </div>
+                            
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">申请日期：</span>
+                                <input id="quickFilterEntryDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                                <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
+                                <input id="quickFilterEntryDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                            </div>
                         </div>
                         
-                        <div class="flex items-center gap-1 flex-wrap">
-                            <span class="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">申请日期：</span>
-                            <input id="quickFilterEntryDateStart" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
-                            <span class="text-xs text-slate-500 dark:text-slate-400">至</span>
-                            <input id="quickFilterEntryDateEnd" type="date" class="px-2 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-slate-900 dark:text-slate-100 h-9 w-28 sm:w-32">
+                        <div class="flex items-center gap-2 flex-wrap ml-auto">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">海外物流查询官网：</span>
+                                <button onclick="openLogisticsModal('GOFO')" class="h-9 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-bold flex-shrink-0">
+                                    GOFO
+                                </button>
+                                <button onclick="openLogisticsModal('UNINI')" class="h-9 px-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-xs font-bold flex-shrink-0">
+                                    UNINI
+                                </button>
+                                <button onclick="openLogisticsModal('USPS')" class="h-9 px-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition text-xs font-bold flex-shrink-0">
+                                    USPS
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1483,6 +1477,24 @@
                         </button>
                         
                         <button onclick="toggleColumnModal()" class="text-sm text-blue-600 font-bold hover:underline">自定义列</button>
+                        
+                        <button onclick="exportFilteredData()" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 transition-all flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                            导出全量数据
+                        </button>
+                        <button onclick="downloadImportTemplate()" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 transition-all flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            下载格式范本
+                        </button>
+                        <label for="importFileInput" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            导入数据
+                        </label>
+                        <input type="file" id="importFileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleImportFile(event)">
                     </div>
                 </div>
                 <div class="table-container overflow-x-auto custom-scrollbar flex-1 relative pb-24">
@@ -3737,18 +3749,17 @@
          */
         
         /**
-         * 【状态筛选按钮样式改造】获取各状态的统计数量
+         * 更新状态统计数量
+         * 查询所有记录的process_status字段，在客户端统计各状态数量
          */
         async function updateStatusCounts() {
             if (!supabaseClient) return;
             
             try {
-                // 优化：将多个请求合并为一个请求，减少请求数量
-                // 使用count()和groupBy()获取所有状态的统计数据
+                // 查询所有记录的process_status字段（只查询该字段，减少数据传输）
                 const { data, error } = await supabaseClient
                     .from('claims_v2')
-                    .select('process_status, count()', { count: 'exact' })
-                    .group('process_status');
+                    .select('process_status');
                 
                 if (error) throw error;
                 
@@ -3761,15 +3772,19 @@
                     '已驳回': 'rejected'
                 };
                 
+                // 统计各状态数量
                 const statusCounts = {};
                 let totalCount = 0;
                 
-                // 计算各状态数量和总数量
-                data.forEach(item => {
-                    const count = parseInt(item.count, 10);
-                    statusCounts[item.process_status] = count;
-                    totalCount += count;
-                });
+                if (data && Array.isArray(data)) {
+                    data.forEach(item => {
+                        const status = item.process_status;
+                        if (status) {
+                            statusCounts[status] = (statusCounts[status] || 0) + 1;
+                            totalCount++;
+                        }
+                    });
+                }
                 
                 // 更新"全部"按钮的统计
                 const allCountEl = document.getElementById('count-all');
@@ -3787,7 +3802,28 @@
                     }
                 }
             } catch (error) {
-                // 如果获取失败，显示0或保持原值
+                console.error('更新状态统计失败:', error);
+                // 如果获取失败，将所有统计显示为0
+                const statusMap = {
+                    '待审核': 'pending',
+                    '处理中': 'processing', 
+                    '等待赔付': 'waiting',
+                    '已赔付': 'paid',
+                    '已驳回': 'rejected'
+                };
+                
+                const allCountEl = document.getElementById('count-all');
+                if (allCountEl) {
+                    allCountEl.textContent = '(0)';
+                }
+                
+                for (const [status, key] of Object.entries(statusMap)) {
+                    const countId = `count-${key}`;
+                    const countEl = document.getElementById(countId);
+                    if (countEl) {
+                        countEl.textContent = '(0)';
+                    }
+                }
             }
         }
         function getStatusBadge(status) {

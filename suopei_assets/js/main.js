@@ -1684,6 +1684,7 @@ async function processEntry() {
     if (editingId) {
         const index = database.findIndex(i => i.id === editingId);
         if (index !== -1) {
+            const oldStatus = database[index].process_status;
             database[index] = record;
             await updateDataInSupabase(editingId, record);
             localStorage.setItem('wh_claims_db_pro', JSON.stringify(database));
@@ -1693,6 +1694,12 @@ async function processEntry() {
             
             fetchTableData();
             renderKanban();
+            
+            // 如果状态发生变化，更新状态统计
+            if (oldStatus !== record.process_status && typeof updateStatusCounts === 'function') {
+                updateStatusCounts();
+            }
+            
             showToast('数据修改已保存', 'success');
             cancelEditMode();
             return;
@@ -1707,6 +1714,12 @@ async function processEntry() {
         
         fetchTableData();
         renderKanban();
+        
+        // 新增数据后，更新状态统计
+        if (typeof updateStatusCounts === 'function') {
+            updateStatusCounts();
+        }
+        
         showToast('提交成功', 'success');
         
         isFormDirty = false;
@@ -2208,6 +2221,12 @@ async function deleteRowById(id) {
             renderKanban();
             fetchTableData();
         }
+        
+        // 删除后，更新状态统计
+        if (typeof updateStatusCounts === 'function') {
+            updateStatusCounts();
+        }
+        
         showToast('记录已删除', 'error');
     }
 }

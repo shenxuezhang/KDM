@@ -312,6 +312,11 @@ async function updateStatus(newStatus) {
             fetchTableData(false, true, null, true);
         }
         
+        // 状态更新后，更新状态统计
+        if (typeof updateStatusCounts === 'function') {
+            updateStatusCounts();
+        }
+        
         showToast(`状态更新为：${newStatus}`, 'info');
     }
     closeStatusModal();

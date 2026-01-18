@@ -326,6 +326,11 @@ class RealtimeSubscriptionManager {
                 } else if (typeof fetchTableData === 'function') {
                     fetchTableData(false, true);
                 }
+                
+                // 实时同步后，更新状态统计
+                if (typeof updateStatusCounts === 'function') {
+                    updateStatusCounts();
+                }
             }
         }, delay);
     }

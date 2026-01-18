@@ -165,7 +165,7 @@ body {
     color: #cbd5e1;
 }
 
-/* 输入框模式适配 */
+/* 输入框模式适配 - 简约统一风格 */
 .form-input, .form-textarea, select.form-input {
     color: #1e293b;
     width: 100%;
@@ -175,6 +175,7 @@ body {
     font-size: 0.875rem;
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    background-color: #ffffff;
 }
 .form-input::placeholder, .form-textarea::placeholder {
     color: #9ca3af;
@@ -185,20 +186,19 @@ body {
     opacity: 0.3;
 }
 .form-input:hover, .form-textarea:hover, select.form-input:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    border-color: #9ca3af;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
 }
 .form-input:focus, .form-textarea:focus, select.form-input:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: scale(1.01);
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.08);
 }
 .form-input:invalid:not(:placeholder-shown), 
 .form-textarea:invalid:not(:placeholder-shown), 
 select.form-input:invalid:not(:placeholder-shown) {
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    border-color: #d1d5db;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 .form-input:disabled, .form-textarea:disabled, select.form-input:disabled {
     background-color: #f3f4f6;
@@ -214,27 +214,31 @@ select.form-input:invalid:not(:placeholder-shown) {
 .dark .form-input:hover, .dark .form-textarea:hover, .dark select.form-input:hover {
     border-color: #64748b;
 }
+.dark .form-input:hover, .dark .form-textarea:hover, .dark select.form-input:hover {
+    border-color: #64748b;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+}
 .dark .form-input:focus, .dark .form-textarea:focus, .dark select.form-input:focus {
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    border-color: #64748b;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
 }
 .dark .form-input:invalid:not(:placeholder-shown),
 .dark .form-textarea:invalid:not(:placeholder-shown),
 .dark select.form-input:invalid:not(:placeholder-shown) {
-    border-color: #f87171;
-    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+    border-color: #475569;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
 }
 .form-input:valid:not(:placeholder-shown):not([value=""]),
 .form-textarea:valid:not(:placeholder-shown):not([value=""]),
 select.form-input:valid:not([value=""]) {
-    border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    border-color: #d1d5db;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 .dark .form-input:valid:not(:placeholder-shown):not([value=""]),
 .dark .form-textarea:valid:not(:placeholder-shown):not([value=""]),
 .dark select.form-input:valid:not([value=""]) {
-    border-color: #34d399;
-    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
+    border-color: #475569;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
 }
 .dark .form-input:disabled, .dark .form-textarea:disabled, .dark select.form-input:disabled {
     background-color: #1e293b;
@@ -275,15 +279,6 @@ select option {
     font-weight: 500;
 }
 
-/* 总赔偿金额输入框的placeholder样式 */
-#claim_total::placeholder {
-    color: #ef4444;
-    opacity: 0.5;
-}
-.dark #claim_total::placeholder {
-    color: #f87171;
-    opacity: 0.5;
-}
 
 /* 图片光标 */
 .cursor-zoom-in { cursor: zoom-in; }
