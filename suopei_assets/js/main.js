@@ -18,6 +18,7 @@ const ListState = {
         search: '',              // 搜索关键词
         searchMode: 'fuzzy',     // 搜索模式：fuzzy（模糊）或 exact（精确）
         searchField: 'order_tracking_sku',
+        batchSearch: null,       // 批量搜索关键词数组
         advancedSearch: null
     },
     sorting: {

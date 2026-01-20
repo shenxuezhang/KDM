@@ -292,6 +292,7 @@ function clearCacheByFilters(filters) {
             search: filters.search,
             searchMode: filters.searchMode,
             searchField: filters.searchField,
+            batchSearch: filters.batchSearch,
             advancedFilters: filters.advancedFilters
         });
         
@@ -306,6 +307,7 @@ function clearCacheByFilters(filters) {
                     search: cachedKey.search,
                     searchMode: cachedKey.searchMode,
                     searchField: cachedKey.searchField,
+                    batchSearch: cachedKey.batchSearch,
                     advancedFilters: cachedKey.advancedFilters
                 });
                 
@@ -552,7 +554,11 @@ async function fetchTableData(append = false, forceRefresh = false, page = null,
             query = applyAdvancedFilters(query, ListState.filters.advancedFilters);
         }
         
-        if (ListState.filters.search && ListState.filters.search.trim()) {
+        // 检查是否有搜索条件（普通搜索或批量搜索）
+        const hasSearch = ListState.filters.search && ListState.filters.search.trim();
+        const hasBatchSearch = ListState.filters.batchSearch && Array.isArray(ListState.filters.batchSearch) && ListState.filters.batchSearch.length > 0;
+        
+        if (hasSearch || hasBatchSearch) {
             query = applySearchConditions(query, ListState.filters);
         }
 
@@ -666,7 +672,83 @@ function getRequiredFieldsForVisibleColumns() {
  * @returns {Object} 修改后的查询对象
  */
 function applySearchConditions(query, filters) {
-    const searchTerm = filters.search.trim();
+    // 优先处理批量搜索
+    if (filters.batchSearch && Array.isArray(filters.batchSearch) && filters.batchSearch.length > 0) {
+        const searchField = filters.searchField || 'order_tracking_sku';
+        let fieldsToSearch = [];
+        
+        if (searchField === 'order_tracking_sku') {
+            fieldsToSearch = ['order_no', 'tracking_no', 'sku'];
+        } else if (searchField === 'all') {
+            const fieldMap = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
+                window.SEARCH_FIELD_MAP : 
+                (typeof SEARCH_FIELD_MAP !== 'undefined' ? SEARCH_FIELD_MAP : {});
+            fieldsToSearch = Object.keys(fieldMap).filter(key => {
+                const config = fieldMap[key];
+                return config.searchable && config.type !== 'date';
+            });
+        } else {
+            const fieldMap = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
+                window.SEARCH_FIELD_MAP : 
+                (typeof SEARCH_FIELD_MAP !== 'undefined' ? SEARCH_FIELD_MAP : {});
+            const fieldConfig = fieldMap[searchField];
+            if (fieldConfig && fieldConfig.type !== 'date') {
+                fieldsToSearch = [searchField];
+            }
+        }
+        
+        if (fieldsToSearch.length === 0) {
+            return query;
+        }
+        
+        // 批量搜索：每个关键词匹配任意字段，多个关键词之间是OR关系
+        const allBatchConditions = [];
+        
+        filters.batchSearch.forEach(keyword => {
+            const trimmedKeyword = keyword.trim();
+            if (!trimmedKeyword) return;
+            
+            // 对每个关键词，在指定字段中搜索
+            const keywordConditions = fieldsToSearch.map(field => {
+                const fieldConfig = (typeof window !== 'undefined' && window.SEARCH_FIELD_MAP) ? 
+                    window.SEARCH_FIELD_MAP[field] : null;
+                
+                if (fieldConfig && fieldConfig.type === 'date') {
+                    return null;
+                }
+                
+                if (fieldConfig && fieldConfig.type === 'number') {
+                    const numValue = parseFloat(trimmedKeyword);
+                    if (!isNaN(numValue)) {
+                        return `${field}.eq.${numValue}`;
+                    }
+                    return null;
+                }
+                
+                // 批量搜索使用精确匹配（根据UI提示"精确搜索"）
+                return `${field}.eq.${trimmedKeyword}`;
+            }).filter(condition => condition !== null);
+            
+            // 每个关键词的多个字段条件用OR连接
+            if (keywordConditions.length > 0) {
+                allBatchConditions.push(keywordConditions.join(','));
+            }
+        });
+        
+        // 多个关键词之间用OR连接（匹配任意一个关键词即可）
+        if (allBatchConditions.length > 0) {
+            query = query.or(allBatchConditions.join(','));
+        }
+        
+        return query;
+    }
+    
+    // 普通搜索逻辑
+    const searchTerm = filters.search ? filters.search.trim() : '';
+    if (!searchTerm) {
+        return query;
+    }
+    
     const searchMode = filters.searchMode || 'fuzzy';
     const searchField = filters.searchField || 'all';
     

@@ -643,6 +643,8 @@ function clearSearch() {
     ListState.filters.search = '';
     // 【清理】advancedSearch 已废弃，但保留清空操作以确保兼容性
     ListState.filters.advancedSearch = null;
+    // 清空批量搜索
+    ListState.filters.batchSearch = null;
     
     // 隐藏清除按钮
     const clearBtn = document.getElementById('searchClearBtn');
@@ -687,10 +689,18 @@ function updateSearchResultHint() {
     const hint = document.getElementById('searchResultHint');
     if (!hint) return;
     
-    // 【清理】只检查简单搜索，不再检查已删除的 advancedSearch
+    // 检查批量搜索
+    const hasBatchSearch = ListState.filters.batchSearch && Array.isArray(ListState.filters.batchSearch) && ListState.filters.batchSearch.length > 0;
+    // 检查普通搜索
     const hasSearch = ListState.filters.search && ListState.filters.search.trim();
     
-    if (hasSearch && ListState.totalCount !== undefined) {
+    if (hasBatchSearch && ListState.totalCount !== undefined) {
+        const keywordCount = ListState.filters.batchSearch.length;
+        const keywordsText = ListState.filters.batchSearch.slice(0, 3).join('、');
+        const moreText = keywordCount > 3 ? `等${keywordCount}个关键词` : '';
+        hint.innerHTML = `🔍 批量搜索 <span class="font-bold text-blue-600 dark:text-blue-400">${keywordsText}${moreText}</span> - 找到 <span class="font-bold text-emerald-600 dark:text-emerald-400">${ListState.totalCount}</span> 条结果`;
+        hint.classList.remove('hidden');
+    } else if (hasSearch && ListState.totalCount !== undefined) {
         const searchMode = ListState.filters.searchMode === 'exact' ? '精确' : '模糊';
         const searchText = ListState.filters.search;
         hint.innerHTML = `🔍 <span class="font-bold text-blue-600 dark:text-blue-400">${searchText}</span> (${searchMode}搜索) - 找到 <span class="font-bold text-emerald-600 dark:text-emerald-400">${ListState.totalCount}</span> 条结果`;
